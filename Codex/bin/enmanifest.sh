@@ -12,7 +12,7 @@ CERTIFICATE="./codex.crt"
 while getopts "hk:o:s:" OPT; do
 	case ${OPT} in
 	h)
-		echo "usage: ${ZERO} [ -k PRIVATEKEY.pem ] [ -o MANIFEST.dat ] [ -s CERTIFICATE.crt ] [ -- FILE ... ]" 1>&2
+		echo "usage: ${ZERO} [ -k PRIVATEKEY.pem ] [ -o MANIFEST.dat ] [ -s CERTIFICATE.crt ] -- FILE ..." 1>&2
 		exit 0
 		;;
 	k)

@@ -10,7 +10,7 @@ MANIFEST="./codex.dat"
 CLEARTEXT=""
 TEMPTEXT=""
 
-while getopts "c:hi:o:" OPT; do
+while getopts "c:hi:o:t:" OPT; do
 	case ${OPT} in
 	c)
 		CERTIFICATE="${OPTARG}"
@@ -24,6 +24,9 @@ while getopts "c:hi:o:" OPT; do
 		;;
 	o)
 		CLEARTEXT="${OPTARG}"
+		;;
+	t)
+		TEMPTEXT="${OPTARG}"
 		;;
 	esac
 done
