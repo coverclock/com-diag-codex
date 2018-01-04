@@ -2,6 +2,9 @@
 # vi: set ts=4:
 # Copyright 2018 Digital Aggregates Corporation.
 # Licensed under the terms in LICENSE.txt.
+# ABSTRACT
+# Generate a self-signed manifest containing the checksums
+# of the files in the specified payload.
 
 ZERO=$(basename $0 .sh)
 

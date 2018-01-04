@@ -2,6 +2,9 @@
 # vi: set ts=4:
 # Copyright 2018 Digital Aggregates Corporation.
 # Licensed under the terms in LICENSE.txt.
+# ABSTRACT
+# Unpack a signed manifest and verify the checksums
+# therein against the actual files in the payload.
 
 ZERO=$(basename $0 .sh)
 

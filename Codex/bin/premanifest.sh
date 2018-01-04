@@ -1,8 +1,11 @@
-
 #/bin/bash
 # vi: set ts=4:
 # Copyright 2018 Digital Aggregates Corporation.
 # Licensed under the terms in LICENSE.txt.
+# ABSTRACT
+# Generate the self-signed certificate and private key
+# necessary for use with generating and verifying a
+# manifest.
 
 ZERO=$(basename $0 .sh)
 
