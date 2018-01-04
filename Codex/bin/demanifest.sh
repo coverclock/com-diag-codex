@@ -15,7 +15,7 @@ while getopts "c:hi:o:" OPT; do
 		CERTIFICATE="-c ${OPTARG}"
 		;;
 	h)
-		echo "usage: ${ZERO} [ -c CERTIFICATE ] [ -i MANIFEST ] [ -o CLEARTEXT ] [ -- FILE ... ]" 1>&2
+		echo "usage: ${ZERO} [ -c CERTIFICATE.crt ] [ -i MANIFEST.dat ] [ -o CLEARTEXT.txt ]" 1>&2
 		;;
 	i)
 		MANIFEST="${OPTARG}"
