@@ -21,6 +21,7 @@ while getopts "c:d:hk:" OPT; do
 		;;
 	h)
 		echo "usage: ${ZERO}  [ -c CERTIFICATE.crt ] [ -d EXPIRATION ] [ -k PRIVATEKEY.pem ]" 1>&2
+		exit 0
 		;;
 	k)
 		PRIVATEKEY="${OPTARG}"

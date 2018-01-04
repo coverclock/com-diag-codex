@@ -12,10 +12,11 @@ CERTIFICATE=""
 while getopts "c:hi:o:" OPT; do
 	case ${OPT} in
 	c)
-		CERTIFICATE="-c ${OPTARG}"
+		CERTIFICATE="-certfile ${OPTARG}"
 		;;
 	h)
 		echo "usage: ${ZERO} [ -c CERTIFICATE.crt ] [ -i MANIFEST.dat ] [ -o CLEARTEXT.txt ]" 1>&2
+		exit 0
 		;;
 	i)
 		MANIFEST="${OPTARG}"
