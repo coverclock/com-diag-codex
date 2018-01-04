@@ -5,6 +5,14 @@
 # ABSTRACT
 # Generate a self-signed manifest containing the checksums
 # of the files in the specified payload.
+# EXIT
+#	Returns with exit 0 if successful, >0 otherwise.
+# INPUTS
+#	PRIVATEKEY.pem
+#	CERTIFICATE.crt
+#	FILE [ FILE ... ]
+# OUTPUTS
+#	MANIFEST.dat
 
 ZERO=$(basename $0 .sh)
 
@@ -15,7 +23,7 @@ CERTIFICATE="./codex.crt"
 while getopts "hk:o:s:" OPT; do
 	case ${OPT} in
 	h)
-		echo "usage: ${ZERO} [ -k PRIVATEKEY.pem ] [ -o MANIFEST.dat ] [ -s CERTIFICATE.crt ] -- FILE ..." 1>&2
+		echo "usage: ${ZERO} [ -k PRIVATEKEY.pem ] [ -o MANIFEST.dat ] [ -s CERTIFICATE.crt ] -- FILE [ FILE ... ]" 1>&2
 		exit 0
 		;;
 	k)

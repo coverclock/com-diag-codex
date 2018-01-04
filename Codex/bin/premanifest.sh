@@ -6,6 +6,14 @@
 # Generate the self-signed certificate and private key
 # necessary for use with generating and verifying a
 # manifest.
+# EXIT
+#	Returns with exit 0 if successful, >0 otherwise.
+# INPUTS
+#	CONFIGURATION.cnf (optional)
+#	EXPIRATION (in days)
+# OUTPUTS
+#	PRIVATEKEY.pem
+#	CERTIFICATE.crt
 
 ZERO=$(basename $0 .sh)
 

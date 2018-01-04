@@ -5,6 +5,14 @@
 # ABSTRACT
 # Unpack a signed manifest and verify the checksums
 # therein against the actual files in the payload.
+# EXIT
+#	Returns with exit 0 if validated, >0 otherwise.
+# INPUTS
+#	CERTIFICATE.crt
+#	MANIFEST.dat
+# OUTPUTS
+#	CLEARTEXT.txt (optional)
+#	TEMPTEXT.txt (optional)
 
 ZERO=$(basename $0 .sh)
 
