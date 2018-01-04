@@ -5,9 +5,9 @@
 
 ZERO=$(basename $0 .sh)
 
-PRIVATEKEY=""
-MANIFEST="./Manifest.dat"
-CERTIFICATE=""
+PRIVATEKEY="./codex.pem"
+MANIFEST="./codex.dat"
+CERTIFICATE="./codex.crt"
 
 while getopts "hk:o:s:" OPT; do
 	case ${OPT} in
@@ -16,19 +16,19 @@ while getopts "hk:o:s:" OPT; do
 		exit 0
 		;;
 	k)
-		PRIVATEKEY="${PRIVATEKEY} -inkey ${OPTARG}"
+		PRIVATEKEY="${OPTARG}"
 		;;
 	o)
 		MANIFEST="${OPTARG}"
 		;;
 	s)
-		CERTIFICATE="${CERTIFICATE} -signer ${OPTARG}"
+		CERTIFICATE="${OPTARG}"
 		;;
 	esac
 done
 
 shift $((OPTIND - 1))
 
-sha1sum "${@}" | eval openssl smime -nocerts -sign ${PRIVATEKEY} ${CERTIFICATE} -out ${MANIFEST} || exit 2
+sha1sum "${@}" | eval openssl smime -nocerts -sign -inkey ${PRIVATEKEY} -signer ${CERTIFICATE} -out ${MANIFEST} || exit 2
 
 exit 0

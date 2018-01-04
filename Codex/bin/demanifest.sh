@@ -5,17 +5,18 @@
 
 ZERO=$(basename $0 .sh)
 
-MANIFEST="./Manifest.dat"
+CERTIFICATE="./codex.crt"
+MANIFEST="./codex.dat"
 CLEARTEXT=""
-CERTIFICATE=""
+TEMPTEXT=""
 
 while getopts "c:hi:o:" OPT; do
 	case ${OPT} in
 	c)
-		CERTIFICATE="-certfile ${OPTARG}"
+		CERTIFICATE="${OPTARG}"
 		;;
 	h)
-		echo "usage: ${ZERO} [ -c CERTIFICATE.crt ] [ -i MANIFEST.dat ] [ -o CLEARTEXT.txt ]" 1>&2
+		echo "usage: ${ZERO} [ -c CERTIFICATE.crt ] [ -i MANIFEST.dat ] [ -o CLEARTEXT.txt ] [ -t TEMPTEXT.txt ]" 1>&2
 		exit 0
 		;;
 	i)
@@ -29,13 +30,24 @@ done
 
 shift $((OPTIND - 1))
 
-if [[ -z "${CLEARTEXT}" ]]; then
-	CLEARTEXT=$(mktemp ${TMPDIR:="/tmp"}/${ZERO}.XXXXXXXXXX)
-	trap "rm -f ${CLEARTEXT}" HUP INT TERM EXIT
+TEMPFILES=""
+
+if [[ -z "${TEMPTEXT}" ]]; then
+	TEMPTEXT=$(mktemp ${TMPDIR:="/tmp"}/${ZERO}.XXXXXXXXXX)
+	TEMPFILES="${TEMPFILES} ${TEMPTEXT}"
 fi
 
-eval openssl smime -verify -in ${MANIFEST} -out ${CLEARTEXT} ${CERTIFICATE} -noverify || exit 2
-sed -i -e 's/\r//g' ${CLEARTEXT} || exit 3
+if [[ -z "${CLEARTEXT}" ]]; then
+	CLEARTEXT=$(mktemp ${TMPDIR:="/tmp"}/${ZERO}.XXXXXXXXXX)
+	TEMPFILES="${TEMPFILES} ${CLEARTEXT}"
+fi
+
+if [[ -n "${TEMPFILES}" ]]; then
+	trap "rm -f ${TEMPFILES}" HUP INT TERM EXIT
+fi
+
+eval openssl smime -verify -in ${MANIFEST} -out ${TEMPTEXT} -certfile ${CERTIFICATE} -noverify || exit 2
+sed -e 's/\r//g' < ${TEMPTEXT} > ${CLEARTEXT} || exit 3
 sha1sum -c ${CLEARTEXT} || exit 4
 
 exit 0
