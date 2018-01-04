@@ -10,7 +10,7 @@
 ZERO=$(basename $0 .sh)
 
 CERTIFICATE="codex.crt"
-CONFIGURATION="codex.cnf"
+CONFIGURATION=""
 EXPIRATION="3653"
 PRIVATEKEY="codex.pem"
 
@@ -37,10 +37,10 @@ done
 
 shift $((OPTIND - 1))
 
-if [[ -r ${CONFIGURATION} ]]; then
+if [[ -n "${CONFIGURATION}" ]]; then
 	openssl req -x509 -newkey rsa:4096 -nodes -config ${CONFIGURATION} -keyout ${PRIVATEKEY} -out ${CERTIFICATE} -days ${EXPIRATION} || exit 2
 else
-	openssl req -x509 -newkey rsa:4096 -nodes -keyout ${PRIVATEKEY} -out ${CERTIFICATE} -days ${EXPIRATION} || exit 2
+	openssl req -x509 -newkey rsa:4096 -nodes -keyout ${PRIVATEKEY} -out ${CERTIFICATE} -days ${EXPIRATION} || exit 3
 fi
 
 exit 0
