@@ -1,6 +1,6 @@
 # vi: set ts=4 shiftwidth=4:
 # Copyright 2018 Digital Aggregates Corporation
-# Licensed under the terms in README.h
+# Licensed under the terms in LICENSE.txt
 # author:Chip Overclock
 # mailto:coverclock@diag.com
 # https://github.com/coverclock/com-diag-codex
@@ -149,7 +149,7 @@ STRIP				:=	$(CROSS_COMPILE)strip
 
 CDEFINES			:=
 
-LDLIBRARIES			:=	-lopenssl
+LDLIBRARIES			:=	-lssl
 
 ARFLAGS				:=	crsv
 CPPFLAGS			:=	$(CDEFINES) -iquote $(SRC_DIR) -iquote $(INC_DIR) -iquote $(OUT)/$(INC_DIR) $(DIMINUTO_CPPFLAGS) $(CPPARCH)
