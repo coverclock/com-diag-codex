@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Learning how to use the Open Secure Socket Layer (openssl) API.
+Learning how to use the Open Secure Socket Layer (OpenSSL) API.
 
 ## Copyright
 
@@ -16,10 +16,10 @@ Licensed under the terms in LICENSE.txt.
 
 OpenSSL, documentation, <https://www.openssl.org/docs/>
 
-J. Viega, M. Messier, P. Chandra, Network Security with OpenSSL, O'Reilly, 2002
+J. Viega, M. Messier, P. Chandra, _Network Security with OpenSSL_, O'Reilly, 2002
 
-J. Viega, M. Messier, Secure Programming Cookbook,, O'Reilly, 2003
+J. Viega, M. Messier, _Secure Programming Cookbook_, O'Reilly, 2003
 
-D. Barrett, R. Silverman, R. Byrnes, SSH, The Secure Shell, 2nd ed., O'Reilly, 2005
+D. Barrett, R. Silverman, R. Byrnes, _SSH, The Secure Shell_, 2nd ed., O'Reilly, 2005
 
-Ivan Ristic, OpenSSL Cookbook, Feisty Duck, <https://www.feistyduck.com/books/openssl-cookbook/>
+Ivan Ristic, _OpenSSL Cookbook_, Feisty Duck, <https://www.feistyduck.com/books/openssl-cookbook/>
