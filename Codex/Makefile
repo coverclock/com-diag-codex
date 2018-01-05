@@ -19,6 +19,8 @@ default:	all
 ########## Customizations
 
 TITLE				:=	Codex
+PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
+SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	0# API changes that may require that applications be modified.
 MINOR				:=	0# Only functionality or features added with no legacy API changes.
@@ -48,7 +50,7 @@ TARGET				:=	host# Build for the x86_64 running Ubuntu 14.04 LTS.
 COPYRIGHT			:=	2018 Digital Aggregates Corporation
 LICENSE				:=	GNU Lesser General Public License 2.1
 CONTACT				:=	coverclock@diag.com
-HOMEPAGE			:=	http://www.diag.com/navigation/downloads/$(TITLE).html
+HOMEPAGE			:=	https://github.com/coverclock/com-diag-$(PROJECT)
 HOST				:=	$(shell hostname -s)
 BRANCH				:=	$(shell git rev-parse --abbrev-ref HEAD)
 REVISION			:=	$(shell git rev-parse HEAD)
@@ -81,9 +83,6 @@ TGZ_DIR				:=	tgz# Compressed tarballs
 TST_DIR				:=	tst# Unit tests
 
 ########## Configuration
-
-PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
-SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 HERE				:=	$(shell pwd)
 THERE				:=	$(shell realpath ../..)
