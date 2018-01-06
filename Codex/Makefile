@@ -148,7 +148,7 @@ STRIP				:=	$(CROSS_COMPILE)strip
 
 CDEFINES			:=
 
-LDLIBRARIES			:=	-lssl
+LDLIBRARIES			:=	-lssl -lcrypto
 
 ARFLAGS				:=	crsv
 CPPFLAGS			:=	$(CDEFINES) -iquote $(SRC_DIR) -iquote $(INC_DIR) -iquote $(OUT)/$(INC_DIR) $(DIMINUTO_CPPFLAGS) $(CPPARCH)

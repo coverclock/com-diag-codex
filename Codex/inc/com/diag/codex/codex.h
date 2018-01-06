@@ -23,4 +23,17 @@
  * Ivan Ristic, _OpenSSL Cookbook_, Feisty Duck, <https://www.feistyduck.com/books/openssl-cookbook/>
  */
 
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/ssl.h>
+#include <openssl/x509v3.h>
+#include <openssl/err.h>
+
+extern void codex_perror(const char * s);
+
+extern SSL_CTX * codex_client_new(const char * certificate, const char * privatekey);
+
+extern SSL_CTX * codex_client_free(SSL_CTX * ctx);
+
 #endif

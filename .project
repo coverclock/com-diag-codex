@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>Codex</name>
+	<name>com-diag-codex</name>
 	<comment></comment>
 	<projects>
+		<project>com-diag-diminuto</project>
+		<project>Diminuto</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
