@@ -8,8 +8,8 @@
  * https://github.com/coverclock/com-diag-codex<BR>
  */
 
-#include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_unittest.h"
+#include "com/diag/codex/codex.h"
 
 int main(char * argc, char ** argv)
 {

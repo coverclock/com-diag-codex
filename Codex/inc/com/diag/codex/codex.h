@@ -9,31 +9,36 @@
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock <coverclock@diag.com><BR>
  * https://github.com/coverclock/com-diag-codex<BR>
- *
- * REFERENCES
- * 
- * OpenSSL, documentation, <https://www.openssl.org/docs/>
- * 
- * J. Viega, M. Messier, P. Chandra, _Network Security with OpenSSL_, O'Reilly, 2002
- * 
- * J. Viega, M. Messier, _Secure Programming Cookbook_, O'Reilly, 2003
- * 
- * D. Barrett, R. Silverman, R. Byrnes, _SSH, The Secure Shell_, 2nd ed., O'Reilly, 2005
- * 
- * Ivan Ristic, _OpenSSL Cookbook_, Feisty Duck, <https://www.feistyduck.com/books/openssl-cookbook/>
  */
 
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
 #include <openssl/ssl.h>
-#include <openssl/x509v3.h>
-#include <openssl/err.h>
 
-extern void codex_perror(const char * s);
+#define COM_DIAG_CODEX_PASSWORD_ENV "COM_DIAG_CODEX_PASSWORD_ENV"
 
-extern SSL_CTX * codex_client_new(const char * certificate, const char * privatekey);
+/*******************************************************************************
+ * COMMON
+ ******************************************************************************/
 
-extern SSL_CTX * codex_client_free(SSL_CTX * ctx);
+extern void codex_initialize(void);
+
+extern void codex_perror(const char * str);
+
+extern SSL_CTX * codex_context_free(SSL_CTX * ctx);
+
+/*******************************************************************************
+ * CLIENT
+ ******************************************************************************/
+
+extern SSL_CTX * codex_client_new(const char * crt, const char * pem);
+
+static inline SSL_CTX * codex_client_free(SSL_CTX * ctx) { return codex_context_free(ctx); }
+
+/*******************************************************************************
+ * SERVER
+ ******************************************************************************/
+
+extern SSL_CTX * codex_server_new(const char * crt, const char * pem);
+
+static inline SSL_CTX * codex_server_free(SSL_CTX * ctx) { return codex_context_free(ctx); }
 
 #endif

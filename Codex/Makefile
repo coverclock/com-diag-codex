@@ -203,7 +203,7 @@ clobber:	pristine
 
 ########## Certificate and Key Generation for Unit Testing
 
-.PHONY:	credentials credentials-root credentials-authority credentials-server credentials-client
+.PHONY:	credentials
 
 SSL_DIR :=	$(OUT)/$(ETC_DIR)
 SSL_KEY :=	rsa:1024
@@ -213,11 +213,11 @@ $(SSL_DIR)/rootkey.pem $(SSL_DIR)/rootreq.pem:
 	mkdir -p $(SSL_DIR)
 	openssl req -newkey $(SSL_KEY) -sha1 -keyout $(SSL_DIR)/rootkey.pem -out $(SSL_DIR)/rootreq.pem
 
- $(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(SSL_DIR)/rootkey.pem $(ETC_DIR)/$(PROJECT).cnf
+$(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(SSL_DIR)/rootkey.pem $(ETC_DIR)/$(PROJECT).cnf
 	mkdir -p $(SSL_DIR)
 	openssl x509 -req -in $(SSL_DIR)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(PROJECT).cnf -extensions v3_ca -signkey $(SSL_DIR)/rootkey.pem -out $(SSL_DIR)/rootcert.pem
 
- $(SSL_DIR)/root.pem:	$(SSL_DIR)/rootcert.pem $(SSL_DIR)/rootkey.pem
+$(SSL_DIR)/root.pem:	$(SSL_DIR)/rootcert.pem $(SSL_DIR)/rootkey.pem
 	mkdir -p $(SSL_DIR)
 	cat $(SSL_DIR)/rootcert.pem $(SSL_DIR)/rootkey.pem > $(SSL_DIR)/root.pem
 	openssl x509 -subject -issuer -noout -in $(SSL_DIR)/root.pem
@@ -243,8 +243,8 @@ $(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(SSL_DIR)/serverCA.pem $(ET
 	mkdir -p $(SSL_DIR)
 	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(PROJECT).cnf -extensions usr_cert -CA $(SSL_DIR)/serverCA.pem -CAkey $(SSL_DIR)/serverCA.pem -CAcreateserial -out $(SSL_DIR)/servercert.pem
 
- $(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem
- 	mkdir -p $(SSL_DIR)
+$(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem
+	mkdir -p $(SSL_DIR)
 	cat $(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem > $(SSL_DIR)/server.pem
 	openssl x509 -subject -issuer -noout -in $(SSL_DIR)/server.pem
 
@@ -269,7 +269,7 @@ $(SSL_DIR)/dh1024.pem:
 	mkdir -p $(SSL_DIR)
 	openssl dhparam -check -text -5 1024 -out $(SSL_DIR)/dh1024.pem
 
-credentials:	credentials-root credentials-authority credentials-server credentials-client $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem
+credentials:	$(SSL_DIR)/root.pem $(SSL_DIR)/serverCA.pem $(SSL_DIR)/server.pem $(SSL_DIR)/client.pem $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem
 
 ########## Packaging and Distribution
 
