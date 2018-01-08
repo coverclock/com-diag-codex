@@ -74,7 +74,6 @@ ETC_DIR				:=	etc# Miscellaneous files
 GEN_DIR				:=	gen# Generated source files
 INC_DIR				:=	inc# Header files
 LIB_DIR				:=	lib# Shared objects for dynamic linking
-MOD_DIR				:=	mod# Loadable user modules
 OBC_DIR				:=	obc# C object modules
 OUT_DIR				:=	out# Build artifacts
 SRC_DIR				:=	src# Library source files
@@ -201,6 +200,76 @@ pristine:	clean
 
 clobber:	pristine
 	rm -f .cscope.lst .cscope.out .cscope.out.in .cscope.out.po
+
+########## Certificate and Key Generation for Unit Testing
+
+.PHONY:	credentials credentials-root credentials-authority credentials-server credentials-client
+
+SSL_DIR :=	$(OUT)/$(ETC_DIR)
+SSL_KEY :=	rsa:1024
+SSL_ALG	:=	sha1
+
+$(SSL_DIR)/rootkey.pem $(SSL_DIR)/rootreq.pem:
+	mkdir -p $(SSL_DIR)
+	openssl req -newkey $(SSL_KEY) -sha1 -keyout $(SSL_DIR)/rootkey.pem -out $(SSL_DIR)/rootreq.pem
+
+ $(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(SSL_DIR)/rootkey.pem $(ETC_DIR)/$(PROJECT).cnf
+	mkdir -p $(SSL_DIR)
+	openssl x509 -req -in $(SSL_DIR)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(PROJECT).cnf -extensions v3_ca -signkey $(SSL_DIR)/rootkey.pem -out $(SSL_DIR)/rootcert.pem
+
+ $(SSL_DIR)/root.pem:	$(SSL_DIR)/rootcert.pem $(SSL_DIR)/rootkey.pem
+	mkdir -p $(SSL_DIR)
+	cat $(SSL_DIR)/rootcert.pem $(SSL_DIR)/rootkey.pem > $(SSL_DIR)/root.pem
+	openssl x509 -subject -issuer -noout -in $(SSL_DIR)/root.pem
+
+$(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/serverCAreq.pem:
+	mkdir -p $(SSL_DIR)
+	openssl req -newkey $(SSL_KEY) -sha1 -keyout $(SSL_DIR)/serverCAkey.pem -out $(SSL_DIR)/serverCAreq.pem
+
+$(SSL_DIR)/serverCAcert.pem:	$(SSL_DIR)/serverCAreq.pem $(SSL_DIR)/root.pem $(ETC_DIR)/$(PROJECT).cnf
+	mkdir -p $(SSL_DIR)
+	openssl x509 -req -in $(SSL_DIR)/serverCAreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(PROJECT).cnf -extensions v3_ca -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $(SSL_DIR)/serverCAcert.pem
+
+$(SSL_DIR)/serverCA.pem:	$(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/rootcert.pem
+	mkdir -p $(SSL_DIR)
+	cat $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/rootcert.pem > $(SSL_DIR)/serverCA.pem
+	openssl x509 -subject -issuer -noout -in $(SSL_DIR)/serverCA.pem
+
+$(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverreq.pem:
+	mkdir -p $(SSL_DIR)
+	openssl req -newkey $(SSL_KEY) -sha1 -keyout $(SSL_DIR)/serverkey.pem -out $(SSL_DIR)/serverreq.pem
+
+$(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(SSL_DIR)/serverCA.pem $(ETC_DIR)/$(PROJECT).cnf
+	mkdir -p $(SSL_DIR)
+	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(PROJECT).cnf -extensions usr_cert -CA $(SSL_DIR)/serverCA.pem -CAkey $(SSL_DIR)/serverCA.pem -CAcreateserial -out $(SSL_DIR)/servercert.pem
+
+ $(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem
+ 	mkdir -p $(SSL_DIR)
+	cat $(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem > $(SSL_DIR)/server.pem
+	openssl x509 -subject -issuer -noout -in $(SSL_DIR)/server.pem
+
+$(SSL_DIR)/clientkey.pem $(SSL_DIR)/clientreq.pem:
+	mkdir -p $(SSL_DIR)
+	openssl req -newkey $(SSL_KEY) -sha1 -keyout $(SSL_DIR)/clientkey.pem -out $(SSL_DIR)/clientreq.pem
+
+$(SSL_DIR)/clientcert.pem:	$(SSL_DIR)/clientreq.pem $(SSL_DIR)/root.pem $(ETC_DIR)/$(PROJECT).cnf
+	mkdir -p $(SSL_DIR)
+	openssl x509 -req -in $(SSL_DIR)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(PROJECT).cnf -extensions usr_cert -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $(SSL_DIR)/clientcert.pem
+
+$(SSL_DIR)/client.pem:	 $(SSL_DIR)/clientcert.pem $(SSL_DIR)/clientkey.pem $(SSL_DIR)/rootcert.pem
+	mkdir -p $(SSL_DIR)
+	cat $(SSL_DIR)/clientcert.pem $(SSL_DIR)/clientkey.pem $(SSL_DIR)/rootcert.pem > $(SSL_DIR)/client.pem
+	openssl x509 -subject -issuer -noout -in $(SSL_DIR)/client.pem
+
+$(SSL_DIR)/dh512.pem:
+	mkdir -p $(SSL_DIR)
+	openssl dhparam -check -text -5 512 -out $(SSL_DIR)/dh512.pem
+
+$(SSL_DIR)/dh1024.pem:
+	mkdir -p $(SSL_DIR)
+	openssl dhparam -check -text -5 1024 -out $(SSL_DIR)/dh1024.pem
+
+credentials:	credentials-root credentials-authority credentials-server credentials-client $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem
 
 ########## Packaging and Distribution
 
@@ -525,14 +594,6 @@ $(OUT)/$(SYM_DIR)/generate:	Makefile
 	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(SYM_DIR)/setup' >> $@
 	chmod 755 $@
-
-########## User-Space Loadable Modules
-
-LDWHOLEARCHIVES := # These archives will be linked into the shared object in their entirety.
-
-$(OUT)/$(MOD_DIR)/%.$(SO):	$(MOD_DIR)/%.c
-	D=`dirname $@`; mkdir -p $$D
-	$(CC) $(CPPFLAGS) $(CFLAGS) -shared -o $@ $< $(MOFLAGS) -Wl,--whole-archive $(LDWHOLEARCHIVES) -Wl,--no-whole-archive
 
 ########## Helpers
 
