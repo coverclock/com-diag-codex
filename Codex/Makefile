@@ -216,10 +216,12 @@ SSL_OSF	:=	$(ETC_DIR)/openssl.cnf
 
 ##### Root
 
-$(SSL_DIR)/rootkey.pem $(SSL_DIR)/rootreq.pem:
+$(SSL_DIR)/rootreq.pem:
 	mkdir -p $(SSL_DIR)
 	openssl req -config $(SSL_RTF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/rootkey.pem -out $(SSL_DIR)/rootreq.pem
 	ls --full-time $(SSL_DIR)
+
+$(SSL_DIR)/rootkey.pem:	$(SSL_DIR)/rootreq.pem
 
 $(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(SSL_DIR)/rootkey.pem $(SSL_OSF)
 	mkdir -p $(SSL_DIR)
@@ -234,10 +236,12 @@ $(SSL_DIR)/root.pem:	$(SSL_DIR)/rootkey.pem $(SSL_DIR)/rootcert.pem
 
 ##### Certificate Authority
 
-$(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/serverCAreq.pem:
+$(SSL_DIR)/serverCAreq.pem:
 	mkdir -p $(SSL_DIR)
 	openssl req -config $(SSL_CAF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverCAkey.pem -out $(SSL_DIR)/serverCAreq.pem
 	ls --full-time $(SSL_DIR)
+	
+$(SSL_DIR)/serverCAkey.pem:	$(SSL_DIR)/serverCAreq.pem
 
 $(SSL_DIR)/serverCAcert.pem:	$(SSL_DIR)/serverCAreq.pem $(SSL_DIR)/root.pem $(SSL_OSF)
 	mkdir -p $(SSL_DIR)
@@ -252,10 +256,12 @@ $(SSL_DIR)/serverCA.pem:	$(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/serverCAcert.pem 
 
 ##### Server
 
-$(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverreq.pem:
+$(SSL_DIR)/serverreq.pem:
 	mkdir -p $(SSL_DIR)
 	openssl req -config $(SSL_SEF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverkey.pem -out $(SSL_DIR)/serverreq.pem
 	ls --full-time $(SSL_DIR)
+
+$(SSL_DIR)/serverkey.pem:	$(SSL_DIR)/serverreq.pem
 
 $(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(SSL_DIR)/serverCA.pem $(SSL_OSF)
 	mkdir -p $(SSL_DIR)
@@ -270,10 +276,12 @@ $(SSL_DIR)/server.pem:	$(SSL_DIR)/serverkey.pem $(SSL_DIR)/servercert.pem $(SSL_
 
 ##### Client
 
-$(SSL_DIR)/clientkey.pem $(SSL_DIR)/clientreq.pem:
+$(SSL_DIR)/clientreq.pem:
 	mkdir -p $(SSL_DIR)
 	openssl req -config $(SSL_CLF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/clientkey.pem -out $(SSL_DIR)/clientreq.pem
 	ls --full-time $(SSL_DIR)
+
+$(SSL_DIR)/clientkey.pem:	$(SSL_DIR)/clientreq.pem
 
 $(SSL_DIR)/clientcert.pem:	$(SSL_DIR)/clientreq.pem $(SSL_DIR)/root.pem $(SSL_OSF)
 	mkdir -p $(SSL_DIR)
