@@ -35,7 +35,7 @@ extern SSL_CTX * codex_context_free(SSL_CTX * ctx);
  * CLIENT
  ******************************************************************************/
 
-extern SSL_CTX * codex_client_new(const char * crt, const char * pem);
+extern SSL_CTX * codex_client_new(const char * caf, const char * crt, const char * key);
 
 static inline SSL_CTX * codex_client_free(SSL_CTX * ctx) { return codex_context_free(ctx); }
 
@@ -43,7 +43,7 @@ static inline SSL_CTX * codex_client_free(SSL_CTX * ctx) { return codex_context_
  * SERVER
  ******************************************************************************/
 
-extern SSL_CTX * codex_server_new(const char * crt, const char * pem);
+extern SSL_CTX * codex_server_new(const char * caf, const char * crt, const char * key);
 
 static inline SSL_CTX * codex_server_free(SSL_CTX * ctx) { return codex_context_free(ctx); }
 

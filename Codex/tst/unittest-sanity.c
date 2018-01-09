@@ -9,10 +9,13 @@
  */
 
 #include "com/diag/diminuto/diminuto_unittest.h"
+#include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/codex/codex.h"
 
 int main(char * argc, char ** argv)
 {
+
+	(void)diminuto_core_enable();
 
 	{
 		const char * value;
@@ -33,7 +36,7 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
-		ctx = codex_client_new("out/host/etc/client.pem", "out/host/etc/client.pem");
+		ctx = codex_client_new("out/host/etc/root.pem", "out/host/etc/client.pem", "out/host/etc/client.pem");
 		EXPECT(ctx != (SSL_CTX *)0);
 
 		ctx = codex_client_free(ctx);
@@ -47,7 +50,7 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
-		ctx = codex_server_new("out/host/etc/server.pem", "out/host/etc/server.pem");
+		ctx = codex_server_new("out/host/etc/root.pem", "out/host/etc/server.pem", "out/host/etc/server.pem");
 		EXPECT(ctx != (SSL_CTX *)0);
 
 		ctx = codex_server_free(ctx);

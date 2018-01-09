@@ -6,6 +6,10 @@
  * Licensed under the terms in README.h<BR>
  * Chip Overclock (coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
+ *
+ * REFERENCES
+ *
+ * J. Viega, M. Messier, P. Chandra, _Network Security with OpenSSL_, O'Reilly, 2002
  */
 
 #include <stdbool.h>
@@ -18,6 +22,7 @@
 #include <openssl/rand.h>
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
+#include <openssl/x509.h>
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
@@ -82,13 +87,51 @@ static int codex_password_callback(char * buffer, int size, int writing, void * 
 	return length;
 }
 
+static int codex_verify_callback(int ok, X509_STORE_CTX * ctx)
+{
+	X509 * crt = (X509 *)0;
+	int depth = -1;
+	int error = 0;
+	const char * text = (const char *)0;
+	char name[256];
+
+	if (!ok) {
+
+		depth = X509_STORE_CTX_get_error_depth(ctx);
+
+		diminuto_log_log(DIMINUTO_LOG_PRIORITY_NOTICE, "codex_verify_callback: depth=%d\n", depth);
+
+		crt = X509_STORE_CTX_get_current_cert(ctx);
+
+		name[0] = '\0';
+		X509_NAME_oneline(X509_get_issuer_name(crt), name, sizeof(name));
+		name[sizeof(name) - 1] = '\0';
+		diminuto_log_log(DIMINUTO_LOG_PRIORITY_NOTICE, "codex_verify_callback: issuer=\"%s\"\n", name);
+
+		name[0] = '\0';
+		X509_NAME_oneline(X509_get_subject_name(crt), name, sizeof(name));
+		name[sizeof(name) - 1] = '\0';
+		diminuto_log_log(DIMINUTO_LOG_PRIORITY_NOTICE, "codex_verify_callback: subject=\"%s\"\n", name);
+
+		error = X509_STORE_CTX_get_error(ctx);
+
+		text = X509_verify_cert_error_string(error);
+		if (text != (const char *)0) {
+			diminuto_log_log(DIMINUTO_LOG_PRIORITY_NOTICE, "codex_verify_callback: error=%d=\"%s\"\n", error, text);
+		}
+
+	}
+
+	return ok;
+}
+
 /*******************************************************************************
  * CLIENT
  ******************************************************************************/
 
 const char * const codex_password_client_key = COM_DIAG_CODEX_PASSWORD_CLIENT_KEY;
 
-SSL_CTX * codex_client_new(const char * crt, const char * pem)
+SSL_CTX * codex_client_new(const char * caf, const char * crt, const char * key)
 {
 	SSL_CTX * result = (SSL_CTX *)0;
 	const SSL_METHOD * method = (SSL_METHOD *)0;
@@ -112,23 +155,39 @@ SSL_CTX * codex_client_new(const char * crt, const char * pem)
 			break;
 		}
 
+		rc = SSL_CTX_load_verify_locations(ctx, caf, (const char *)0);
+		if (rc != 1) {
+			codex_perror("SSL_CTX_load_verify_locations");
+			break;
+		}
+
+		rc = SSL_CTX_set_default_verify_paths(ctx);
+		if (rc != 1) {
+			codex_perror("SSL_CTX_load_verify_locations");
+			break;
+		}
+
 		password = secure_getenv(codex_password_client_key);
 		if (password != (char *)0) {
 			SSL_CTX_set_default_passwd_cb(ctx, codex_password_callback);
 			SSL_CTX_set_default_passwd_cb_userdata(ctx, password);
 		}
 
-		rc = SSL_CTX_use_certificate_file(ctx, crt, SSL_FILETYPE_PEM);
+		rc = SSL_CTX_use_certificate_chain_file(ctx, crt);
 		if (rc != 1) {
-			codex_perror("SSL_CTX_use_certificate_file");
+			codex_perror("SSL_CTX_use_certificate_chain_file");
 			break;
 		}
 
-		rc = SSL_CTX_use_PrivateKey_file(ctx, pem, SSL_FILETYPE_PEM);
+		rc = SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM);
 		if (rc != 1) {
 			codex_perror("SSL_CTX_use_PrivateKey_file");
 			break;
 		}
+
+		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, codex_verify_callback);
+
+		SSL_CTX_set_verify_depth(ctx, 0);
 
 		result = ctx;
 
@@ -151,7 +210,7 @@ SSL_CTX * codex_client_new(const char * crt, const char * pem)
 
 const char * const codex_password_server_key = COM_DIAG_CODEX_PASSWORD_SERVER_KEY;
 
-SSL_CTX * codex_server_new(const char * crt, const char * pem)
+SSL_CTX * codex_server_new(const char * caf, const char * crt, const char * pem)
 {
 	SSL_CTX * result = (SSL_CTX *)0;
 	const SSL_METHOD * method = (SSL_METHOD *)0;
@@ -175,15 +234,27 @@ SSL_CTX * codex_server_new(const char * crt, const char * pem)
 			break;
 		}
 
+		rc = SSL_CTX_load_verify_locations(ctx, caf, (const char *)0);
+		if (rc != 1) {
+			codex_perror("SSL_CTX_load_verify_locations");
+			break;
+		}
+
+		rc = SSL_CTX_set_default_verify_paths(ctx);
+		if (rc != 1) {
+			codex_perror("SSL_CTX_load_verify_locations");
+			break;
+		}
+
 		password = secure_getenv(codex_password_server_key);
 		if (password != (char *)0) {
 			SSL_CTX_set_default_passwd_cb(ctx, codex_password_callback);
 			SSL_CTX_set_default_passwd_cb_userdata(ctx, password);
 		}
 
-		rc = SSL_CTX_use_certificate_file(ctx, crt, SSL_FILETYPE_PEM);
+		rc = SSL_CTX_use_certificate_chain_file(ctx, crt);
 		if (rc != 1) {
-			codex_perror("SSL_CTX_use_certificate_file");
+			codex_perror("SSL_CTX_use_certificate_chain_file");
 			break;
 		}
 
@@ -192,6 +263,10 @@ SSL_CTX * codex_server_new(const char * crt, const char * pem)
 			codex_perror("SSL_CTX_use_PrivateKey_file");
 			break;
 		}
+
+		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, codex_verify_callback);
+
+		SSL_CTX_set_verify_depth(ctx, 0);
 
 		result = ctx;
 
