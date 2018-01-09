@@ -203,19 +203,20 @@ clobber:	pristine
 
 ########## Certificate and Key Generation for Unit Testing
 
-.PHONY:	credentials
+.PHONY:	credentials credentials-show credentials-clean
 
 SSL_DIR :=	$(OUT)/$(ETC_DIR)
 SSL_KEY :=	rsa:1024
 SSL_ALG	:=	sha1
+SSL_CNF	:=	$(ETC_DIR)/openssl.cnf
 
 $(SSL_DIR)/rootkey.pem $(SSL_DIR)/rootreq.pem:
 	mkdir -p $(SSL_DIR)
 	openssl req -newkey $(SSL_KEY) -sha1 -keyout $(SSL_DIR)/rootkey.pem -out $(SSL_DIR)/rootreq.pem
 
-$(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(SSL_DIR)/rootkey.pem $(ETC_DIR)/$(PROJECT).cnf
+$(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(SSL_DIR)/rootkey.pem $(SSL_CNF)
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(PROJECT).cnf -extensions v3_ca -signkey $(SSL_DIR)/rootkey.pem -out $(SSL_DIR)/rootcert.pem
+	openssl x509 -req -in $(SSL_DIR)/rootreq.pem -$(SSL_ALG) -extfile $(SSL_CNF) -extensions v3_ca -signkey $(SSL_DIR)/rootkey.pem -out $(SSL_DIR)/rootcert.pem
 
 $(SSL_DIR)/root.pem:	$(SSL_DIR)/rootcert.pem $(SSL_DIR)/rootkey.pem
 	mkdir -p $(SSL_DIR)
@@ -226,9 +227,9 @@ $(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/serverCAreq.pem:
 	mkdir -p $(SSL_DIR)
 	openssl req -newkey $(SSL_KEY) -sha1 -keyout $(SSL_DIR)/serverCAkey.pem -out $(SSL_DIR)/serverCAreq.pem
 
-$(SSL_DIR)/serverCAcert.pem:	$(SSL_DIR)/serverCAreq.pem $(SSL_DIR)/root.pem $(ETC_DIR)/$(PROJECT).cnf
+$(SSL_DIR)/serverCAcert.pem:	$(SSL_DIR)/serverCAreq.pem $(SSL_DIR)/root.pem $(SSL_CNF)
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/serverCAreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(PROJECT).cnf -extensions v3_ca -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $(SSL_DIR)/serverCAcert.pem
+	openssl x509 -req -in $(SSL_DIR)/serverCAreq.pem -$(SSL_ALG) -extfile $(SSL_CNF) -extensions v3_ca -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $(SSL_DIR)/serverCAcert.pem
 
 $(SSL_DIR)/serverCA.pem:	$(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
@@ -239,9 +240,9 @@ $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverreq.pem:
 	mkdir -p $(SSL_DIR)
 	openssl req -newkey $(SSL_KEY) -sha1 -keyout $(SSL_DIR)/serverkey.pem -out $(SSL_DIR)/serverreq.pem
 
-$(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(SSL_DIR)/serverCA.pem $(ETC_DIR)/$(PROJECT).cnf
+$(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(SSL_DIR)/serverCA.pem $(SSL_CNF)
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(PROJECT).cnf -extensions usr_cert -CA $(SSL_DIR)/serverCA.pem -CAkey $(SSL_DIR)/serverCA.pem -CAcreateserial -out $(SSL_DIR)/servercert.pem
+	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(SSL_CNF) -extensions usr_cert -CA $(SSL_DIR)/serverCA.pem -CAkey $(SSL_DIR)/serverCA.pem -CAcreateserial -out $(SSL_DIR)/servercert.pem
 
 $(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
@@ -252,9 +253,9 @@ $(SSL_DIR)/clientkey.pem $(SSL_DIR)/clientreq.pem:
 	mkdir -p $(SSL_DIR)
 	openssl req -newkey $(SSL_KEY) -sha1 -keyout $(SSL_DIR)/clientkey.pem -out $(SSL_DIR)/clientreq.pem
 
-$(SSL_DIR)/clientcert.pem:	$(SSL_DIR)/clientreq.pem $(SSL_DIR)/root.pem $(ETC_DIR)/$(PROJECT).cnf
+$(SSL_DIR)/clientcert.pem:	$(SSL_DIR)/clientreq.pem $(SSL_DIR)/root.pem $(SSL_CNF)
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(PROJECT).cnf -extensions usr_cert -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $(SSL_DIR)/clientcert.pem
+	openssl x509 -req -in $(SSL_DIR)/clientreq.pem -$(SSL_ALG) -extfile $(SSL_CNF) -extensions usr_cert -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $(SSL_DIR)/clientcert.pem
 
 $(SSL_DIR)/client.pem:	 $(SSL_DIR)/clientcert.pem $(SSL_DIR)/clientkey.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
@@ -270,6 +271,19 @@ $(SSL_DIR)/dh1024.pem:
 	openssl dhparam -check -text -5 1024 -out $(SSL_DIR)/dh1024.pem
 
 credentials:	$(SSL_DIR)/root.pem $(SSL_DIR)/serverCA.pem $(SSL_DIR)/server.pem $(SSL_DIR)/client.pem $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem
+
+credentials-show:
+	test -r $(SSL_DIR)/root.pem && openssl x509 -subject -issuer -noout -in $(SSL_DIR)/root.pem || true
+	test -r $(SSL_DIR)/serverCA.pem && openssl x509 -subject -issuer -noout -in $(SSL_DIR)/serverCA.pem || true
+	test -r $(SSL_DIR)/server.pem && openssl x509 -subject -issuer -noout -in $(SSL_DIR)/server.pem || true
+	test -r $(SSL_DIR)/client.pem && openssl x509 -subject -issuer -noout -in $(SSL_DIR)/client.pem || true
+
+credentials-clean:
+	( cd $(SSL_DIR); rm -f rootcert.pem rootkey.pem root.pem rootreq.pem root.srl )
+	( cd $(SSL_DIR); rm -f serverCAcert.pem serverCAkey.pem serverCA.pem serverCAreq.pem serverCA.srl )
+	( cd $(SSL_DIR); rm -f servercert.pem serverkey.pem server.pem serverreq.pem )
+	( cd $(SSL_DIR); rm -f clientkey.pem client.pem clientreq.pem )
+	( cd $(SSL_DIR); rm -f dh1024.pem dh512.pem )
 
 ########## Packaging and Distribution
 

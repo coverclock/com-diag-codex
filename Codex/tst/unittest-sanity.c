@@ -15,15 +15,44 @@ int main(char * argc, char ** argv)
 {
 
 	{
+		const char * value;
+
+		TEST();
+
+		value = getenv(COM_DIAG_CODEX_PASSWORD_ENV);
+		COMMENT("%s=%s%s%s\n",
+			COM_DIAG_CODEX_PASSWORD_ENV,
+			(value != (const char *)0) ? "\"" : "",
+			(value != (const char *)0) ? value : "(undefined)",
+			(value != (const char *)0) ? "\"" : "");
+
+		STATUS();
+	}
+
+	{
 		SSL_CTX * ctx;
 
 		TEST();
 
-		ctx = codex_client_new("etc/codex.crt", "etc/codex.pem");
-		ASSERT(ctx != (SSL_CTX *)0);
+		ctx = codex_client_new("out/host/etc/client.pem", "out/host/etc/client.pem");
+		EXPECT(ctx != (SSL_CTX *)0);
 
 		ctx = codex_client_free(ctx);
-		ASSERT(ctx == (SSL_CTX *)0);
+		EXPECT(ctx == (SSL_CTX *)0);
+
+		STATUS();
+	}
+
+	{
+		SSL_CTX * ctx;
+
+		TEST();
+
+		ctx = codex_server_new("out/host/etc/server.pem", "out/host/etc/server.pem");
+		EXPECT(ctx != (SSL_CTX *)0);
+
+		ctx = codex_server_free(ctx);
+		EXPECT(ctx == (SSL_CTX *)0);
 
 		STATUS();
 	}
