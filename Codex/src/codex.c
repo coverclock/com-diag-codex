@@ -25,8 +25,6 @@
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static bool initialized = false;
 
-static const char CODEX_PASSWORD_ENV[] = COM_DIAG_CODEX_PASSWORD_ENV;
-
 /*******************************************************************************
  * COMMON
  ******************************************************************************/
@@ -88,6 +86,8 @@ static int codex_password_callback(char * buffer, int size, int writing, void * 
  * CLIENT
  ******************************************************************************/
 
+const char * const codex_password_client_key = COM_DIAG_CODEX_PASSWORD_CLIENT_KEY;
+
 SSL_CTX * codex_client_new(const char * crt, const char * pem)
 {
 	SSL_CTX * result = (SSL_CTX *)0;
@@ -112,7 +112,7 @@ SSL_CTX * codex_client_new(const char * crt, const char * pem)
 			break;
 		}
 
-		password = secure_getenv(CODEX_PASSWORD_ENV);
+		password = secure_getenv(codex_password_client_key);
 		if (password != (char *)0) {
 			SSL_CTX_set_default_passwd_cb(ctx, codex_password_callback);
 			SSL_CTX_set_default_passwd_cb_userdata(ctx, password);
@@ -149,6 +149,8 @@ SSL_CTX * codex_client_new(const char * crt, const char * pem)
  * SERVER
  ******************************************************************************/
 
+const char * const codex_password_server_key = COM_DIAG_CODEX_PASSWORD_SERVER_KEY;
+
 SSL_CTX * codex_server_new(const char * crt, const char * pem)
 {
 	SSL_CTX * result = (SSL_CTX *)0;
@@ -173,7 +175,7 @@ SSL_CTX * codex_server_new(const char * crt, const char * pem)
 			break;
 		}
 
-		password = secure_getenv(CODEX_PASSWORD_ENV);
+		password = secure_getenv(codex_password_server_key);
 		if (password != (char *)0) {
 			SSL_CTX_set_default_passwd_cb(ctx, codex_password_callback);
 			SSL_CTX_set_default_passwd_cb_userdata(ctx, password);

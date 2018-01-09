@@ -13,7 +13,13 @@
 
 #include <openssl/ssl.h>
 
-#define COM_DIAG_CODEX_PASSWORD_ENV "COM_DIAG_CODEX_PASSWORD_ENV"
+#define COM_DIAG_CODEX_PASSWORD_SERVER_KEY "COM_DIAG_CODEX_PASSWORD_SERVER"
+
+#define COM_DIAG_CODEX_PASSWORD_CLIENT_KEY "COM_DIAG_CODEX_PASSWORD_CLIENT"
+
+extern const char * const codex_password_server_key;
+
+extern const char * const codex_password_client_key;
 
 /*******************************************************************************
  * COMMON
