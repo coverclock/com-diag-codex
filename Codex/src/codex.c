@@ -29,7 +29,20 @@
 #include "com/diag/diminuto/diminuto_log.h"
 #include "codex.h"
 
+/*******************************************************************************
+ * CONSTANTS
+ ******************************************************************************/
+
+const char * const codex_client_password_env = COM_DIAG_CODEX_CLIENT_PASSWORD_ENV;
+
+const char * const codex_server_password_env = COM_DIAG_CODEX_SERVER_PASSWORD_ENV;
+
+/*******************************************************************************
+ * GLOBALS
+ ******************************************************************************/
+
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 static bool initialized = false;
 
 /*******************************************************************************
@@ -54,18 +67,6 @@ void codex_perror(const char * str)
 	char buffer[120];
 	ERR_error_string_n(ERR_get_error(), buffer, sizeof(buffer));
     diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "%s: %s\n", str, buffer);
-}
-
-SSL_CTX * codex_context_free(SSL_CTX * ctx)
-{
-	SSL_CTX * result = ctx;
-
-	if (result != (SSL_CTX *)0) {
-		SSL_CTX_free(result);
-		result = (SSL_CTX *)0;
-	}
-
-	return result;
 }
 
 static int codex_password_callback(char * buffer, int size, int writing, void * that)
@@ -127,13 +128,7 @@ static int codex_verify_callback(int ok, X509_STORE_CTX * ctx)
 	return ok;
 }
 
-/*******************************************************************************
- * CLIENT
- ******************************************************************************/
-
-const char * const codex_password_client_key = COM_DIAG_CODEX_PASSWORD_CLIENT_KEY;
-
-SSL_CTX * codex_client_new(const char * caf, const char * crt, const char * key)
+SSL_CTX * codex_context_new(const char * key, const char * caf, const char * crt, const char * pem, int flags, int depth)
 {
 	SSL_CTX * result = (SSL_CTX *)0;
 	const SSL_METHOD * method = (SSL_METHOD *)0;
@@ -169,86 +164,7 @@ SSL_CTX * codex_client_new(const char * caf, const char * crt, const char * key)
 			break;
 		}
 
-		password = secure_getenv(codex_password_client_key);
-		if (password != (char *)0) {
-			SSL_CTX_set_default_passwd_cb(ctx, codex_password_callback);
-			SSL_CTX_set_default_passwd_cb_userdata(ctx, password);
-		}
-
-		rc = SSL_CTX_use_certificate_chain_file(ctx, crt);
-		if (rc != 1) {
-			codex_perror("SSL_CTX_use_certificate_chain_file");
-			break;
-		}
-
-		rc = SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM);
-		if (rc != 1) {
-			codex_perror("SSL_CTX_use_PrivateKey_file");
-			break;
-		}
-
-		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER, codex_verify_callback);
-
-		SSL_CTX_set_verify_depth(ctx, 0);
-
-		result = ctx;
-
-	} while (false);
-
-	if (result != (SSL_CTX *)0) {
-		/* Do nothing. */
-	} else if (ctx == (SSL_CTX *)0) {
-		/* Do nothing. */
-	} else {
-		SSL_CTX_free(ctx);
-	}
-
-	return result;
-}
-
-/*******************************************************************************
- * SERVER
- ******************************************************************************/
-
-const char * const codex_password_server_key = COM_DIAG_CODEX_PASSWORD_SERVER_KEY;
-
-SSL_CTX * codex_server_new(const char * caf, const char * crt, const char * pem)
-{
-	SSL_CTX * result = (SSL_CTX *)0;
-	const SSL_METHOD * method = (SSL_METHOD *)0;
-	SSL_CTX * ctx = (SSL_CTX *)0;
-	char * password = (char *)0;
-	int rc = -1;
-
-	do {
-
-		codex_initialize();
-
-		method = SSLv23_method();
-		if (method == (SSL_METHOD *)0) {
-			codex_perror("SSLv23_method");
-			break;
-		}
-
-		ctx = SSL_CTX_new(method);
-		if (ctx == (SSL_CTX *)0) {
-			codex_perror("SSL_CTX_new");
-			break;
-		}
-
-		rc = SSL_CTX_load_verify_locations(ctx, caf, (const char *)0);
-		if (rc != 1) {
-			codex_perror("SSL_CTX_load_verify_locations");
-			break;
-		}
-
-		rc = SSL_CTX_set_default_verify_paths(ctx);
-		if (rc != 1) {
-			codex_perror("SSL_CTX_load_verify_locations");
-			break;
-		}
-
-		password = secure_getenv(codex_password_server_key);
+		password = secure_getenv(key);
 		if (password != (char *)0) {
 			SSL_CTX_set_default_passwd_cb(ctx, codex_password_callback);
 			SSL_CTX_set_default_passwd_cb_userdata(ctx, password);
@@ -266,9 +182,9 @@ SSL_CTX * codex_server_new(const char * caf, const char * crt, const char * pem)
 			break;
 		}
 
-		SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, codex_verify_callback);
+		SSL_CTX_set_verify(ctx, flags, codex_verify_callback);
 
-		SSL_CTX_set_verify_depth(ctx, 0);
+		SSL_CTX_set_verify_depth(ctx, depth);
 
 		result = ctx;
 
@@ -284,4 +200,24 @@ SSL_CTX * codex_server_new(const char * caf, const char * crt, const char * pem)
 
 	return result;
 }
+
+SSL_CTX * codex_context_free(SSL_CTX * ctx)
+{
+	SSL_CTX * result = ctx;
+
+	if (result != (SSL_CTX *)0) {
+		SSL_CTX_free(result);
+		result = (SSL_CTX *)0;
+	}
+
+	return result;
+}
+
+/*******************************************************************************
+ * CLIENT
+ ******************************************************************************/
+
+/*******************************************************************************
+ * SERVER
+ ******************************************************************************/
 

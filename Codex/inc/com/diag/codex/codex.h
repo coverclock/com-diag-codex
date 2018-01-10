@@ -17,9 +17,9 @@
  * CONSTANTS
  ******************************************************************************/
 
-extern const char * const codex_password_server_key;
+extern const char * const codex_server_password_env;
 
-extern const char * const codex_password_client_key;
+extern const char * const codex_client_password_env;
 
 /*******************************************************************************
  * COMMON
@@ -29,22 +29,37 @@ extern void codex_initialize(void);
 
 extern void codex_perror(const char * str);
 
+extern SSL_CTX * codex_context_new(const char * env, const char * caf, const char * crt, const char * pem, int flags, int depth);
+
 extern SSL_CTX * codex_context_free(SSL_CTX * ctx);
 
 /*******************************************************************************
  * CLIENT
  ******************************************************************************/
 
-extern SSL_CTX * codex_client_new(const char * caf, const char * crt, const char * key);
+static inline SSL_CTX * codex_client_new(const char * caf, const char * crt, const char * key)
+{
+	return codex_context_new(codex_client_password_env, caf, crt, key, SSL_VERIFY_PEER, 0);
+}
 
-static inline SSL_CTX * codex_client_free(SSL_CTX * ctx) { return codex_context_free(ctx); }
+static inline SSL_CTX * codex_client_free(SSL_CTX * ctx)
+{
+	return codex_context_free(ctx);
+}
 
 /*******************************************************************************
  * SERVER
  ******************************************************************************/
 
-extern SSL_CTX * codex_server_new(const char * caf, const char * crt, const char * key);
 
-static inline SSL_CTX * codex_server_free(SSL_CTX * ctx) { return codex_context_free(ctx); }
+static inline SSL_CTX * codex_server_new(const char * caf, const char * crt, const char * key)
+{
+	return codex_context_new(codex_server_password_env, caf, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, 0);
+}
+
+static inline SSL_CTX * codex_server_free(SSL_CTX * ctx)
+{
+	return codex_context_free(ctx);
+}
 
 #endif

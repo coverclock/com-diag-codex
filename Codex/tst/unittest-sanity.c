@@ -23,11 +23,11 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
-		value = getenv(codex_password_server_key);
-		COMMENT("%s=%s\n", codex_password_server_key, (value != (const char *)0) ? "(defined)" : "(UNDEFINED)");
+		value = getenv(codex_server_password_env);
+		COMMENT("%s=\"%s\"\n", codex_server_password_env, (value != (const char *)0) ? value : "");
 
-		value = getenv(codex_password_client_key);
-		COMMENT("%s=%s\n", codex_password_client_key, (value != (const char *)0) ? "(defined)" : "(UNDEFINED)");
+		value = getenv(codex_client_password_env);
+		COMMENT("%s=\"%s\"\n", codex_client_password_env, (value != (const char *)0) ? value : ")");
 
 		STATUS();
 	}
