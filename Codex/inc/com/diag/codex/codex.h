@@ -21,15 +21,19 @@ extern const char * const codex_server_password_env;
 
 extern const char * const codex_client_password_env;
 
+extern const char * const codex_cipher_list;
+
 /*******************************************************************************
  * COMMON
  ******************************************************************************/
 
-extern void codex_initialize(void);
-
 extern void codex_perror(const char * str);
 
-extern SSL_CTX * codex_context_new(const char * env, const char * caf, const char * crt, const char * pem, int flags, int depth);
+extern int codex_initialize(void);
+
+extern int codex_parameters(const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f);
+
+extern SSL_CTX * codex_context_new(const char * env, const char * caf, const char * crt, const char * pem, int flags, int depth, int options);
 
 extern SSL_CTX * codex_context_free(SSL_CTX * ctx);
 
@@ -39,7 +43,7 @@ extern SSL_CTX * codex_context_free(SSL_CTX * ctx);
 
 static inline SSL_CTX * codex_client_new(const char * caf, const char * crt, const char * key)
 {
-	return codex_context_new(codex_client_password_env, caf, crt, key, SSL_VERIFY_PEER, 0);
+	return codex_context_new(codex_client_password_env, caf, crt, key, SSL_VERIFY_PEER, 0, SSL_OP_ALL | SSL_OP_NO_SSLv2);
 }
 
 static inline SSL_CTX * codex_client_free(SSL_CTX * ctx)
@@ -54,7 +58,7 @@ static inline SSL_CTX * codex_client_free(SSL_CTX * ctx)
 
 static inline SSL_CTX * codex_server_new(const char * caf, const char * crt, const char * key)
 {
-	return codex_context_new(codex_server_password_env, caf, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, 0);
+	return codex_context_new(codex_server_password_env, caf, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, 0, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
 }
 
 static inline SSL_CTX * codex_server_free(SSL_CTX * ctx)

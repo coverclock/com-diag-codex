@@ -17,4 +17,6 @@
 
 #define COM_DIAG_CODEX_OUT_ETC_PATH "out/host/etc"
 
+#define COM_DIAG_CODEX_CIPHER_LIST "ALL:!ADH:!LOW:!EXP:!MDF:@STRENGTH"
+
 #endif

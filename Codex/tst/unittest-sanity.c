@@ -27,7 +27,29 @@ int main(char * argc, char ** argv)
 		COMMENT("%s=\"%s\"\n", codex_server_password_env, (value != (const char *)0) ? value : "");
 
 		value = getenv(codex_client_password_env);
-		COMMENT("%s=\"%s\"\n", codex_client_password_env, (value != (const char *)0) ? value : ")");
+		COMMENT("%s=\"%s\"\n", codex_client_password_env, (value != (const char *)0) ? value : "");
+
+		STATUS();
+	}
+
+	{
+		int rc;
+
+		TEST();
+
+		rc = codex_initialize();
+		ASSERT(rc == 0);
+
+		STATUS();
+	}
+
+	{
+		int rc;
+
+		TEST();
+
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh4096.pem");
+		ASSERT(rc == 0);
 
 		STATUS();
 	}

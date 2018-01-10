@@ -203,11 +203,19 @@ clobber:	pristine
 
 ########## Certificate and Key Generation for Unit Testing
 
-.PHONY:	credentials credentials-show credentials-clean
+# REFERENCES
+#
+# J. Viega, M. Messier, P. Chandra, _Network Security with OpenSSL_, O'Reilly,
+# 2002, pp. 124-125
+#
+# OpenSSL, documentation, <https://www.openssl.org/docs/>
+
+.PHONY:	credentials credentials-show credentials-clean parameters parameters-clean
 
 SSL_DIR :=	$(OUT)/$(ETC_DIR)
-SSL_KEY :=	rsa:1024
+SSL_KEY :=	rsa:4096
 SSL_ALG	:=	sha1
+SSL_GEN	:=	2#5
 SSL_RTF	:=	$(ETC_DIR)/root.cnf
 SSL_CAF	:=	$(ETC_DIR)/serverCA.cnf
 SSL_SEF	:=	$(ETC_DIR)/server.cnf
@@ -218,97 +226,107 @@ SSL_OSF	:=	$(ETC_DIR)/openssl.cnf
 
 $(SSL_DIR)/rootreq.pem:
 	mkdir -p $(SSL_DIR)
-	openssl req -config $(SSL_RTF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/rootkey.pem -out $(SSL_DIR)/rootreq.pem
+	openssl req -config $(SSL_RTF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/rootkey.pem -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/rootkey.pem:	$(SSL_DIR)/rootreq.pem
 
 $(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(SSL_DIR)/rootkey.pem $(SSL_OSF)
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/rootreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions v3_ca -signkey $(SSL_DIR)/rootkey.pem -out $(SSL_DIR)/rootcert.pem
+	openssl x509 -req -in $(SSL_DIR)/rootreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions v3_ca -signkey $(SSL_DIR)/rootkey.pem -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/root.pem:	$(SSL_DIR)/rootkey.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
-	cat $(SSL_DIR)/rootcert.pem $(SSL_DIR)/rootkey.pem > $(SSL_DIR)/root.pem
+	cat $(SSL_DIR)/rootcert.pem $(SSL_DIR)/rootkey.pem > $@
 	ls --full-time $(SSL_DIR)
-	openssl x509 -subject -issuer -noout -in $(SSL_DIR)/root.pem
+	openssl x509 -subject -issuer -noout -in $@
 
 ##### Certificate Authority
 
 $(SSL_DIR)/serverCAreq.pem:
 	mkdir -p $(SSL_DIR)
-	openssl req -config $(SSL_CAF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverCAkey.pem -out $(SSL_DIR)/serverCAreq.pem
+	openssl req -config $(SSL_CAF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverCAkey.pem -out $@
 	ls --full-time $(SSL_DIR)
 	
 $(SSL_DIR)/serverCAkey.pem:	$(SSL_DIR)/serverCAreq.pem
 
 $(SSL_DIR)/serverCAcert.pem:	$(SSL_DIR)/serverCAreq.pem $(SSL_DIR)/root.pem $(SSL_OSF)
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/serverCAreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions v3_ca -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $(SSL_DIR)/serverCAcert.pem
+	openssl x509 -req -in $(SSL_DIR)/serverCAreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions v3_ca -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
 	ls --full-time $(SSL_DIR)
 
-$(SSL_DIR)/serverCA.pem:	$(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem
+$(SSL_DIR)/serverCA.pem:	$(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
-	cat $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/rootcert.pem > $(SSL_DIR)/serverCA.pem
+	cat $^ > $@
 	ls --full-time $(SSL_DIR)
-	openssl x509 -subject -issuer -noout -in $(SSL_DIR)/serverCA.pem
+	openssl x509 -subject -issuer -noout -in $@
 
 ##### Server
 
 $(SSL_DIR)/serverreq.pem:
 	mkdir -p $(SSL_DIR)
-	openssl req -config $(SSL_SEF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverkey.pem -out $(SSL_DIR)/serverreq.pem
+	openssl req -config $(SSL_SEF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverkey.pem -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/serverkey.pem:	$(SSL_DIR)/serverreq.pem
 
 $(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(SSL_DIR)/serverCA.pem $(SSL_OSF)
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions usr_cert -CA $(SSL_DIR)/serverCA.pem -CAkey $(SSL_DIR)/serverCA.pem -CAcreateserial -out $(SSL_DIR)/servercert.pem
+	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions usr_cert -CA $(SSL_DIR)/serverCA.pem -CAkey $(SSL_DIR)/serverCA.pem -CAcreateserial -out $@
 	ls --full-time $(SSL_DIR)
 
-$(SSL_DIR)/server.pem:	$(SSL_DIR)/serverkey.pem $(SSL_DIR)/servercert.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem
+$(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
-	cat $(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem > $(SSL_DIR)/server.pem
+	cat $^ > $@
 	ls --full-time $(SSL_DIR)
-	openssl x509 -subject -issuer -noout -in $(SSL_DIR)/server.pem
+	openssl x509 -subject -issuer -noout -in $@
 
 ##### Client
 
 $(SSL_DIR)/clientreq.pem:
 	mkdir -p $(SSL_DIR)
-	openssl req -config $(SSL_CLF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/clientkey.pem -out $(SSL_DIR)/clientreq.pem
+	openssl req -config $(SSL_CLF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/clientkey.pem -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/clientkey.pem:	$(SSL_DIR)/clientreq.pem
 
 $(SSL_DIR)/clientcert.pem:	$(SSL_DIR)/clientreq.pem $(SSL_DIR)/root.pem $(SSL_OSF)
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/clientreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions usr_cert -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $(SSL_DIR)/clientcert.pem
+	openssl x509 -req -in $(SSL_DIR)/clientreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions usr_cert -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
 	ls --full-time $(SSL_DIR)
 
-$(SSL_DIR)/client.pem:	$(SSL_DIR)/clientkey.pem $(SSL_DIR)/clientcert.pem $(SSL_DIR)/rootcert.pem
+$(SSL_DIR)/client.pem:	$(SSL_DIR)/clientcert.pem $(SSL_DIR)/clientkey.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
-	cat $(SSL_DIR)/clientcert.pem $(SSL_DIR)/clientkey.pem $(SSL_DIR)/rootcert.pem > $(SSL_DIR)/client.pem
+	cat $^ > $@
 	ls --full-time $(SSL_DIR)
-	openssl x509 -subject -issuer -noout -in $(SSL_DIR)/client.pem
+	openssl x509 -subject -issuer -noout -in $@
 
-##### Diffie Hellman
+##### Diffie Hellman Parameters
 
 $(SSL_DIR)/dh512.pem:
 	mkdir -p $(SSL_DIR)
-	openssl dhparam -check -text -5 512 -out $(SSL_DIR)/dh512.pem
+	openssl dhparam -check -text -$(SSL_GEN) 512 -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/dh1024.pem:
 	mkdir -p $(SSL_DIR)
-	openssl dhparam -check -text -5 1024 -out $(SSL_DIR)/dh1024.pem
+	openssl dhparam -check -text -$(SSL_GEN) 1024 -out $@
+	ls --full-time $(SSL_DIR)
+
+$(SSL_DIR)/dh2048.pem:
+	mkdir -p $(SSL_DIR)
+	openssl dhparam -check -text -$(SSL_GEN) 2048 -out $@
+	ls --full-time $(SSL_DIR)
+
+$(SSL_DIR)/dh4096.pem:
+	mkdir -p $(SSL_DIR)
+	openssl dhparam -check -text -$(SSL_GEN) 4096 -out $@
 	ls --full-time $(SSL_DIR)
 
 ##### Helpers
 
-credentials:	$(SSL_DIR)/root.pem $(SSL_DIR)/serverCA.pem $(SSL_DIR)/server.pem $(SSL_DIR)/client.pem $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem
+credentials:	$(SSL_DIR)/root.pem $(SSL_DIR)/serverCA.pem $(SSL_DIR)/server.pem $(SSL_DIR)/client.pem
 
 credentials-show:
 	( cd $(SSL_DIR); test -r root.pem && openssl x509 -subject -issuer -noout -in root.pem || true )
@@ -321,7 +339,11 @@ credentials-clean:
 	( cd $(SSL_DIR); rm -f serverCAcert.pem serverCAkey.pem serverCA.pem serverCAreq.pem serverCA.srl )
 	( cd $(SSL_DIR); rm -f servercert.pem serverkey.pem server.pem serverreq.pem )
 	( cd $(SSL_DIR); rm -f clientkey.pem client.pem clientreq.pem )
-	( cd $(SSL_DIR); rm -f dh1024.pem dh512.pem )
+	
+parameters:	 $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem $(SSL_DIR)/dh2048.pem $(SSL_DIR)/dh4096.pem
+
+parameters-clean:
+	( cd $(SSL_DIR); rm -f dh512.pem dh1024.pem dh2048.pem dh4096.pem )
 
 ########## Packaging and Distribution
 

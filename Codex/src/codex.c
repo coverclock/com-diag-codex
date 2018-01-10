@@ -37,6 +37,8 @@ const char * const codex_client_password_env = COM_DIAG_CODEX_CLIENT_PASSWORD_EN
 
 const char * const codex_server_password_env = COM_DIAG_CODEX_SERVER_PASSWORD_ENV;
 
+const char * const codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
+
 /*******************************************************************************
  * GLOBALS
  ******************************************************************************/
@@ -45,52 +47,41 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static bool initialized = false;
 
+static DH * dh512 = (DH *)0;
+
+static DH * dh1024 = (DH *)0;
+
+static DH * dh2048 = (DH *)0;
+
+static DH * dh4096 = (DH *)0;
+
 /*******************************************************************************
- * COMMON
+ * CALLBACKS
  ******************************************************************************/
-
-void codex_initialize(void)
-{
-	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
-
-		if (!initialized) {
-			(void)SSL_library_init();
-			SSL_load_error_strings();
-			initialized = true;
-		}
-
-	DIMINUTO_CRITICAL_SECTION_END;
-}
-
-void codex_perror(const char * str)
-{
-	char buffer[120];
-	ERR_error_string_n(ERR_get_error(), buffer, sizeof(buffer));
-    diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "%s: %s\n", str, buffer);
-}
 
 static int codex_password_callback(char * buffer, int size, int writing, void * that)
 {
-	const char * password = (const char *)0;
+	const char * password = (const char *)that;
 	int length = 0;
 
 	if (size <= 0) {
 		/* Do nothing. */
 	} else if (buffer == (char *)0) {
 		/* Do nothing. */
-	} else if (that != (void *)0) {
-		password = (const char *)that;
+	} else if (password == (const char *)0) {
+		buffer[0] = '\0';
+	} else if (size <= (length = strnlen(password, size + 1))) {
+		buffer[0] = '\0';
+		length = 0;
+	} else {
 		strncpy(buffer, password, size);
 		buffer[size - 1] = '\0';
-		length = strnlen(buffer, size);
-	} else {
-		buffer[0] = '\0';
 	}
 
 	return length;
 }
 
-static int codex_verify_callback(int ok, X509_STORE_CTX * ctx)
+static int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 {
 	X509 * crt = (X509 *)0;
 	int depth = -1;
@@ -101,26 +92,27 @@ static int codex_verify_callback(int ok, X509_STORE_CTX * ctx)
 	if (!ok) {
 
 		depth = X509_STORE_CTX_get_error_depth(ctx);
-
-		diminuto_log_log(DIMINUTO_LOG_PRIORITY_NOTICE, "codex_verify_callback: depth=%d\n", depth);
+		diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_verification_callback: depth=%d\n", depth);
 
 		crt = X509_STORE_CTX_get_current_cert(ctx);
+		if (crt != (X509 *)0) {
 
-		name[0] = '\0';
-		X509_NAME_oneline(X509_get_issuer_name(crt), name, sizeof(name));
-		name[sizeof(name) - 1] = '\0';
-		diminuto_log_log(DIMINUTO_LOG_PRIORITY_NOTICE, "codex_verify_callback: issuer=\"%s\"\n", name);
+			name[0] = '\0';
+			X509_NAME_oneline(X509_get_issuer_name(crt), name, sizeof(name));
+			name[sizeof(name) - 1] = '\0';
+			diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_verification_callback: issuer=\"%s\"\n", name);
 
-		name[0] = '\0';
-		X509_NAME_oneline(X509_get_subject_name(crt), name, sizeof(name));
-		name[sizeof(name) - 1] = '\0';
-		diminuto_log_log(DIMINUTO_LOG_PRIORITY_NOTICE, "codex_verify_callback: subject=\"%s\"\n", name);
+			name[0] = '\0';
+			X509_NAME_oneline(X509_get_subject_name(crt), name, sizeof(name));
+			name[sizeof(name) - 1] = '\0';
+			diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_verification_callback: subject=\"%s\"\n", name);
+
+		}
 
 		error = X509_STORE_CTX_get_error(ctx);
-
-		text = X509_verify_cert_error_string(error);
-		if (text != (const char *)0) {
-			diminuto_log_log(DIMINUTO_LOG_PRIORITY_NOTICE, "codex_verify_callback: error=%d=\"%s\"\n", error, text);
+		if (error != X509_V_OK) {
+			text = X509_verify_cert_error_string(error);
+			diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_verification_callback: error=%d=\"%s\"\n", error, (text != (const char *)0) ? text : "");
 		}
 
 	}
@@ -128,7 +120,161 @@ static int codex_verify_callback(int ok, X509_STORE_CTX * ctx)
 	return ok;
 }
 
-SSL_CTX * codex_context_new(const char * key, const char * caf, const char * crt, const char * pem, int flags, int depth)
+static DH * codex_parameters_callback(SSL * ssl, int exp, int length)
+{
+	DH * dhp = (DH *)0;
+
+	switch (length) {
+
+	case 512:
+		dhp = dh512;
+		break;
+
+	case 1024:
+		dhp = dh1024;
+		break;
+
+	case 2048:
+		dhp = dh2048;
+		break;
+
+	case 4096:
+		dhp = dh4096;
+		break;
+
+	default:
+		dhp = dh2048;
+		diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_parameters_callback: length=%d\n", length);
+		break;
+
+	}
+
+	if (dhp == (DH *)0) {
+		diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "codex_parameters_callback: codex_parameters\n");
+	}
+
+	return dhp;
+}
+
+/*******************************************************************************
+ * COMMON
+ ******************************************************************************/
+
+void codex_perror(const char * str)
+{
+	char buffer[120];
+	ERR_error_string_n(ERR_get_error(), buffer, sizeof(buffer));
+    diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "%s: %s\n", str, buffer);
+}
+
+int codex_initialize(void)
+{
+	int rc = -1;
+
+	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
+
+		do {
+
+			if (!initialized) {
+
+				rc = SSL_library_init();
+				if (rc != 1) {
+					codex_perror("SSL_library_init");
+					break;
+				}
+
+				SSL_load_error_strings();
+
+				initialized = true;
+
+			}
+
+		} while (0);
+
+	DIMINUTO_CRITICAL_SECTION_END;
+
+	return initialized ? 0 : -1;
+}
+
+static DH * codex_import(const char * dhf)
+{
+	DH * dhp = (DH *)0;
+	BIO * bio = (BIO *)0;
+	int rc = -1;
+
+	do {
+
+		bio = BIO_new_file(dhf, "r");
+		if (bio == (BIO *)0) {
+			codex_perror(dhf);
+			break;
+		}
+
+		dhp = PEM_read_bio_DHparams(bio, (DH **)0, (pem_password_cb *)0, (void *)0);
+		if (dhp == (DH *)0) {
+			codex_perror(dhf);
+			break;
+		}
+
+	} while (0);
+
+	if (bio != (BIO *)0) {
+		rc = BIO_free(bio);
+		if (rc != 1) {
+			codex_perror(dhf);
+		}
+	}
+
+	return dhp;
+}
+
+int codex_parameters(const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f)
+{
+	int rc = -1;
+
+	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
+
+		do {
+
+			if (dh512 == (DH *)0) {
+				dh512 = codex_import(dh512f);
+				if (dh512 == (DH *)0) {
+					break;
+				}
+			}
+
+			if (dh1024 == (DH *)0) {
+				dh1024 = codex_import(dh1024f);
+				if (dh1024 == (DH *)0) {
+					break;
+				}
+			}
+
+			if (dh2048 == (DH *)0) {
+				dh2048 = codex_import(dh2048f);
+				if (dh2048 == (DH *)0) {
+					break;
+				}
+			}
+
+			if (dh4096 == (DH *)0) {
+				dh4096 = codex_import(dh4096f);
+				if (dh4096 == (DH *)0) {
+					break;
+				}
+			}
+
+			rc = 0;
+
+		} while (0);
+
+	DIMINUTO_CRITICAL_SECTION_END;
+
+	return rc;
+
+}
+
+SSL_CTX * codex_context_new(const char * env, const char * caf, const char * crt, const char * pem, int flags, int depth, int options)
 {
 	SSL_CTX * result = (SSL_CTX *)0;
 	const SSL_METHOD * method = (SSL_METHOD *)0;
@@ -137,8 +283,6 @@ SSL_CTX * codex_context_new(const char * key, const char * caf, const char * crt
 	int rc = -1;
 
 	do {
-
-		codex_initialize();
 
 		method = SSLv23_method();
 		if (method == (SSL_METHOD *)0) {
@@ -164,7 +308,7 @@ SSL_CTX * codex_context_new(const char * key, const char * caf, const char * crt
 			break;
 		}
 
-		password = secure_getenv(key);
+		password = secure_getenv(env);
 		if (password != (char *)0) {
 			SSL_CTX_set_default_passwd_cb(ctx, codex_password_callback);
 			SSL_CTX_set_default_passwd_cb_userdata(ctx, password);
@@ -182,9 +326,19 @@ SSL_CTX * codex_context_new(const char * key, const char * caf, const char * crt
 			break;
 		}
 
-		SSL_CTX_set_verify(ctx, flags, codex_verify_callback);
+		SSL_CTX_set_verify(ctx, flags, codex_verification_callback);
 
 		SSL_CTX_set_verify_depth(ctx, depth);
+
+		(void)SSL_CTX_set_options(ctx, options);
+
+		SSL_CTX_set_tmp_dh_callback(ctx, codex_parameters_callback);
+
+		rc = SSL_CTX_set_cipher_list(ctx, codex_cipher_list);
+		if (rc != 1) {
+			codex_perror("SSL_CTX_set_cipher_list");
+			break;
+		}
 
 		result = ctx;
 
@@ -203,14 +357,12 @@ SSL_CTX * codex_context_new(const char * key, const char * caf, const char * crt
 
 SSL_CTX * codex_context_free(SSL_CTX * ctx)
 {
-	SSL_CTX * result = ctx;
-
-	if (result != (SSL_CTX *)0) {
-		SSL_CTX_free(result);
-		result = (SSL_CTX *)0;
+	if (ctx != (SSL_CTX *)0) {
+		SSL_CTX_free(ctx);
+		ctx = (SSL_CTX *)0;
 	}
 
-	return result;
+	return ctx;
 }
 
 /*******************************************************************************
