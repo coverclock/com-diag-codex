@@ -9,7 +9,8 @@
  *
  * REFERENCES
  *
- * J. Viega, M. Messier, P. Chandra, _Network Security with OpenSSL_, O'Reilly, 2002
+ * J. Viega, M. Messier, P. Chandra, _Network Security with OpenSSL_, O'Reilly,
+ * 2002, pp. 112-170
  */
 
 #include <stdbool.h>
@@ -26,6 +27,7 @@
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
+#include "codex.h"
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static bool initialized = false;

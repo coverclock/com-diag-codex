@@ -13,9 +13,9 @@
 
 #include <openssl/ssl.h>
 
-#define COM_DIAG_CODEX_PASSWORD_SERVER_KEY "COM_DIAG_CODEX_PASSWORD_SERVER"
-
-#define COM_DIAG_CODEX_PASSWORD_CLIENT_KEY "COM_DIAG_CODEX_PASSWORD_CLIENT"
+/*******************************************************************************
+ * CONSTANTS
+ ******************************************************************************/
 
 extern const char * const codex_password_server_key;
 
