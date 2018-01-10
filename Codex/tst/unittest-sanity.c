@@ -24,10 +24,10 @@ int main(char * argc, char ** argv)
 		TEST();
 
 		value = getenv(codex_server_password_env);
-		COMMENT("%s=\"%s\"\n", codex_server_password_env, (value != (const char *)0) ? value : "");
+		COMMENT("%s=\"%s\"\n", codex_server_password_env, (value != (const char *)0) ? "(defined)" : "(UNDEFINED)");
 
 		value = getenv(codex_client_password_env);
-		COMMENT("%s=\"%s\"\n", codex_client_password_env, (value != (const char *)0) ? value : "");
+		COMMENT("%s=\"%s\"\n", codex_client_password_env, (value != (const char *)0) ? "(defined)" : "(UNDEFINED)");
 
 		STATUS();
 	}

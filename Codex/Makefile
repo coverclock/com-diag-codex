@@ -179,9 +179,16 @@ TARGETSHARED		:=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
+SSL_DIR				:=	$(OUT)/$(ETC_DIR)
+
+TARGETCREDENTIALS	:=	$(SSL_DIR)/root.pem $(SSL_DIR)/client.pem $(SSL_DIR)/server.pem
+TARGETPARAMETERS	:=	$(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem $(SSL_DIR)/dh2048.pem $(SSL_DIR)/dh4096.pem
+TARGETPASSWORDS		:=	$(SSL_DIR)/client.pwd $(SSL_DIR)/server.pwd
+
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
 TARGETPROGRAMS		:=	$(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS)
-TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS)
+
+TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPARAMETERS) $(TARGETPASSWORDS)
 
 ########## Main Entry Points
 
@@ -212,48 +219,56 @@ clobber:	pristine
 
 .PHONY:	credentials credentials-show credentials-clean parameters parameters-clean
 
-SSL_DIR :=	$(OUT)/$(ETC_DIR)
 SSL_KEY :=	rsa:4096
 SSL_ALG	:=	sha1
 SSL_GEN	:=	2#5
-SSL_RTF	:=	$(ETC_DIR)/root.cnf
-SSL_CAF	:=	$(ETC_DIR)/serverCA.cnf
-SSL_SEF	:=	$(ETC_DIR)/server.cnf
-SSL_CLF	:=	$(ETC_DIR)/client.cnf
-SSL_OSF	:=	$(ETC_DIR)/openssl.cnf
+
+##### Passwords
+
+$(SSL_DIR)/root.pwd:	$(ETC_DIR)/root.cnf
+	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
+
+$(SSL_DIR)/serverCA.pwd:	$(ETC_DIR)/serverCA.cnf
+	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
+
+$(SSL_DIR)/server.pwd:	$(ETC_DIR)/server.cnf
+	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
+
+$(SSL_DIR)/client.pwd:	$(ETC_DIR)/client.cnf
+	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
 
 ##### Root
 
-$(SSL_DIR)/rootreq.pem:
+$(SSL_DIR)/rootreq.pem:	$(ETC_DIR)/root.cnf
 	mkdir -p $(SSL_DIR)
-	openssl req -config $(SSL_RTF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/rootkey.pem -out $@
+	openssl req -config $(ETC_DIR)/root.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/rootkey.pem -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/rootkey.pem:	$(SSL_DIR)/rootreq.pem
 
-$(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(SSL_DIR)/rootkey.pem $(SSL_OSF)
+$(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/rootkey.pem $(SSL_DIR)/root.pwd
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/rootreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions v3_ca -signkey $(SSL_DIR)/rootkey.pem -out $@
+	openssl x509 -req -in $(SSL_DIR)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -signkey $(SSL_DIR)/rootkey.pem -passin file:$(SSL_DIR)/root.pwd -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/root.pem:	$(SSL_DIR)/rootkey.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
-	cat $(SSL_DIR)/rootcert.pem $(SSL_DIR)/rootkey.pem > $@
+	cat $^ > $@
 	ls --full-time $(SSL_DIR)
 	openssl x509 -subject -issuer -noout -in $@
 
 ##### Certificate Authority
 
-$(SSL_DIR)/serverCAreq.pem:
+$(SSL_DIR)/serverCAreq.pem:	$(ETC_DIR)/serverCA.cnf
 	mkdir -p $(SSL_DIR)
-	openssl req -config $(SSL_CAF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverCAkey.pem -out $@
+	openssl req -config $(ETC_DIR)/serverCA.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverCAkey.pem -out $@
 	ls --full-time $(SSL_DIR)
 	
 $(SSL_DIR)/serverCAkey.pem:	$(SSL_DIR)/serverCAreq.pem
 
-$(SSL_DIR)/serverCAcert.pem:	$(SSL_DIR)/serverCAreq.pem $(SSL_DIR)/root.pem $(SSL_OSF)
+$(SSL_DIR)/serverCAcert.pem:	$(SSL_DIR)/serverCAreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/root.pem $(SSL_DIR)/root.pwd
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/serverCAreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions v3_ca -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
+	openssl x509 -req -in $(SSL_DIR)/serverCAreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -CA $(SSL_DIR)/root.pem -passin file:$(SSL_DIR)/root.pwd -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/serverCA.pem:	$(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/rootcert.pem
@@ -264,16 +279,16 @@ $(SSL_DIR)/serverCA.pem:	$(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/serverCAkey.pem 
 
 ##### Server
 
-$(SSL_DIR)/serverreq.pem:
+$(SSL_DIR)/serverreq.pem:	$(ETC_DIR)/server.cnf
 	mkdir -p $(SSL_DIR)
-	openssl req -config $(SSL_SEF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverkey.pem -out $@
+	openssl req -config $(ETC_DIR)/server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverkey.pem -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/serverkey.pem:	$(SSL_DIR)/serverreq.pem
 
-$(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(SSL_DIR)/serverCA.pem $(SSL_OSF)
+$(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/serverCA.pem $(SSL_DIR)/serverCA.pwd
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions usr_cert -CA $(SSL_DIR)/serverCA.pem -CAkey $(SSL_DIR)/serverCA.pem -CAcreateserial -out $@
+	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_DIR)/serverCA.pem -passin file:$(SSL_DIR)/serverCA.pwd -CAkey $(SSL_DIR)/serverCA.pem -CAcreateserial -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem
@@ -284,16 +299,16 @@ $(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_
 
 ##### Client
 
-$(SSL_DIR)/clientreq.pem:
+$(SSL_DIR)/clientreq.pem:	$(ETC_DIR)/client.cnf
 	mkdir -p $(SSL_DIR)
-	openssl req -config $(SSL_CLF) -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/clientkey.pem -out $@
+	openssl req -config $(ETC_DIR)/client.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/clientkey.pem -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/clientkey.pem:	$(SSL_DIR)/clientreq.pem
 
-$(SSL_DIR)/clientcert.pem:	$(SSL_DIR)/clientreq.pem $(SSL_DIR)/root.pem $(SSL_OSF)
+$(SSL_DIR)/clientcert.pem:	$(SSL_DIR)/clientreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/root.pem $(SSL_DIR)/root.pwd
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/clientreq.pem -$(SSL_ALG) -extfile $(SSL_OSF) -extensions usr_cert -CA $(SSL_DIR)/root.pem -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
+	openssl x509 -req -in $(SSL_DIR)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_DIR)/root.pem -passin file:$(SSL_DIR)/root.pwd -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/client.pem:	$(SSL_DIR)/clientcert.pem $(SSL_DIR)/clientkey.pem $(SSL_DIR)/rootcert.pem
@@ -335,10 +350,10 @@ credentials-show:
 	( cd $(SSL_DIR); test -r client.pem && openssl x509 -subject -issuer -noout -in client.pem || true )
 
 credentials-clean:
-	( cd $(SSL_DIR); rm -f rootcert.pem rootkey.pem root.pem rootreq.pem root.srl )
-	( cd $(SSL_DIR); rm -f serverCAcert.pem serverCAkey.pem serverCA.pem serverCAreq.pem serverCA.srl )
-	( cd $(SSL_DIR); rm -f servercert.pem serverkey.pem server.pem serverreq.pem )
-	( cd $(SSL_DIR); rm -f clientkey.pem client.pem clientreq.pem )
+	( cd $(SSL_DIR); rm -f root.pwd rootcert.pem rootkey.pem root.pem rootreq.pem root.srl )
+	( cd $(SSL_DIR); rm -f serverCA.pwd serverCAcert.pem serverCAkey.pem serverCA.pem serverCAreq.pem serverCA.srl )
+	( cd $(SSL_DIR); rm -f server.pwd servercert.pem serverkey.pem server.pem serverreq.pem )
+	( cd $(SSL_DIR); rm -f client.pwd clientkey.pem client.pem clientreq.pem )
 	
 parameters:	 $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem $(SSL_DIR)/dh2048.pem $(SSL_DIR)/dh4096.pem
 
@@ -640,6 +655,8 @@ $(OUT)/$(BIN_DIR)/setup:	Makefile
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $${BASH_ARGV[0]}`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
 	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
+	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/client.pwd`' >> $@
+	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/server.pwd`' >> $@
 	echo '. $(DIMINUTO_ROOT)/$(OUT)/$(BIN_DIR)/setup' >> $@
 	chmod 644 $@
 
@@ -648,6 +665,8 @@ $(OUT)/$(SYM_DIR)/setup:	Makefile
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $${BASH_ARGV[0]}`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
 	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
+	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/client.pwd`' >> $@
+	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/server.pwd`' >> $@
 	echo '. $(DIMINUTO_ROOT)/$(OUT)/$(SYM_DIR)/setup' >> $@
 	chmod 644 $@
 
@@ -658,6 +677,8 @@ $(OUT)/$(BIN_DIR)/generate:	Makefile
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'echo export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
 	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/client.pwd`' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/server.pwd`' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(BIN_DIR)/setup' >> $@
 	chmod 755 $@
 
@@ -666,6 +687,8 @@ $(OUT)/$(SYM_DIR)/generate:	Makefile
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'echo export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
 	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/client.pwd`' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/server.pwd`' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(SYM_DIR)/setup' >> $@
 	chmod 755 $@
 
