@@ -27,8 +27,6 @@ extern const char * const codex_cipher_list;
  * COMMON
  ******************************************************************************/
 
-extern void codex_perror(const char * str);
-
 extern int codex_initialize(void);
 
 extern int codex_parameters(const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f);

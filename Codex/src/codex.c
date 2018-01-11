@@ -24,6 +24,7 @@
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>
+#include <openssl/objects.h>
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
@@ -63,7 +64,7 @@ static bool initialized = false;
  * HELPERS
  ******************************************************************************/
 
-void codex_perror(const char * str)
+static void codex_perror(const char * str)
 {
 	unsigned long error = -1;
 	int ii = 0;
@@ -386,6 +387,163 @@ SSL_CTX * codex_context_free(SSL_CTX * ctx)
 	}
 
 	return ctx;
+}
+
+long codex_peer_verify(SSL * ssl, const char * domain)
+{
+	long result = X509_V_ERR_APPLICATION_VERIFICATION;
+	int found = 0;
+	X509 * crt = (X509 *)0;
+	X509_NAME * subject = (X509_NAME *)0;
+	int count = 0;
+	X509_EXTENSION * ext = (X509_EXTENSION *)0;
+	int ii = 0;
+	ASN1_OBJECT * obj = (ASN1_OBJECT *)0;
+	int nid = -1;
+	const char * str = (char *)0;
+	const X509V3_EXT_METHOD * meth = (X509V3_EXT_METHOD *)0;
+	const unsigned char * dat = (const unsigned char *)0;
+	void * ptr = (void *)0;
+	STACK_OF(CONF_VALUE) * vals = (STACK_OF(CONF_VALUE) *)0;
+	int jj = 0;
+	CONF_VALUE * val = (CONF_VALUE *)0;
+	int lim = 0;
+	X509_NAME * nam = (X509_NAME *)0;
+	char buffer[256];
+	int rc = -1;
+
+	do {
+
+		crt = SSL_get_peer_certificate(ssl);
+		if (crt == (X509 *)0) {
+			codex_perror("SSL_get_peer_certificate");
+			break;
+		}
+
+		count = X509_get_ext_count(crt);
+		for (ii = 0; ii < count; ++ii) {
+
+			ext = X509_get_ext(crt, ii);
+			if (ext == (X509_EXTENSION *)0) {
+				continue;
+			}
+
+			obj = X509_EXTENSION_get_object(ext);
+			if (obj == (ASN1_OBJECT *)0) {
+				continue;
+			}
+
+			nid = OBJ_obj2nid(obj);
+			if (nid == NID_undef) {
+				continue;
+			}
+
+			str = OBJ_nid2sn(nid);
+			if (str == (const char *)0) {
+				continue;
+			}
+
+			if (strcmp(str, "subjectAltName") != 0) {
+				continue;
+			}
+
+			meth = X509V3_EXT_get(ext);
+			if (meth == (X509V3_EXT_METHOD *)0) {
+				continue;
+			}
+
+			if (ext->value == (ASN1_OCTET_STRING *)0) {
+				continue;
+			}
+
+			dat = ext->value->data;
+
+			if (meth->d2i == (X509V3_EXT_D2I)0) {
+				continue;
+			}
+
+			ptr = meth->d2i((void *)0, &dat, ext->value->length);
+
+			if (meth->i2v == (X509V3_EXT_I2V)0) {
+				continue;
+			}
+
+			vals = meth->i2v(meth, ptr, (STACK_OF(CONF_VALUE) *)0);
+			if (vals == (STACK_OF(CONF_VALUE) *)0) {
+				continue;
+			}
+
+			lim = sk_CONF_VALUE_num(vals);
+
+			for (jj = 0; jj < lim; ++jj) {
+
+				val = sk_CONF_VALUE_value(vals, jj);
+				if (val == (CONF_VALUE *)0) {
+					continue;
+				}
+
+				if (val->name == (char *)0) {
+					continue;
+				}
+
+				if (val->value == (char *)0) {
+					continue;
+				}
+
+				fprintf(stderr, "codex_peer_verify: \"%s\"=\"%s\" ? \"%s\"=\"%s\"\n", val->name, val->value, COM_DIAG_CODEX_DNSNAME_NAME, domain);
+
+				if (strcmp(val->name, COM_DIAG_CODEX_DNSNAME_NAME) != 0) {
+					continue;
+				}
+
+				if (strcmp(val->value, domain) != 0) {
+					continue;
+				}
+
+				found = !0;
+				break;
+			}
+
+			if (found) {
+				break;
+			}
+		}
+
+		if (found) {
+			break;
+		}
+
+		nam = X509_get_subject_name(crt);
+		if (nam == (X509_NAME *)0) {
+			break;
+		}
+
+		buffer[0] = '\0';
+		rc = X509_NAME_get_text_by_NID(nam, NID_commonName, buffer, sizeof(buffer));
+		if (rc <= 0) {
+			break;
+		}
+		buffer[sizeof(buffer) - 1] = '\0';
+
+		fprintf(stderr, "codex_peer_verify: \"%s\"=\"%s\" ? \"%s\"\n", "commonName", buffer, domain);
+
+		if (strcasecmp(buffer, domain) != 0) {
+			break;
+		}
+
+		found = !0;
+
+	} while (0);
+
+	if (crt != (X509 *)0) {
+		X509_free(crt);
+	}
+
+	if (found) {
+		result = SSL_get_verify_result(ssl);
+	}
+
+	return result;
 }
 
 /*******************************************************************************
