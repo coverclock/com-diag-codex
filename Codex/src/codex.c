@@ -164,9 +164,17 @@ static DH * codex_parameters_callback(SSL * ssl, int export, int length)
 
 void codex_perror(const char * str)
 {
+	unsigned long error = -1;
 	char buffer[120];
-	ERR_error_string_n(ERR_get_error(), buffer, sizeof(buffer));
-    diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "%s: %s\n", str, buffer);
+
+	while (!0) {
+		error = ERR_get_error();
+		if (error == 0) { break; }
+		buffer[0] = '\0';
+		ERR_error_string_n(error, buffer, sizeof(buffer));
+		buffer[sizeof(buffer) - 1] = '\0';
+		diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "%s: [%d] \"%s\"\n", str, error, buffer);
+	}
 }
 
 int codex_initialize(void)
