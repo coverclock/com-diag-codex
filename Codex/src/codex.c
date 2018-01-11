@@ -60,6 +60,66 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static bool initialized = false;
 
 /*******************************************************************************
+ * HELPERS
+ ******************************************************************************/
+
+void codex_perror(const char * str)
+{
+	unsigned long error = -1;
+	int ii = 0;
+	char buffer[120];
+
+	while (!0) {
+		error = ERR_get_error();
+		if (error == 0) { break; }
+		buffer[0] = '\0';
+		ERR_error_string_n(error, buffer, sizeof(buffer));
+		buffer[sizeof(buffer) - 1] = '\0';
+		diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "%s: [%d] <%8.8x> \"%s\"\n", str, ii++, error, buffer);
+	}
+}
+
+static DH * codex_import(const char * dhf)
+{
+	DH * dhp = (DH *)0;
+	BIO * bio = (BIO *)0;
+	int rc = -1;
+
+	do {
+
+		bio = BIO_new_file(dhf, "r");
+		if (bio == (BIO *)0) {
+			codex_perror(dhf);
+			break;
+		}
+
+		dhp = PEM_read_bio_DHparams(bio, (DH **)0, (pem_password_cb *)0, (void *)0);
+		if (dhp == (DH *)0) {
+			codex_perror(dhf);
+			break;
+		}
+
+		/*
+		 * The OpenSSL man page on PEM_read_bio_DHparams() and its kin is
+		 * strangely silent as to whether the pointer returned by the function
+		 * must ultimately be free()'d. Since there is no function like
+		 * SSL_library_shutdown() that I can find, and valgrind(1) shows memory
+		 * allocated at exit(2), maybe I just need to resign myself to this.
+		 */
+
+	} while (0);
+
+	if (bio != (BIO *)0) {
+		rc = BIO_free(bio);
+		if (rc != 1) {
+			codex_perror(dhf);
+		}
+	}
+
+	return dhp;
+}
+
+/*******************************************************************************
  * CALLBACKS
  ******************************************************************************/
 
@@ -162,21 +222,6 @@ static DH * codex_parameters_callback(SSL * ssl, int export, int length)
  * COMMON
  ******************************************************************************/
 
-void codex_perror(const char * str)
-{
-	unsigned long error = -1;
-	char buffer[120];
-
-	while (!0) {
-		error = ERR_get_error();
-		if (error == 0) { break; }
-		buffer[0] = '\0';
-		ERR_error_string_n(error, buffer, sizeof(buffer));
-		buffer[sizeof(buffer) - 1] = '\0';
-		diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "%s: [%d] \"%s\"\n", str, error, buffer);
-	}
-}
-
 int codex_initialize(void)
 {
 	int rc = -1;
@@ -206,64 +251,26 @@ int codex_initialize(void)
 	return initialized ? 0 : -1;
 }
 
-static DH * codex_import(const char * dhf)
-{
-	DH * dhp = (DH *)0;
-	BIO * bio = (BIO *)0;
-	int rc = -1;
-
-	do {
-
-		bio = BIO_new_file(dhf, "r");
-		if (bio == (BIO *)0) {
-			codex_perror(dhf);
-			break;
-		}
-
-		dhp = PEM_read_bio_DHparams(bio, (DH **)0, (pem_password_cb *)0, (void *)0);
-		if (dhp == (DH *)0) {
-			codex_perror(dhf);
-			break;
-		}
-
-		/*
-		 * The OpenSSL man page on PEM_read_bio_DHparams() and its kin is
-		 * strangely silent as to whether the pointer returned by the function
-		 * must ultimately be free()'d. Since there is no function like
-		 * SSL_library_shutdown() that I can find, and valgrind(1) shows memory
-		 * allocated at exit(2), maybe I just need to resign myself to this.
-		 */
-
-	} while (0);
-
-	if (bio != (BIO *)0) {
-		rc = BIO_free(bio);
-		if (rc != 1) {
-			codex_perror(dhf);
-		}
-	}
-
-	return dhp;
-}
-
 #define CODEX_PARAMETERS(_LENGTH_) \
-		if (dh##_LENGTH_##f == (const char *)0) { \
-			/* Do nothing. */ \
-		} else if (codex_dh##_LENGTH_ != (DH *)0) { \
-			/* Do nothing. */ \
-		} else { \
-			codex_dh##_LENGTH_ = codex_import(dh##_LENGTH_##f); \
-			if (codex_dh##_LENGTH_ == (DH *)0) { \
-				break; \
+		do { \
+			if (dh##_LENGTH_##f == (const char *)0) { \
+				/* Do nothing. */ \
+			} else if (codex_dh##_LENGTH_ != (DH *)0) { \
+				/* Do nothing. */ \
+			} else { \
+				codex_dh##_LENGTH_ = codex_import(dh##_LENGTH_##f); \
+				if (codex_dh##_LENGTH_ == (DH *)0) { \
+					rc = -1; \
+				} \
 			} \
-		} \
-		if (codex_dh##_LENGTH_ != (DH *)0) { \
-			any = codex_dh##_LENGTH_; \
-		}
+			if (codex_dh##_LENGTH_ != (DH *)0) { \
+				any = codex_dh##_LENGTH_; \
+			} \
+		} while (0)
 
 int codex_parameters(const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f)
 {
-	int rc = -1;
+	int rc = 0;
 	DH * any = (DH *)0;
 
 	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
@@ -277,8 +284,6 @@ int codex_parameters(const char * dh512f, const char * dh1024f, const char * dh2
 			CODEX_PARAMETERS(2048);
 
 			CODEX_PARAMETERS(4096);
-
-			rc = 0;
 
 		} while (0);
 
