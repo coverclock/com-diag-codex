@@ -42,17 +42,185 @@ int main(char * argc, char ** argv)
 
 		STATUS();
 	}
+	{
+		int rc;
+
+		TEST();
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, NULL, NULL, NULL);
+		ASSERT(rc == 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh0.pem", NULL, NULL, NULL);
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh0.pem", NULL, NULL);
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh0.pem", NULL);
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh0.pem");
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters("/dev/null", NULL, NULL, NULL);
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, "/dev/null", NULL, NULL);
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, NULL, "/dev/null", NULL);
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, NULL, NULL, "/dev/null");
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh4294967295.pem", NULL, NULL, NULL);
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh4294967295.pem", NULL, NULL);
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh4294967295.pem", NULL);
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh4294967295.pem");
+		ASSERT(rc < 0);
+
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh512.pem", NULL, NULL, NULL);
+		ASSERT(rc == 0);
+
+		ASSERT(codex_dh512 != (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh1024.pem", NULL, NULL);
+		ASSERT(rc == 0);
+
+		ASSERT(codex_dh512 != (DH *)0);
+		ASSERT(codex_dh1024 != (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh2048.pem", NULL);
+		ASSERT(rc == 0);
+
+		ASSERT(codex_dh512 != (DH *)0);
+		ASSERT(codex_dh1024 != (DH *)0);
+		ASSERT(codex_dh2048 != (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
+		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh4096.pem");
+		ASSERT(rc == 0);
+
+		ASSERT(codex_dh512 != (DH *)0);
+		ASSERT(codex_dh1024 != (DH *)0);
+		ASSERT(codex_dh2048 != (DH *)0);
+		ASSERT(codex_dh4096 != (DH *)0);
+
+		/*
+		 * Probable memory leak here to set up for the following unit test.
+		 */
+
+		codex_dh512 = (DH *)0;
+		codex_dh1024 = (DH *)0;
+		codex_dh2048 = (DH *)0;
+		codex_dh4096 = (DH *)0;
+
+		STATUS();
+	}
 
 	{
 		int rc;
 
 		TEST();
 
+		ASSERT(codex_dh512 == (DH *)0);
+		ASSERT(codex_dh1024 == (DH *)0);
+		ASSERT(codex_dh2048 == (DH *)0);
+		ASSERT(codex_dh4096 == (DH *)0);
+
 		rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh4096.pem");
 		ASSERT(rc == 0);
 
+		ASSERT(codex_dh512 != (DH *)0);
+		ASSERT(codex_dh1024 != (DH *)0);
+		ASSERT(codex_dh2048 != (DH *)0);
+		ASSERT(codex_dh4096 != (DH *)0);
+
 		STATUS();
 	}
+
 
 	{
 		SSL_CTX * ctx;

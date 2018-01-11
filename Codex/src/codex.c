@@ -43,17 +43,21 @@ const char * const codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
  * GLOBALS
  ******************************************************************************/
 
+DH * codex_dh512 = (DH *)0;
+
+DH * codex_dh1024 = (DH *)0;
+
+DH * codex_dh2048 = (DH *)0;
+
+DH * codex_dh4096 = (DH *)0;
+
+/*******************************************************************************
+ * STATICS
+ ******************************************************************************/
+
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static bool initialized = false;
-
-static DH * dh512 = (DH *)0;
-
-static DH * dh1024 = (DH *)0;
-
-static DH * dh2048 = (DH *)0;
-
-static DH * dh4096 = (DH *)0;
 
 /*******************************************************************************
  * CALLBACKS
@@ -127,19 +131,19 @@ static DH * codex_parameters_callback(SSL * ssl, int export, int length)
 	switch (length) {
 
 	case 512:
-		dhp = dh512;
+		dhp = codex_dh512;
 		break;
 
 	case 1024:
-		dhp = dh1024;
+		dhp = codex_dh1024;
 		break;
 
 	case 2048:
-		dhp = dh2048;
+		dhp = codex_dh2048;
 		break;
 
 	case 4096:
-		dhp = dh4096;
+		dhp = codex_dh4096;
 		break;
 
 	default:
@@ -237,16 +241,16 @@ static DH * codex_import(const char * dhf)
 #define CODEX_PARAMETERS(_LENGTH_) \
 		if (dh##_LENGTH_##f == (const char *)0) { \
 			/* Do nothing. */ \
-		} else if (dh##_LENGTH_ != (DH *)0) { \
+		} else if (codex_dh##_LENGTH_ != (DH *)0) { \
 			/* Do nothing. */ \
 		} else { \
-			dh##_LENGTH_ = codex_import(dh##_LENGTH_##f); \
-			if (dh##_LENGTH_ == (DH *)0) { \
+			codex_dh##_LENGTH_ = codex_import(dh##_LENGTH_##f); \
+			if (codex_dh##_LENGTH_ == (DH *)0) { \
 				break; \
 			} \
 		} \
-		if (dh##_LENGTH_ != (DH *)0) { \
-			any = dh##_LENGTH_; \
+		if (codex_dh##_LENGTH_ != (DH *)0) { \
+			any = codex_dh##_LENGTH_; \
 		}
 
 int codex_parameters(const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f)
