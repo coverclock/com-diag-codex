@@ -120,7 +120,7 @@ static int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 	return ok;
 }
 
-static DH * codex_parameters_callback(SSL * ssl, int exp, int length)
+static DH * codex_parameters_callback(SSL * ssl, int export, int length)
 {
 	DH * dhp = (DH *)0;
 
@@ -143,14 +143,12 @@ static DH * codex_parameters_callback(SSL * ssl, int exp, int length)
 		break;
 
 	default:
-		dhp = dh2048;
-		diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_parameters_callback: length=%d\n", length);
 		break;
 
 	}
 
 	if (dhp == (DH *)0) {
-		diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "codex_parameters_callback: codex_parameters\n");
+		diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "codex_parameters_callback: length=%d result=NULL\n", length);
 	}
 
 	return dhp;
@@ -216,6 +214,14 @@ static DH * codex_import(const char * dhf)
 			break;
 		}
 
+		/*
+		 * The OpenSSL man page on PEM_read_bio_DHparams() and its kin is
+		 * strangely silent as to whether the pointer returned by the function
+		 * must ultimately be free()'d. Since there is no function like
+		 * SSL_library_shutdown() that I can find, and valgrind(1) shows memory
+		 * allocated at exit(2), maybe I just need to resign myself to this.
+		 */
+
 	} while (0);
 
 	if (bio != (BIO *)0) {
@@ -228,47 +234,47 @@ static DH * codex_import(const char * dhf)
 	return dhp;
 }
 
+#define CODEX_PARAMETERS(_LENGTH_) \
+		if (dh##_LENGTH_##f == (const char *)0) { \
+			/* Do nothing. */ \
+		} else if (dh##_LENGTH_ != (DH *)0) { \
+			/* Do nothing. */ \
+		} else { \
+			dh##_LENGTH_ = codex_import(dh##_LENGTH_##f); \
+			if (dh##_LENGTH_ == (DH *)0) { \
+				break; \
+			} \
+		} \
+		if (dh##_LENGTH_ != (DH *)0) { \
+			any = dh##_LENGTH_; \
+		}
+
 int codex_parameters(const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f)
 {
 	int rc = -1;
+	DH * any = (DH *)0;
 
 	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
 
 		do {
 
-			if (dh512 == (DH *)0) {
-				dh512 = codex_import(dh512f);
-				if (dh512 == (DH *)0) {
-					break;
-				}
-			}
+			CODEX_PARAMETERS(512);
 
-			if (dh1024 == (DH *)0) {
-				dh1024 = codex_import(dh1024f);
-				if (dh1024 == (DH *)0) {
-					break;
-				}
-			}
+			CODEX_PARAMETERS(1024);
 
-			if (dh2048 == (DH *)0) {
-				dh2048 = codex_import(dh2048f);
-				if (dh2048 == (DH *)0) {
-					break;
-				}
-			}
+			CODEX_PARAMETERS(2048);
 
-			if (dh4096 == (DH *)0) {
-				dh4096 = codex_import(dh4096f);
-				if (dh4096 == (DH *)0) {
-					break;
-				}
-			}
+			CODEX_PARAMETERS(4096);
 
 			rc = 0;
 
 		} while (0);
 
 	DIMINUTO_CRITICAL_SECTION_END;
+
+	if (any == (DH *)0) {
+		diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_parameters: result=NULL");
+	}
 
 	return rc;
 

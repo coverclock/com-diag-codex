@@ -208,7 +208,7 @@ pristine:	clean
 clobber:	pristine
 	rm -f .cscope.lst .cscope.out .cscope.out.in .cscope.out.po
 
-########## Certificate and Key Generation for Unit Testing
+########## Certificate and Key Generation (primrarily for unit testing)
 
 # REFERENCES
 #
@@ -217,11 +217,12 @@ clobber:	pristine
 #
 # OpenSSL, documentation, <https://www.openssl.org/docs/>
 
-.PHONY:	credentials credentials-show credentials-clean parameters parameters-clean
+.PHONY:	credentials credentials-show credentials-clean parameters parameters-clean passwords passwords-clean
 
-SSL_KEY :=	rsa:4096
-SSL_ALG	:=	sha1
-SSL_GEN	:=	2#5
+SSL_KEY 			:=	rsa:4096
+SSL_ALG				:=	sha1
+SSL_GEN				:=	2
+#SSL_GEN			:=	5
 
 ##### Passwords
 
@@ -317,7 +318,7 @@ $(SSL_DIR)/client.pem:	$(SSL_DIR)/clientcert.pem $(SSL_DIR)/clientkey.pem $(SSL_
 	ls --full-time $(SSL_DIR)
 	openssl x509 -subject -issuer -noout -in $@
 
-##### Diffie Hellman Parameters
+##### Diffie Hellman Parameters (runs for a looooooong time)
 
 $(SSL_DIR)/dh512.pem:
 	mkdir -p $(SSL_DIR)
@@ -359,6 +360,11 @@ parameters:	 $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem $(SSL_DIR)/dh2048.pem $(
 
 parameters-clean:
 	( cd $(SSL_DIR); rm -f dh512.pem dh1024.pem dh2048.pem dh4096.pem )
+	
+passwords:	$(SSL_DIR)/root.pwd $(SSL_DIR)/serverCA.pwd $(SSL_DIR)/server.pwd $(SSL_DIR)/client.pwd
+
+passwords-clean:
+	( cd $(SSL_DIR); rm -f root.pwd serverCA.pwd server.pwd client.pwd )
 
 ########## Packaging and Distribution
 
