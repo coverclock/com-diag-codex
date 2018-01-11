@@ -42,7 +42,9 @@
  */
 #define COM_DIAG_CODEX_CIPHER_LIST "ALL:!aNULL:!ADH:!LOW:!EXP:!MD5:@STRENGTH"
 
-#define COM_DIAG_CODEX_DNSNAME_NAME "DNS"
+#define COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME "subjectAltName"
+
+#define COM_DIAG_CODEX_CONFNAME_DNS "DNS"
 
 /*******************************************************************************
  * GLOBALS

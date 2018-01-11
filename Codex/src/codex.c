@@ -443,7 +443,9 @@ long codex_peer_verify(SSL * ssl, const char * domain)
 				continue;
 			}
 
-			if (strcmp(str, "subjectAltName") != 0) {
+			fprintf(stderr, "codex_peer_verify: \"%s\" ? \"%s\"\n", str, COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME);
+
+			if (strcmp(str, COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME) != 0) {
 				continue;
 			}
 
@@ -490,9 +492,9 @@ long codex_peer_verify(SSL * ssl, const char * domain)
 					continue;
 				}
 
-				fprintf(stderr, "codex_peer_verify: \"%s\"=\"%s\" ? \"%s\"=\"%s\"\n", val->name, val->value, COM_DIAG_CODEX_DNSNAME_NAME, domain);
+				fprintf(stderr, "codex_peer_verify: \"%s\"=\"%s\" ? \"%s\"=\"%s\"\n", val->name, val->value, COM_DIAG_CODEX_CONFNAME_DNS, domain);
 
-				if (strcmp(val->name, COM_DIAG_CODEX_DNSNAME_NAME) != 0) {
+				if (strcmp(val->name, COM_DIAG_CODEX_CONFNAME_DNS) != 0) {
 					continue;
 				}
 
@@ -500,6 +502,9 @@ long codex_peer_verify(SSL * ssl, const char * domain)
 					continue;
 				}
 
+				/*
+				 * Actual fully qualified domain name (FQDN) matches.
+				 */
 				found = !0;
 				break;
 			}
@@ -525,13 +530,17 @@ long codex_peer_verify(SSL * ssl, const char * domain)
 		}
 		buffer[sizeof(buffer) - 1] = '\0';
 
-		fprintf(stderr, "codex_peer_verify: \"%s\"=\"%s\" ? \"%s\"\n", "commonName", buffer, domain);
+		fprintf(stderr, "codex_peer_verify: \"%s\"=\"%s\" ? \"%s\"\n", SN_commonName, buffer, domain);
 
 		if (strcasecmp(buffer, domain) != 0) {
 			break;
 		}
 
+		/*
+		 * CommonName (CN) in certificate matches.
+		 */
 		found = !0;
+		break;
 
 	} while (0);
 
