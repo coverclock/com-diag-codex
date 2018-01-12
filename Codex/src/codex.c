@@ -13,11 +13,11 @@
  * 2002, pp. 112-170
  */
 
-#include <stdbool.h>
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <errno.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
@@ -44,6 +44,8 @@ const char * const codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
  * GLOBALS
  ******************************************************************************/
 
+DH * codex_dh256 = (DH *)0;
+
 DH * codex_dh512 = (DH *)0;
 
 DH * codex_dh1024 = (DH *)0;
@@ -66,9 +68,12 @@ static bool initialized = false;
 
 static void codex_perror(const char * str)
 {
+	int number = -1;
 	unsigned long error = -1;
 	int ii = 0;
 	char buffer[120];
+
+	number = errno;
 
 	while (!0) {
 		error = ERR_get_error();
@@ -76,11 +81,53 @@ static void codex_perror(const char * str)
 		buffer[0] = '\0';
 		ERR_error_string_n(error, buffer, sizeof(buffer));
 		buffer[sizeof(buffer) - 1] = '\0';
-		diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "%s: [%d] <%8.8x> \"%s\"\n", str, ii++, error, buffer);
+		DIMINUTO_LOG_ERROR("%s: [%d] <%8.8x> \"%s\"\n", str, ii++, error, buffer);
+	}
+
+	if (ii == 0) {
+		errno = number;
+		diminuto_perror(str);
 	}
 }
 
-static DH * codex_import(const char * dhf)
+static int codex_serror(const char * str, const SSL * ssl, int rc)
+{
+	int action = 0;
+	int err = 0;
+	int temp = 0;
+
+	err = SSL_get_error(ssl, rc);
+	switch (err) {
+
+	case SSL_ERROR_NONE:
+		break;
+
+	case SSL_ERROR_ZERO_RETURN:
+		action = 1;
+		break;
+
+	case SSL_ERROR_WANT_READ:
+	case SSL_ERROR_WANT_WRITE:
+	case SSL_ERROR_WANT_CONNECT:
+	case SSL_ERROR_WANT_ACCEPT:
+	case SSL_ERROR_WANT_X509_LOOKUP:
+		break;
+
+	case SSL_ERROR_SYSCALL:
+	case SSL_ERROR_SSL:
+		codex_perror(str);
+		action = -1;
+		break;
+
+	default:
+		break;
+
+	}
+
+	return action;
+}
+
+static DH * codex_parameters_import(const char * dhf)
 {
 	DH * dhp = (DH *)0;
 	BIO * bio = (BIO *)0;
@@ -157,7 +204,7 @@ static int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 	if (!ok) {
 
 		depth = X509_STORE_CTX_get_error_depth(ctx);
-		diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_verification_callback: depth=%d\n", depth);
+		DIMINUTO_LOG_WARNING("codex_verification_callback: depth=%d\n", depth);
 
 		crt = X509_STORE_CTX_get_current_cert(ctx);
 		if (crt != (X509 *)0) {
@@ -165,19 +212,19 @@ static int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 			name[0] = '\0';
 			X509_NAME_oneline(X509_get_issuer_name(crt), name, sizeof(name));
 			name[sizeof(name) - 1] = '\0';
-			diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_verification_callback: issuer=\"%s\"\n", name);
+			DIMINUTO_LOG_WARNING("codex_verification_callback: issuer=\"%s\"\n", name);
 
 			name[0] = '\0';
 			X509_NAME_oneline(X509_get_subject_name(crt), name, sizeof(name));
 			name[sizeof(name) - 1] = '\0';
-			diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_verification_callback: subject=\"%s\"\n", name);
+			DIMINUTO_LOG_WARNING("codex_verification_callback: subject=\"%s\"\n", name);
 
 		}
 
 		error = X509_STORE_CTX_get_error(ctx);
 		if (error != X509_V_OK) {
 			text = X509_verify_cert_error_string(error);
-			diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_verification_callback: error=%d=\"%s\"\n", error, (text != (const char *)0) ? text : "");
+			DIMINUTO_LOG_WARNING("codex_verification_callback: error=%d=\"%s\"\n", error, (text != (const char *)0) ? text : "");
 		}
 
 	}
@@ -188,6 +235,8 @@ static int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 static DH * codex_parameters_callback(SSL * ssl, int export, int length)
 {
 	DH * dhp = (DH *)0;
+
+	DIMINUTO_LOG_DEBUG("codex_parameters_callback: ssl=%p export=%d length=%d\n", ssl, export, length);
 
 	switch (length) {
 
@@ -213,7 +262,7 @@ static DH * codex_parameters_callback(SSL * ssl, int export, int length)
 	}
 
 	if (dhp == (DH *)0) {
-		diminuto_log_log(DIMINUTO_LOG_PRIORITY_ERROR, "codex_parameters_callback: length=%d result=NULL\n", length);
+		DIMINUTO_LOG_ERROR("codex_parameters_callback: ssl=%p export=%d length=%d result=NULL\n", ssl, export, length);
 	}
 
 	return dhp;
@@ -259,7 +308,7 @@ int codex_initialize(void)
 			} else if (codex_dh##_LENGTH_ != (DH *)0) { \
 				/* Do nothing. */ \
 			} else { \
-				codex_dh##_LENGTH_ = codex_import(dh##_LENGTH_##f); \
+				codex_dh##_LENGTH_ = codex_parameters_import(dh##_LENGTH_##f); \
 				if (codex_dh##_LENGTH_ == (DH *)0) { \
 					rc = -1; \
 				} \
@@ -269,7 +318,7 @@ int codex_initialize(void)
 			} \
 		} while (0)
 
-int codex_parameters(const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f)
+int codex_parameters(const char * dh256f, const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f)
 {
 	int rc = 0;
 	DH * any = (DH *)0;
@@ -277,6 +326,8 @@ int codex_parameters(const char * dh512f, const char * dh1024f, const char * dh2
 	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
 
 		do {
+
+			CODEX_PARAMETERS(256);
 
 			CODEX_PARAMETERS(512);
 
@@ -291,7 +342,7 @@ int codex_parameters(const char * dh512f, const char * dh1024f, const char * dh2
 	DIMINUTO_CRITICAL_SECTION_END;
 
 	if (any == (DH *)0) {
-		diminuto_log_log(DIMINUTO_LOG_PRIORITY_WARNING, "codex_parameters: result=NULL");
+		DIMINUTO_LOG_WARNING("codex_parameters: result=NULL");
 	}
 
 	return rc;
@@ -389,9 +440,10 @@ SSL_CTX * codex_context_free(SSL_CTX * ctx)
 	return ctx;
 }
 
-long codex_peer_verify(SSL * ssl, const char * domain)
+int codex_connection_verify(SSL * ssl, const char * expected)
 {
-	long result = X509_V_ERR_APPLICATION_VERIFICATION;
+	int result = 0;
+	long error = X509_V_ERR_APPLICATION_VERIFICATION;
 	int found = 0;
 	X509 * crt = (X509 *)0;
 	X509_NAME * subject = (X509_NAME *)0;
@@ -411,6 +463,7 @@ long codex_peer_verify(SSL * ssl, const char * domain)
 	X509_NAME * nam = (X509_NAME *)0;
 	char buffer[256];
 	int rc = -1;
+	const char * text = (const char *)0;
 
 	do {
 
@@ -443,7 +496,7 @@ long codex_peer_verify(SSL * ssl, const char * domain)
 				continue;
 			}
 
-			fprintf(stderr, "codex_peer_verify: \"%s\" ? \"%s\"\n", str, COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME);
+			DIMINUTO_LOG_DEBUG("codex_connection_verify: \"%s\" ? \"%s\"\n", str, COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME);
 
 			if (strcmp(str, COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME) != 0) {
 				continue;
@@ -492,13 +545,13 @@ long codex_peer_verify(SSL * ssl, const char * domain)
 					continue;
 				}
 
-				fprintf(stderr, "codex_peer_verify: \"%s\"=\"%s\" ? \"%s\"=\"%s\"\n", val->name, val->value, COM_DIAG_CODEX_CONFNAME_DNS, domain);
+				DIMINUTO_LOG_DEBUG("codex_connection_verify: \"%s\"=\"%s\" ? \"%s\"=\"%s\"\n", val->name, val->value, COM_DIAG_CODEX_CONFNAME_DNS, expected);
 
 				if (strcmp(val->name, COM_DIAG_CODEX_CONFNAME_DNS) != 0) {
 					continue;
 				}
 
-				if (strcmp(val->value, domain) != 0) {
+				if (strcmp(val->value, expected) != 0) {
 					continue;
 				}
 
@@ -530,9 +583,9 @@ long codex_peer_verify(SSL * ssl, const char * domain)
 		}
 		buffer[sizeof(buffer) - 1] = '\0';
 
-		fprintf(stderr, "codex_peer_verify: \"%s\"=\"%s\" ? \"%s\"\n", SN_commonName, buffer, domain);
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: \"%s\"=\"%s\" ? \"%s\"\n", SN_commonName, buffer, expected);
 
-		if (strcasecmp(buffer, domain) != 0) {
+		if (strcasecmp(buffer, expected) != 0) {
 			break;
 		}
 
@@ -549,17 +602,232 @@ long codex_peer_verify(SSL * ssl, const char * domain)
 	}
 
 	if (found) {
-		result = SSL_get_verify_result(ssl);
+		error = SSL_get_verify_result(ssl);
+	}
+
+	if (error != X509_V_OK) {
+		text = X509_verify_cert_error_string(error);
+		DIMINUTO_LOG_WARNING("codex_connection_verify: <%d> \"%s\"\n", error, (text != (const char *)0) ? text : "");
+		result = -1;
 	}
 
 	return result;
 }
 
+bool codex_connection_closed(SSL * ssl)
+{
+	int rc = 0;
+
+	rc = SSL_get_shutdown(ssl);
+
+	return ((rc & SSL_RECEIVED_SHUTDOWN) != 0);
+}
+
+int codex_connection_close(SSL * ssl)
+{
+	int rc = 0;
+
+	rc = SSL_get_shutdown(ssl);
+	if ((rc & SSL_SENT_SHUTDOWN) == 0) {
+		while (!0) {
+			rc = SSL_shutdown(ssl);
+			if (rc < 0) {
+				codex_serror("SSL_shutdown", ssl, rc);
+				break;
+			} else if (rc > 0) {
+				rc = 0;
+				break;
+			} else {
+				continue;
+			}
+		}
+	}
+
+	return rc;
+}
+
+SSL * codex_connection_free(SSL * ssl)
+{
+	(void)codex_connection_close(ssl);
+
+	SSL_free(ssl);
+
+	ssl = (SSL *)0;
+
+	return ssl;
+}
+
+
 /*******************************************************************************
  * CLIENT
  ******************************************************************************/
+
+SSL * codex_client_connection_new(SSL_CTX * ctx, const char * farend)
+{
+	SSL * ssl = (SSL *)0;
+	BIO * bio = (BIO *)0;
+	int rc = -1;
+
+	do {
+
+		bio = BIO_new_connect(farend);
+		if (bio == (BIO *)0) {
+			codex_perror("BIO_new_connect");
+			break;
+		}
+
+		rc = BIO_do_connect(bio);
+		if (rc <= 0) {
+			codex_perror("BIO_do_connect");
+			break;
+		}
+
+		ssl = SSL_new(ctx);
+		if (ssl == (SSL *)0) {
+			codex_perror("SSL_new");
+			break;
+		}
+
+		SSL_set_bio(ssl, bio, bio);
+
+		if (SSL_connect(ssl) > 0) {
+			break;
+		}
+		codex_perror("SSL_connect");
+
+		SSL_free(ssl);
+
+		ssl = (SSL *)0;
+		bio = (BIO *)0;
+
+	} while (0);
+
+	if (ssl != (SSL *)0) {
+		/* Do nothing. */
+	} else if (bio == (BIO *)0) {
+		/* Do nothing. */
+	} else {
+		rc = BIO_free(bio);
+		if (rc != 1) {
+			codex_perror("BIO_free");
+		}
+	}
+
+	return ssl;
+}
 
 /*******************************************************************************
  * SERVER
  ******************************************************************************/
 
+BIO * codex_server_rendezvous_new(const char * nearend)
+{
+	BIO * acc = (BIO *)0;
+	int rc = -1;
+
+	do {
+
+		acc = BIO_new_accept(nearend);
+		if (acc == (BIO *)0) {
+			codex_perror("BIO_new_accept");
+			break;
+		}
+
+		rc = BIO_do_accept(acc);
+		if (rc > 0) {
+			break;
+		}
+		codex_perror("BIO_do_accept");
+
+		rc = BIO_free(acc);
+		if (rc != 1) {
+			codex_perror("BIO_free");
+		}
+
+		/*
+		 * Potential memory leak here in the unlikely event BIO_free() fails.
+		 */
+
+		acc = (BIO *)0;
+
+	} while (0);
+
+	return acc;
+}
+
+BIO * codex_server_rendezvous_free(BIO * acc)
+{
+	int rc = -1;
+
+	do {
+
+		rc = BIO_free(acc);
+		if (rc != 1) {
+			codex_perror("BIO_free");
+			break;
+		}
+
+		acc = (BIO *)0;
+
+	} while (0);
+
+	return acc;
+}
+
+SSL * codex_server_connection_new(SSL_CTX * ctx, BIO * acc)
+{
+	SSL * ssl = (SSL *)0;
+	BIO * bio = (BIO *)0;
+	int rc = -1;
+
+	do {
+
+		bio = BIO_pop(acc);
+		if (bio == (BIO *)0) {
+
+			rc = BIO_do_accept(acc);
+			if (rc <= 0) {
+				codex_perror("BIO_do_accept");
+				break;
+			}
+
+			bio = BIO_pop(acc);
+			if (bio == (BIO *)0) {
+				break;
+			}
+
+		}
+
+		ssl = SSL_new(ctx);
+		if (ssl == (SSL *)0) {
+			codex_perror("SSL_new");
+			break;
+		}
+
+		/*
+		 * Indicate to SSL that this connection is the server side.
+		 */
+
+		SSL_set_accept_state(ssl);
+
+		/*
+		 * And the BIO we just received is both the source and the sink.
+		 */
+
+		SSL_set_bio(ssl, bio, bio);
+
+	} while (0);
+
+	if (ssl != (SSL *)0) {
+		/* Do nothing. */
+	} else if (bio == (BIO *)0) {
+		/* Do nothing. */
+	} else {
+		rc = BIO_free(acc);
+		if (rc != 1) {
+			codex_perror("BIO_free");
+		}
+	}
+
+	return ssl;
+}

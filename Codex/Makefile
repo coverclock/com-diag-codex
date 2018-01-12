@@ -182,7 +182,7 @@ TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 SSL_DIR				:=	$(OUT)/$(ETC_DIR)
 
 TARGETCREDENTIALS	:=	$(SSL_DIR)/root.pem $(SSL_DIR)/client.pem $(SSL_DIR)/server.pem
-TARGETPARAMETERS	:=	$(SSL_DIR)/dh0.pem $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem $(SSL_DIR)/dh2048.pem $(SSL_DIR)/dh4096.pem
+TARGETPARAMETERS	:=	$(SSL_DIR)/dh0.pem $(SSL_DIR)/dh256.pem $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem $(SSL_DIR)/dh2048.pem $(SSL_DIR)/dh4096.pem
 TARGETPASSWORDS		:=	$(SSL_DIR)/client.pwd $(SSL_DIR)/server.pwd
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
@@ -325,6 +325,11 @@ $(SSL_DIR)/dh0.pem:
 	cp /dev/null $@
 	ls --full-time $(SSL_DIR)
 
+$(SSL_DIR)/dh256.pem:
+	mkdir -p $(SSL_DIR)
+	openssl dhparam -check -text -$(SSL_GEN) 256 -out $@
+	ls --full-time $(SSL_DIR)
+
 $(SSL_DIR)/dh512.pem:
 	mkdir -p $(SSL_DIR)
 	openssl dhparam -check -text -$(SSL_GEN) 512 -out $@
@@ -361,10 +366,10 @@ credentials-clean:
 	( cd $(SSL_DIR); rm -f server.pwd servercert.pem serverkey.pem server.pem serverreq.pem )
 	( cd $(SSL_DIR); rm -f client.pwd clientkey.pem client.pem clientreq.pem )
 	
-parameters:	 $(SSL_DIR)/dh0.pem $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem $(SSL_DIR)/dh2048.pem $(SSL_DIR)/dh4096.pem
+parameters:	 $(SSL_DIR)/dh0.pem $(SSL_DIR)/dh256.pem $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem $(SSL_DIR)/dh2048.pem $(SSL_DIR)/dh4096.pem
 
 parameters-clean:
-	( cd $(SSL_DIR); rm -f dh0.pem dh512.pem dh1024.pem dh2048.pem dh4096.pem )
+	( cd $(SSL_DIR); rm -f dh0.pem dh256.pem dh512.pem dh1024.pem dh2048.pem dh4096.pem )
 	
 passwords:	$(SSL_DIR)/root.pwd $(SSL_DIR)/serverCA.pwd $(SSL_DIR)/server.pwd $(SSL_DIR)/client.pwd
 

@@ -50,6 +50,8 @@
  * GLOBALS
  ******************************************************************************/
 
+extern DH * codex_dh256;
+
 extern DH * codex_dh512;
 
 extern DH * codex_dh1024;
