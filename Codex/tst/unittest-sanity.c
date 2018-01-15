@@ -12,6 +12,7 @@
 #include "com/diag/diminuto/diminuto_log.h"
 #include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/codex/codex.h"
+#include "../src/codex_unittest.h"
 #include "../src/codex.h"
 
 int main(char * argc, char ** argv)
@@ -295,6 +296,84 @@ int main(char * argc, char ** argv)
 		STATUS();
 	}
 
+	{
+		DH * dh;
+		int exp;
+
+		TEST();
+
+		for (exp = 0; exp <= 1; ++exp) {
+
+			EXPECT(codex_dh256 != (DH *)0);
+			dh = codex_parameters_callback((SSL *)0, exp, 256);
+			EXPECT(dh == codex_dh256);
+
+			EXPECT(codex_dh512 != (DH *)0);
+			dh = codex_parameters_callback((SSL *)0, exp, 512);
+			EXPECT(dh == codex_dh512);
+
+			EXPECT(codex_dh1024 != (DH *)0);
+			dh = codex_parameters_callback((SSL *)0, exp, 1024);
+			EXPECT(dh == codex_dh1024);
+
+			EXPECT(codex_dh2048 != (DH *)0);
+			dh = codex_parameters_callback((SSL *)0, exp, 2048);
+			EXPECT(dh == codex_dh2048);
+
+			EXPECT(codex_dh4096 != (DH *)0);
+			dh = codex_parameters_callback((SSL *)0, exp, 4096);
+			EXPECT(dh == codex_dh4096);
+
+			dh = codex_parameters_callback((SSL *)0, exp, 8192);
+			EXPECT(dh == (DH *)0);
+
+		}
+
+		STATUS();
+	}
+
+	{
+		char buffer[sizeof("PASSWORD")];
+		int writing;
+		int len;
+
+		TEST();
+
+		for (writing = 0; writing <= 1; ++writing) {
+
+			strncpy(buffer, "DEADBEEF", sizeof(buffer));
+			len = codex_password_callback((void *)0, sizeof(buffer), writing, "PASSWORD");
+			EXPECT(len == 0);
+			EXPECT(strcmp(buffer, "DEADBEEF") == 0);
+
+			strncpy(buffer, "DEADBEEF", sizeof(buffer));
+			len = codex_password_callback(buffer, sizeof(buffer), writing, (void *)0);
+			EXPECT(len == 0);
+			EXPECT(strcmp(buffer, "") == 0);
+
+			strncpy(buffer, "DEADBEEF", sizeof(buffer));
+			len = codex_password_callback(buffer, 0, writing, (void *)"PASSWORD");
+			EXPECT(len == 0);
+			EXPECT(strcmp(buffer, "DEADBEEF") == 0);
+
+			strncpy(buffer, "DEADBEEF", sizeof(buffer));
+			len = codex_password_callback(buffer, 1, writing, (void *)"PASSWORD");
+			EXPECT(len == 0);
+			EXPECT(strcmp(buffer, "") == 0);
+
+			strncpy(buffer, "DEADBEEF", sizeof(buffer));
+			len = codex_password_callback(buffer, 5, writing, (void *)"PASSWORD");
+			EXPECT(len == 0);
+			EXPECT(strcmp(buffer, "") == 0);
+
+			strncpy(buffer, "DEADBEEF", sizeof(buffer));
+			len = codex_password_callback(buffer, sizeof(buffer), writing, (void *)"PASSWORD");
+			EXPECT(len == strlen("PASSWORD"));
+			EXPECT(strcmp(buffer, "PASSWORD") == 0);
+		}
+
+		STATUS();
+	}
 
 	{
 		SSL_CTX * ctx;
@@ -304,7 +383,7 @@ int main(char * argc, char ** argv)
 		ctx = codex_client_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem");
 		ASSERT(ctx != (SSL_CTX *)0);
 
-		ctx = codex_client_context_free(ctx);
+		ctx = codex_context_free(ctx);
 		EXPECT(ctx == (SSL_CTX *)0);
 
 		STATUS();
@@ -318,7 +397,7 @@ int main(char * argc, char ** argv)
 		ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
 		ASSERT(ctx != (SSL_CTX *)0);
 
-		ctx = codex_server_context_free(ctx);
+		ctx = codex_context_free(ctx);
 		EXPECT(ctx == (SSL_CTX *)0);
 
 		STATUS();
@@ -339,7 +418,7 @@ int main(char * argc, char ** argv)
 		acc = codex_server_rendezvous_free(acc);
 		EXPECT(acc == (BIO *)0);
 
-		ctx = codex_server_context_free(ctx);
+		ctx = codex_context_free(ctx);
 		EXPECT(ctx == (SSL_CTX *)0);
 
 		STATUS();

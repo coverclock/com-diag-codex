@@ -18,13 +18,6 @@
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/rand.h>
-#include <openssl/x509v3.h>
-#include <openssl/err.h>
-#include <openssl/x509.h>
-#include <openssl/objects.h>
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
@@ -66,7 +59,7 @@ static bool initialized = false;
  * HELPERS
  ******************************************************************************/
 
-static void codex_perror(const char * str)
+void codex_perror(const char * str)
 {
 	int number = -1;
 	unsigned long error = -1;
@@ -90,7 +83,7 @@ static void codex_perror(const char * str)
 	}
 }
 
-static int codex_serror(const char * str, const SSL * ssl, int rc)
+int codex_serror(const char * str, const SSL * ssl, int rc)
 {
 	int action = 0;
 	int err = 0;
@@ -171,7 +164,7 @@ static DH * codex_parameters_import(const char * dhf)
  * CALLBACKS
  ******************************************************************************/
 
-static int codex_password_callback(char * buffer, int size, int writing, void * that)
+int codex_password_callback(char * buffer, int size, int writing, void * that)
 {
 	const char * password = (const char *)that;
 	int length = 0;
@@ -193,7 +186,7 @@ static int codex_password_callback(char * buffer, int size, int writing, void * 
 	return length;
 }
 
-static int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
+int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 {
 	X509 * crt = (X509 *)0;
 	int depth = -1;
@@ -232,13 +225,17 @@ static int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 	return ok;
 }
 
-static DH * codex_parameters_callback(SSL * ssl, int export, int length)
+DH * codex_parameters_callback(SSL * ssl, int exp, int length)
 {
 	DH * dhp = (DH *)0;
 
-	DIMINUTO_LOG_DEBUG("codex_parameters_callback: ssl=%p export=%d length=%d\n", ssl, export, length);
+	DIMINUTO_LOG_DEBUG("codex_parameters_callback: ssl=%p export=%d length=%d\n", ssl, exp, length);
 
 	switch (length) {
+
+	case 256:
+		dhp = codex_dh256;
+		break;
 
 	case 512:
 		dhp = codex_dh512;
@@ -262,14 +259,14 @@ static DH * codex_parameters_callback(SSL * ssl, int export, int length)
 	}
 
 	if (dhp == (DH *)0) {
-		DIMINUTO_LOG_ERROR("codex_parameters_callback: ssl=%p export=%d length=%d result=NULL\n", ssl, export, length);
+		DIMINUTO_LOG_WARNING("codex_parameters_callback: ssl=%p export=%d length=%d result=NULL\n", ssl, exp, length);
 	}
 
 	return dhp;
 }
 
 /*******************************************************************************
- * COMMON
+ * INITIALIZATION
  ******************************************************************************/
 
 int codex_initialize(void)
@@ -348,6 +345,10 @@ int codex_parameters(const char * dh256f, const char * dh512f, const char * dh10
 	return rc;
 
 }
+
+/*******************************************************************************
+ * COMMON
+ ******************************************************************************/
 
 SSL_CTX * codex_context_new(const char * env, const char * caf, const char * crt, const char * pem, int flags, int depth, int options)
 {
@@ -657,6 +658,29 @@ SSL * codex_connection_free(SSL * ssl)
 	return ssl;
 }
 
+int codex_connection_read(SSL * ssl, void * buffer, int size)
+{
+	int len = 0;
+
+	len = SSL_read(ssl, buffer, size);
+	if (len <= 0) {
+		codex_serror("SSL_read", ssl, len);
+	}
+
+	return len;
+}
+
+int codex_connection_write(SSL * ssl, const void * buffer, int size)
+{
+	int len = 0;
+
+	len = SSL_write(ssl, buffer, size);
+	if (len <= 0) {
+		codex_serror("SSL_write", ssl, len);
+	}
+
+	return len;
+}
 
 /*******************************************************************************
  * CLIENT

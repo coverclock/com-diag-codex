@@ -10,9 +10,18 @@
  * Chip Overclock <coverclock@diag.com><BR>
  * https://github.com/coverclock/com-diag-codex<BR>
  *
- * Typically these are elements exposed for unit testing and are not part of
- * the public API.
+ * These elements are not part of the public API. They are typically exposed
+ * only for unit testing.
  */
+
+#include <openssl/ssl.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+#include <openssl/x509v3.h>
+#include <openssl/err.h>
+#include <openssl/x509.h>
+#include <openssl/objects.h>
 
 /*******************************************************************************
  * GENERATORS
@@ -21,8 +30,6 @@
 #define COM_DIAG_CODEX_SERVER_PASSWORD_ENV "COM_DIAG_CODEX_SERVER_PASSWORD"
 
 #define COM_DIAG_CODEX_CLIENT_PASSWORD_ENV "COM_DIAG_CODEX_CLIENT_PASSWORD"
-
-#define COM_DIAG_CODEX_OUT_ETC_PATH "out/host/etc"
 
 /**
  * Cipher suite selection control string.
@@ -59,5 +66,15 @@ extern DH * codex_dh1024;
 extern DH * codex_dh2048;
 
 extern DH * codex_dh4096;
+
+/*******************************************************************************
+ * CALLBACKS
+ ******************************************************************************/
+
+extern int codex_password_callback(char * buffer, int size, int writing, void * that);
+
+extern int codex_verification_callback(int ok, X509_STORE_CTX * ctx);
+
+extern DH * codex_parameters_callback(SSL * ssl, int exp, int length);
 
 #endif

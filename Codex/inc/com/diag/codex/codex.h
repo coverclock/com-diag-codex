@@ -26,16 +26,32 @@ extern const char * const codex_client_password_env;
 extern const char * const codex_cipher_list;
 
 /*******************************************************************************
- * COMMON
+ * HELPERS
+ ******************************************************************************/
+
+extern void codex_perror(const char * str);
+
+extern int codex_serror(const char * str, const SSL * ssl, int rc);
+
+/*******************************************************************************
+ * INITIALIZATION
  ******************************************************************************/
 
 extern int codex_initialize(void);
 
 extern int codex_parameters(const char * dh256f, const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f);
 
+/*******************************************************************************
+ * CONTEXTS
+ ******************************************************************************/
+
 extern SSL_CTX * codex_context_new(const char * env, const char * caf, const char * crt, const char * pem, int flags, int depth, int options);
 
 extern SSL_CTX * codex_context_free(SSL_CTX * ctx);
+
+/*******************************************************************************
+ * CONNECTIONS
+ ******************************************************************************/
 
 extern int codex_connection_verify(SSL * ssl, const char * expected);
 
@@ -46,6 +62,30 @@ extern int codex_connection_close(SSL * ssl);
 extern SSL * codex_connection_free(SSL * ssl);
 
 /*******************************************************************************
+ * MULTIPLEXING
+ ******************************************************************************/
+
+extern int codex_rendezvous_descriptor(BIO * acc)
+{
+	int fd;
+	BIO_get_fd(acc, &fd);
+	return fd;
+}
+
+extern int codex_connection_descriptor(SSL * ssl)
+{
+	return SSL_get_fd(ssl);
+}
+
+/*******************************************************************************
+ * INPUT/OUTPUT
+ ******************************************************************************/
+
+extern int codex_connection_read(SSL * ssl, void * buffer, int size);
+
+extern int codex_connection_write(SSL * ssl, const void * buffer, int size);
+
+/*******************************************************************************
  * CLIENT
  ******************************************************************************/
 
@@ -54,17 +94,7 @@ static inline SSL_CTX * codex_client_context_new(const char * caf, const char * 
 	return codex_context_new(codex_client_password_env, caf, crt, key, SSL_VERIFY_PEER, 0, SSL_OP_ALL | SSL_OP_NO_SSLv2);
 }
 
-static inline SSL_CTX * codex_client_context_free(SSL_CTX * ctx)
-{
-	return codex_context_free(ctx);
-}
-
 extern SSL * codex_client_connection_new(SSL_CTX * ctx, const char * farend);
-
-static inline SSL * codex_client_connection_free(SSL * ssl)
-{
-	return codex_connection_free(ssl);
-}
 
 /*******************************************************************************
  * SERVER
@@ -75,20 +105,10 @@ static inline SSL_CTX * codex_server_context_new(const char * caf, const char * 
 	return codex_context_new(codex_server_password_env, caf, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, 0, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
 }
 
-static inline SSL_CTX * codex_server_context_free(SSL_CTX * ctx)
-{
-	return codex_context_free(ctx);
-}
-
 extern BIO * codex_server_rendezvous_new(const char * nearend);
 
-extern BIO * codex_server_rendezvous_free(BIO * acc);
+extern BIO * codex_server_rendezvous_free(BIO * bio);
 
-extern SSL * codex_server_connection_new(SSL_CTX * ctx, BIO * acc);
-
-static inline SSL * codex_server_connection_free(SSL * ssl)
-{
-	return codex_connection_free(ssl);
-}
+extern SSL * codex_server_connection_new(SSL_CTX * ctx, BIO * bio);
 
 #endif

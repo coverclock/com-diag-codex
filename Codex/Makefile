@@ -208,7 +208,7 @@ pristine:	clean
 clobber:	pristine
 	rm -f .cscope.lst .cscope.out .cscope.out.in .cscope.out.po
 
-########## Certificate and Key Generation (primrarily for unit testing)
+########## Certificate and Key Generation (primarily for unit testing)
 
 # REFERENCES
 #
@@ -219,7 +219,7 @@ clobber:	pristine
 
 .PHONY:	credentials credentials-show credentials-clean parameters parameters-clean passwords passwords-clean
 
-SSL_KEY 			:=	rsa:4096
+SSL_KEY 			:=	rsa:2048
 SSL_ALG				:=	sha1
 SSL_GEN				:=	2
 #SSL_GEN			:=	5
