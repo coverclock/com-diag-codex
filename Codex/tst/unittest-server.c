@@ -14,9 +14,11 @@
 #include "com/diag/diminuto/diminuto_terminator.h"
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/diminuto/diminuto_mux.h"
+#include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex_unittest.h"
 #include <stdint.h>
+#include <errno.h>
 
 int main(int argc, char ** argv)
 {
@@ -24,14 +26,14 @@ int main(int argc, char ** argv)
 	const char * nearend = "49152";
 	const char * expected = "client.prairiethorn.org";
 	int rc;
-	SSL_CTX * context;
-	BIO * rendezvous;
+	codex_context_t * context;
+	codex_rendezvous_t * rendezvous;
 	ssize_t count;
 	diminuto_fd_map_t * map;
 	void ** here;
 	diminuto_mux_t mux;
 	int fd;
-	SSL * connection;
+	codex_connection_t * connection;
 	uint8_t buffer[256];
 	int reads;
 	int writes;
@@ -52,7 +54,7 @@ int main(int argc, char ** argv)
 		expected = argv[2];
 	}
 
-	rc = diminuto_terminator_install(!0);
+	rc = diminuto_terminator_install(0);
 	ASSERT(rc >= 0);
 
 	count = diminuto_fd_maximum();
@@ -71,11 +73,11 @@ int main(int argc, char ** argv)
 	rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh4096.pem");
 	ASSERT(rc == 0);
 
-	context = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
-	ASSERT(context != (SSL_CTX *)0);
+	context = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH, COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
+	ASSERT(context != (codex_context_t *)0);
 
 	rendezvous = codex_server_rendezvous_new(nearend);
-	ASSERT(rendezvous != (BIO *)0);
+	ASSERT(rendezvous != (codex_rendezvous_t *)0);
 
 	fd = codex_rendezvous_descriptor(rendezvous);
 	ASSERT(fd >= 0);
@@ -93,33 +95,40 @@ int main(int argc, char ** argv)
 	while (!diminuto_terminator_check()) {
 
 		rc = diminuto_mux_wait(&mux, -1);
-		ASSERT(rc >= 0);
+		if ((rc == 0) || ((rc < 0) && (errno == EINTR))) {
+			diminuto_yield();
+			continue;
+		}
+		ASSERT(rc > 0);
 
 		fd = diminuto_mux_ready_accept(&mux);
 		if (fd >= 0) {
 
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
-			ASSERT((BIO *)*here == rendezvous);
+			ASSERT((codex_rendezvous_t *)*here == rendezvous);
 
 			connection = codex_server_connection_new(context, rendezvous);
-			ASSERT(connection != (SSL *)0);
+			ASSERT(connection != (codex_connection_t *)0);
 
 			rc = codex_connection_verify(connection, expected);
-			if (rc <= 0) {
+#if !0
+			rc = 0;
+#endif
+			if (rc < 0) {
 
 				rc = codex_connection_close(connection);
-				ASSERT(rc >= 0);
+				EXPECT(rc >= 0);
 
 				connection = codex_connection_free(connection);
-				ASSERT(connection == (SSL *)0);
+				EXPECT(connection == (codex_connection_t *)0);
 
 			} else {
 
 				fd = codex_connection_descriptor(connection);
 				ASSERT(fd >= 0);
 
-				DIMINUTO_LOG_DEBUG("%s: connection=%p fd=%d\n", connection, fd);
+				DIMINUTO_LOG_DEBUG("%s: connection=%p fd=%d\n", name, connection, fd);
 
 				here = diminuto_fd_map_ref(map, fd);
 				ASSERT(here != (void **)0);
@@ -139,15 +148,15 @@ int main(int argc, char ** argv)
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
 			ASSERT(*here != (void *)0);
-			connection = (SSL *)*here;
+			connection = (codex_connection_t *)*here;
 
 			rc = codex_connection_read(connection, buffer, sizeof(buffer));
-			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", connection, rc);
+			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", name, connection, rc);
 			if (rc > 0) {
 
 				for (reads = rc, writes = 0; writes < reads; writes += rc) {
 					rc = codex_connection_write(connection, buffer + writes, reads - writes);
-					DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", connection, rc);
+					DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", name, connection, rc);
 					if (rc <= 0) {
 						break;
 					}
@@ -161,7 +170,7 @@ int main(int argc, char ** argv)
 				ASSERT(rc >= 0);
 
 				connection = codex_connection_free(connection);
-				ASSERT(connection == (SSL *)0);
+				ASSERT(connection == (codex_connection_t *)0);
 
 				*here = (void *)0;
 
@@ -182,27 +191,27 @@ int main(int argc, char ** argv)
 	*here = (void *)0;
 
 	rendezvous = codex_server_rendezvous_free(rendezvous);
-	ASSERT(rendezvous == (BIO *)0);
+	ASSERT(rendezvous == (codex_rendezvous_t *)0);
 
 	for (fd = 0; fd < count; ++fd) {
 
 		here = diminuto_fd_map_ref(map, fd);
 		ASSERT(here != (void **)0);
 		if (*here == (void *)0) { continue; }
-		connection = (SSL *)*here;
+		connection = (codex_connection_t *)*here;
 
 		rc = codex_connection_close(connection);
 		ASSERT(rc >= 0);
 
 		connection = codex_connection_free(connection);
-		ASSERT(connection == (SSL *)0);
+		ASSERT(connection == (codex_connection_t *)0);
 
 		*here = (void *)0;
 
 	}
 
 	context = codex_context_free(context);
-	EXPECT(context == (SSL_CTX *)0);
+	EXPECT(context == (codex_context_t *)0);
 
 	EXIT();
 }

@@ -376,50 +376,50 @@ int main(char * argc, char ** argv)
 	}
 
 	{
-		SSL_CTX * ctx;
+		codex_context_t * ctx;
 
 		TEST();
 
-		ctx = codex_client_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem");
-		ASSERT(ctx != (SSL_CTX *)0);
+		ctx = codex_client_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH, COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem");
+		ASSERT(ctx != (codex_context_t *)0);
 
 		ctx = codex_context_free(ctx);
-		EXPECT(ctx == (SSL_CTX *)0);
+		EXPECT(ctx == (codex_context_t *)0);
 
 		STATUS();
 	}
 
 	{
-		SSL_CTX * ctx;
+		codex_context_t * ctx;
 
 		TEST();
 
-		ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
-		ASSERT(ctx != (SSL_CTX *)0);
+		ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH, COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
+		ASSERT(ctx != (codex_context_t *)0);
 
 		ctx = codex_context_free(ctx);
-		EXPECT(ctx == (SSL_CTX *)0);
+		EXPECT(ctx == (codex_context_t *)0);
 
 		STATUS();
 	}
 
 	{
-		SSL_CTX * ctx;
-		BIO * acc;
+		codex_context_t * ctx;
+		codex_rendezvous_t * acc;
 
 		TEST();
 
-		ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
-		ASSERT(ctx != (SSL_CTX *)0);
+		ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH, COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
+		ASSERT(ctx != (codex_context_t *)0);
 
 		acc = codex_server_rendezvous_new("0");
-		ASSERT(acc != (BIO *)0);
+		ASSERT(acc != (codex_rendezvous_t *)0);
 
 		acc = codex_server_rendezvous_free(acc);
-		EXPECT(acc == (BIO *)0);
+		EXPECT(acc == (codex_rendezvous_t *)0);
 
 		ctx = codex_context_free(ctx);
-		EXPECT(ctx == (SSL_CTX *)0);
+		EXPECT(ctx == (codex_context_t *)0);
 
 		STATUS();
 	}

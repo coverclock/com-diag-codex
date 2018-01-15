@@ -22,6 +22,7 @@
 #include <openssl/err.h>
 #include <openssl/x509.h>
 #include <openssl/objects.h>
+#include <openssl/conf.h>
 
 /*******************************************************************************
  * GENERATORS

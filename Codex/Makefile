@@ -250,11 +250,13 @@ $(SSL_DIR)/rootkey.pem:	$(SSL_DIR)/rootreq.pem
 $(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/rootkey.pem $(SSL_DIR)/root.pwd
 	mkdir -p $(SSL_DIR)
 	openssl x509 -req -in $(SSL_DIR)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -signkey $(SSL_DIR)/rootkey.pem -passin file:$(SSL_DIR)/root.pwd -out $@
+	c_rehash $(SSL_DIR)
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/root.pem:	$(SSL_DIR)/rootkey.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
 	cat $^ > $@
+	c_rehash $(SSL_DIR)
 	ls --full-time $(SSL_DIR)
 	openssl x509 -subject -issuer -noout -in $@
 
@@ -270,11 +272,13 @@ $(SSL_DIR)/serverCAkey.pem:	$(SSL_DIR)/serverCAreq.pem
 $(SSL_DIR)/serverCAcert.pem:	$(SSL_DIR)/serverCAreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/root.pem $(SSL_DIR)/root.pwd
 	mkdir -p $(SSL_DIR)
 	openssl x509 -req -in $(SSL_DIR)/serverCAreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -CA $(SSL_DIR)/root.pem -passin file:$(SSL_DIR)/root.pwd -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
+	c_rehash $(SSL_DIR)
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/serverCA.pem:	$(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
 	cat $^ > $@
+	c_rehash $(SSL_DIR)
 	ls --full-time $(SSL_DIR)
 	openssl x509 -subject -issuer -noout -in $@
 
@@ -290,11 +294,13 @@ $(SSL_DIR)/serverkey.pem:	$(SSL_DIR)/serverreq.pem
 $(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/serverCA.pem $(SSL_DIR)/serverCA.pwd
 	mkdir -p $(SSL_DIR)
 	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_DIR)/serverCA.pem -passin file:$(SSL_DIR)/serverCA.pwd -CAkey $(SSL_DIR)/serverCA.pem -CAcreateserial -out $@
+	c_rehash $(SSL_DIR)
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
 	cat $^ > $@
+	c_rehash $(SSL_DIR)
 	ls --full-time $(SSL_DIR)
 	openssl x509 -subject -issuer -noout -in $@
 
@@ -310,11 +316,13 @@ $(SSL_DIR)/clientkey.pem:	$(SSL_DIR)/clientreq.pem
 $(SSL_DIR)/clientcert.pem:	$(SSL_DIR)/clientreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/root.pem $(SSL_DIR)/root.pwd
 	mkdir -p $(SSL_DIR)
 	openssl x509 -req -in $(SSL_DIR)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_DIR)/root.pem -passin file:$(SSL_DIR)/root.pwd -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
+	c_rehash $(SSL_DIR)
 	ls --full-time $(SSL_DIR)
 
 $(SSL_DIR)/client.pem:	$(SSL_DIR)/clientcert.pem $(SSL_DIR)/clientkey.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
 	cat $^ > $@
+	c_rehash $(SSL_DIR)
 	ls --full-time $(SSL_DIR)
 	openssl x509 -subject -issuer -noout -in $@
 

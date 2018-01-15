@@ -287,6 +287,8 @@ int codex_initialize(void)
 
 				SSL_load_error_strings();
 
+				OPENSSL_config((const char *)0);
+
 				initialized = true;
 
 			}
@@ -350,7 +352,7 @@ int codex_parameters(const char * dh256f, const char * dh512f, const char * dh10
  * COMMON
  ******************************************************************************/
 
-SSL_CTX * codex_context_new(const char * env, const char * caf, const char * crt, const char * pem, int flags, int depth, int options)
+codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * pem, int flags, int depth, int options)
 {
 	SSL_CTX * result = (SSL_CTX *)0;
 	const SSL_METHOD * method = (SSL_METHOD *)0;
@@ -372,7 +374,7 @@ SSL_CTX * codex_context_new(const char * env, const char * caf, const char * crt
 			break;
 		}
 
-		rc = SSL_CTX_load_verify_locations(ctx, caf, (const char *)0);
+		rc = SSL_CTX_load_verify_locations(ctx, caf, cap);
 		if (rc != 1) {
 			codex_perror("SSL_CTX_load_verify_locations");
 			break;
@@ -431,7 +433,7 @@ SSL_CTX * codex_context_new(const char * env, const char * caf, const char * crt
 	return result;
 }
 
-SSL_CTX * codex_context_free(SSL_CTX * ctx)
+codex_context_t * codex_context_free(codex_context_t * ctx)
 {
 	if (ctx != (SSL_CTX *)0) {
 		SSL_CTX_free(ctx);
@@ -441,7 +443,7 @@ SSL_CTX * codex_context_free(SSL_CTX * ctx)
 	return ctx;
 }
 
-int codex_connection_verify(SSL * ssl, const char * expected)
+int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 {
 	int result = 0;
 	long error = X509_V_ERR_APPLICATION_VERIFICATION;
@@ -615,7 +617,7 @@ int codex_connection_verify(SSL * ssl, const char * expected)
 	return result;
 }
 
-bool codex_connection_closed(SSL * ssl)
+bool codex_connection_closed(codex_connection_t * ssl)
 {
 	int rc = 0;
 
@@ -624,7 +626,7 @@ bool codex_connection_closed(SSL * ssl)
 	return ((rc & SSL_RECEIVED_SHUTDOWN) != 0);
 }
 
-int codex_connection_close(SSL * ssl)
+int codex_connection_close(codex_connection_t * ssl)
 {
 	int rc = 0;
 
@@ -647,7 +649,7 @@ int codex_connection_close(SSL * ssl)
 	return rc;
 }
 
-SSL * codex_connection_free(SSL * ssl)
+codex_connection_t * codex_connection_free(codex_connection_t * ssl)
 {
 	(void)codex_connection_close(ssl);
 
@@ -658,7 +660,7 @@ SSL * codex_connection_free(SSL * ssl)
 	return ssl;
 }
 
-int codex_connection_read(SSL * ssl, void * buffer, int size)
+int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 {
 	int len = 0;
 
@@ -670,7 +672,7 @@ int codex_connection_read(SSL * ssl, void * buffer, int size)
 	return len;
 }
 
-int codex_connection_write(SSL * ssl, const void * buffer, int size)
+int codex_connection_write(codex_connection_t * ssl, const void * buffer, int size)
 {
 	int len = 0;
 
@@ -686,7 +688,7 @@ int codex_connection_write(SSL * ssl, const void * buffer, int size)
  * CLIENT
  ******************************************************************************/
 
-SSL * codex_client_connection_new(SSL_CTX * ctx, const char * farend)
+codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const char * farend)
 {
 	SSL * ssl = (SSL *)0;
 	BIO * bio = (BIO *)0;
@@ -714,10 +716,11 @@ SSL * codex_client_connection_new(SSL_CTX * ctx, const char * farend)
 
 		SSL_set_bio(ssl, bio, bio);
 
-		if (SSL_connect(ssl) > 0) {
+		rc = SSL_connect(ssl);
+		if (rc > 0) {
 			break;
 		}
-		codex_perror("SSL_connect");
+		codex_serror("SSL_connect", ssl, rc);
 
 		SSL_free(ssl);
 
@@ -744,7 +747,7 @@ SSL * codex_client_connection_new(SSL_CTX * ctx, const char * farend)
  * SERVER
  ******************************************************************************/
 
-BIO * codex_server_rendezvous_new(const char * nearend)
+codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 {
 	BIO * acc = (BIO *)0;
 	int rc = -1;
@@ -779,7 +782,7 @@ BIO * codex_server_rendezvous_new(const char * nearend)
 	return acc;
 }
 
-BIO * codex_server_rendezvous_free(BIO * acc)
+codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * acc)
 {
 	int rc = -1;
 
@@ -798,7 +801,7 @@ BIO * codex_server_rendezvous_free(BIO * acc)
 	return acc;
 }
 
-SSL * codex_server_connection_new(SSL_CTX * ctx, BIO * acc)
+codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_rendezvous_t * acc)
 {
 	SSL * ssl = (SSL *)0;
 	BIO * bio = (BIO *)0;
