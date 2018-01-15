@@ -32,7 +32,7 @@ int main(int argc, char ** argv)
 	diminuto_mux_t mux;
 	int fd;
 	SSL * connection;
-	uint8_t buffer[4096];
+	uint8_t buffer[256];
 	int reads;
 	int writes;
 
@@ -52,13 +52,13 @@ int main(int argc, char ** argv)
 		expected = argv[2];
 	}
 
-	DIMINUTO_LOG_DEBUG("%s: nearend=\"%s\" expected=\"%s\"\n", name, nearend, expected);
-
 	rc = diminuto_terminator_install(!0);
 	ASSERT(rc >= 0);
 
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
+
+	DIMINUTO_LOG_DEBUG("%s: nearend=\"%s\" expected=\"%s\" length=%zu count=%d\n", name, nearend, expected, sizeof(buffer), count);
 
 	map = diminuto_fd_map_alloc(count);
 	ASSERT(map != (diminuto_fd_map_t *)0);
@@ -108,7 +108,11 @@ int main(int argc, char ** argv)
 			rc = codex_connection_verify(connection, expected);
 			if (rc <= 0) {
 
-				(void)codex_connection_free(connection);
+				rc = codex_connection_close(connection);
+				ASSERT(rc >= 0);
+
+				connection = codex_connection_free(connection);
+				ASSERT(connection == (SSL *)0);
 
 			} else {
 
@@ -140,12 +144,15 @@ int main(int argc, char ** argv)
 			rc = codex_connection_read(connection, buffer, sizeof(buffer));
 			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", connection, rc);
 			if (rc > 0) {
-				for (reads = rc, writes = 0; writes < reads; writes += rc)
+
+				for (reads = rc, writes = 0; writes < reads; writes += rc) {
 					rc = codex_connection_write(connection, buffer + writes, reads - writes);
-					DIMINUTO_LOG_DEBUG("%s: connection=%p write=%d\n", connection, rc);
+					DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", connection, rc);
 					if (rc <= 0) {
 						break;
 					}
+				}
+
 			}
 
 			if (rc <= 0) {
