@@ -204,6 +204,8 @@ int main(int argc, char ** argv)
 
 			} else {
 
+				DIMINUTO_LOG_DEBUG("%s: connection=%p closing\n", program, ssl);
+
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
 

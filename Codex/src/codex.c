@@ -653,7 +653,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 	if (error != X509_V_OK) {
 		text = X509_verify_cert_error_string(error);
-		DIMINUTO_LOG_WARNING("codex_connection_verify: <%d> \"%s\"\n", error, (text != (const char *)0) ? text : "");
+		DIMINUTO_LOG_WARNING("codex_connection_verify: FAILED <%d> \"%s\"\n", error, (text != (const char *)0) ? text : "");
 		result = -1;
 	}
 

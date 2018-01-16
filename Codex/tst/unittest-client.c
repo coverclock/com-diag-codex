@@ -134,7 +134,7 @@ int main(int argc, char ** argv)
 		if (fd == codex_connection_descriptor(ssl)) {
 
 			bytes = codex_connection_read(ssl, buffer, sizeof(buffer));
-			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, rc);
+			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, bytes);
 			if (bytes <= 0) {
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
