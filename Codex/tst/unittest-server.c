@@ -19,12 +19,15 @@
 #include "../src/codex_unittest.h"
 #include <stdint.h>
 #include <errno.h>
+#include <stdbool.h>
+#include <string.h>
 
 int main(int argc, char ** argv)
 {
-	const char * name = "unittest-server";
+	const char * program = "unittest-server";
 	const char * nearend = "49152";
 	const char * expected = "client.prairiethorn.org";
+	bool enforce = false;
 	int rc;
 	codex_context_t * ctx;
 	codex_rendezvous_t * bio;
@@ -37,33 +40,50 @@ int main(int argc, char ** argv)
 	uint8_t buffer[256];
 	int reads;
 	int writes;
+    int opt;
+    extern char * optarg;
 
 	(void)diminuto_core_enable();
 
 	diminuto_log_setmask();
 
-	if (argc >= 1) {
-		name = argv[0];
-	}
+    program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-	if (argc >= 2) {
-		nearend = argv[1];
-	}
+    while ((opt = getopt(argc, argv, "e:n:v?")) >= 0) {
 
-	if (argc >= 3) {
-		expected = argv[2];
-	}
+        switch (opt) {
 
-	rc = diminuto_terminator_install(0);
-	ASSERT(rc >= 0);
+        case 'e':
+            expected = optarg;
+            break;
+
+        case 'n':
+        	nearend = optarg;
+        	break;
+
+        case 'v':
+        	enforce = true;
+        	break;
+
+        case '?':
+        	fprintf(stderr, "usage: %s [ -n %s ] [ -e %s ] [ -v ]\n", program, nearend, expected);
+            return 1;
+            break;
+
+        }
+
+    }
 
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
 
-	DIMINUTO_LOG_DEBUG("%s: nearend=\"%s\" expected=\"%s\" length=%zu count=%d\n", name, nearend, expected, sizeof(buffer), count);
+	DIMINUTO_LOG_DEBUG("%s: nearend=\"%s\" expected=\"%s\" enforce=%d length=%zu count=%d\n", program, nearend, expected, enforce, sizeof(buffer), count);
 
 	map = diminuto_fd_map_alloc(count);
 	ASSERT(map != (diminuto_fd_map_t *)0);
+
+	rc = diminuto_terminator_install(0);
+	ASSERT(rc >= 0);
 
 	diminuto_mux_init(&mux);
 
@@ -73,7 +93,7 @@ int main(int argc, char ** argv)
 	rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh4096.pem");
 	ASSERT(rc == 0);
 
-	ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH, COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
+	ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", (const char *)0, COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
 	ASSERT(ctx != (codex_context_t *)0);
 
 	bio = codex_server_rendezvous_new(nearend);
@@ -82,7 +102,7 @@ int main(int argc, char ** argv)
 	fd = codex_rendezvous_descriptor(bio);
 	ASSERT(fd >= 0);
 
-	DIMINUTO_LOG_DEBUG("%s: rendezvous=%p fd=%d\n", name, bio, fd);
+	DIMINUTO_LOG_DEBUG("%s: rendezvous=%p fd=%d\n", program, bio, fd);
 
 	here = diminuto_fd_map_ref(map, fd);
 	ASSERT(here != (void **)0);
@@ -112,10 +132,7 @@ int main(int argc, char ** argv)
 			ASSERT(ssl != (codex_connection_t *)0);
 
 			rc = codex_connection_verify(ssl, expected);
-#if !0
-			rc = 0;
-#endif
-			if (rc < 0) {
+			if (enforce && (rc < 0)) {
 
 				rc = codex_connection_close(ssl);
 				EXPECT(rc >= 0);
@@ -128,7 +145,7 @@ int main(int argc, char ** argv)
 				fd = codex_connection_descriptor(ssl);
 				ASSERT(fd >= 0);
 
-				DIMINUTO_LOG_DEBUG("%s: connection=%p fd=%d\n", name, ssl, fd);
+				DIMINUTO_LOG_DEBUG("%s: connection=%p fd=%d\n", program, ssl, fd);
 
 				here = diminuto_fd_map_ref(map, fd);
 				ASSERT(here != (void **)0);
@@ -151,12 +168,12 @@ int main(int argc, char ** argv)
 			ssl = (codex_connection_t *)*here;
 
 			rc = codex_connection_read(ssl, buffer, sizeof(buffer));
-			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", name, ssl, rc);
+			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, rc);
 			if (rc > 0) {
 
 				for (reads = rc, writes = 0; writes < reads; writes += rc) {
 					rc = codex_connection_write(ssl, buffer + writes, reads - writes);
-					DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", name, ssl, rc);
+					DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", program, ssl, rc);
 					if (rc <= 0) {
 						break;
 					}

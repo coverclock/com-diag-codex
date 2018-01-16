@@ -11,6 +11,10 @@
  * https://github.com/coverclock/com-diag-codex<BR>
  */
 
+/*******************************************************************************
+ * GENERATORS
+ ******************************************************************************/
+
 #define COM_DIAG_CODEX_OUT_ETC_PATH "out/host/etc"
 
 #endif

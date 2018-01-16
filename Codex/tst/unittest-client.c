@@ -23,9 +23,10 @@
 
 int main(int argc, char ** argv)
 {
-	const char * name = "unittest-client";
+	const char * program = "unittest-client";
 	const char * farend = "localhost:49152";
 	const char * expected = "server.prairiethorn.org";
+	bool enforce = false;
 	int rc;
 	codex_context_t * ctx;
 	diminuto_mux_t mux;
@@ -37,24 +38,41 @@ int main(int argc, char ** argv)
 	bool eof;
 	size_t input;
 	size_t output;
+    int opt;
+    extern char * optarg;
 
 	(void)diminuto_core_enable();
 
 	diminuto_log_setmask();
 
-	if (argc >= 1) {
-		name = argv[0];
-	}
+    program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-	if (argc >= 2) {
-		farend = argv[1];
-	}
+    while ((opt = getopt(argc, argv, "e:f:v?")) >= 0) {
 
-	if (argc >= 3) {
-		expected = argv[2];
-	}
+        switch (opt) {
 
-	DIMINUTO_LOG_DEBUG("%s: farend=\"%s\" expected=\"%s\" length=%zu\n", name, farend, expected, sizeof(buffer));
+        case 'e':
+            expected = optarg;
+            break;
+
+        case 'f':
+        	farend = optarg;
+        	break;
+
+        case 'v':
+        	enforce = true;
+        	break;
+
+        case '?':
+        	fprintf(stderr, "usage: %s [ -f %s ] [ -e %s ] [ -v ]\n", program, farend, expected);
+            return 1;
+            break;
+
+        }
+
+    }
+
+	DIMINUTO_LOG_DEBUG("%s: farend=\"%s\" expected=\"%s\" enforce=%d length=%zu\n", program, farend, expected, enforce, sizeof(buffer));
 
 	diminuto_mux_init(&mux);
 
@@ -64,17 +82,14 @@ int main(int argc, char ** argv)
 	rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh4096.pem");
 	ASSERT(rc == 0);
 
-	ctx = codex_client_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH, COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem");
+	ctx = codex_client_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", (const char *)0, COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem");
 	ASSERT(ctx != (SSL_CTX *)0);
 
 	ssl = codex_client_connection_new(ctx, farend);
 	ASSERT(ssl != (SSL *)0);
 
 	rc = codex_connection_verify(ssl, expected);
-#if !0
-	rc = 0;
-#endif
-	if (rc < 0) {
+	if (enforce && (rc < 0)) {
 
 		rc = codex_connection_close(ssl);
 		ASSERT(rc >= 0);
@@ -112,7 +127,7 @@ int main(int argc, char ** argv)
 		if (fd == codex_connection_descriptor(ssl)) {
 
 			rc = codex_connection_read(ssl, buffer, sizeof(buffer));
-			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", name, ssl, rc);
+			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, rc);
 			if (rc <= 0) {
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
@@ -121,7 +136,7 @@ int main(int argc, char ** argv)
 
 			for (reads = rc, writes = 0; writes < reads; writes += rc) {
 				rc = write(STDOUT_FILENO, buffer + writes, reads - writes);
-				DIMINUTO_LOG_DEBUG("%s: fd=%d written=%d\n", name, STDOUT_FILENO, rc);
+				DIMINUTO_LOG_DEBUG("%s: fd=%d written=%d\n", program, STDOUT_FILENO, rc);
 				if (rc <= 0) {
 					if (rc < 0) { diminuto_perror("write"); }
 					break;
@@ -133,7 +148,7 @@ int main(int argc, char ** argv)
 		} else if (fd == STDIN_FILENO) {
 
 			rc = read(fd, buffer, sizeof(buffer));
-			DIMINUTO_LOG_DEBUG("%s: fd=%d read=%d\n", name, fd, rc);
+			DIMINUTO_LOG_DEBUG("%s: fd=%d read=%d\n", program, fd, rc);
 			if (rc <= 0) {
 				if (rc < 0) { diminuto_perror("read"); }
 				rc = diminuto_mux_unregister_read(&mux, fd);
@@ -144,7 +159,7 @@ int main(int argc, char ** argv)
 
 			for (reads = rc, writes = 0; writes < reads; writes += rc) {
 				rc = codex_connection_write(ssl, buffer + writes, reads - writes);
-				DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", name, ssl, rc);
+				DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", program, ssl, rc);
 				if (rc <= 0) {
 					break;
 				}
@@ -154,7 +169,7 @@ int main(int argc, char ** argv)
 
 		} else {
 
-			DIMINUTO_LOG_DEBUG("%s: fd=%d\n", name, fd);
+			DIMINUTO_LOG_DEBUG("%s: fd=%d\n", program, fd);
 
 		}
 	}

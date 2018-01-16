@@ -11,6 +11,10 @@
  * https://github.com/coverclock/com-diag-codex<BR>
  */
 
+/*******************************************************************************
+ * HEADERS
+ ******************************************************************************/
+
 #include <stdbool.h>
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
@@ -26,10 +30,14 @@ typedef BIO codex_rendezvous_t;
 typedef SSL codex_connection_t;
 
 /*******************************************************************************
- * CONSTANTS
+ * GENERATORS
  ******************************************************************************/
 
 static const int CODEX_CONTEXT_DEPTH = 4;
+
+/*******************************************************************************
+ * CONSTANTS
+ ******************************************************************************/
 
 extern const char * const codex_server_password_env;
 
@@ -54,7 +62,7 @@ extern int codex_initialize(void);
 extern int codex_parameters(const char * dh256f, const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f);
 
 /*******************************************************************************
- * CONTEXTS
+ * CONTEXT
  ******************************************************************************/
 
 extern codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * pem, int flags, int depth, int options);
@@ -62,7 +70,7 @@ extern codex_context_t * codex_context_new(const char * env, const char * caf, c
 extern codex_context_t * codex_context_free(codex_context_t * ctx);
 
 /*******************************************************************************
- * CONNECTIONS
+ * CONNECTION
  ******************************************************************************/
 
 extern int codex_connection_verify(codex_connection_t * ssl, const char * expected);

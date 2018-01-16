@@ -10,6 +10,10 @@
  * See the README.md for a list of references.
  */
 
+/*******************************************************************************
+ * HEADERS
+ ******************************************************************************/
+
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
@@ -483,7 +487,6 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 		crt = SSL_get_peer_certificate(ssl);
 		if (crt == (X509 *)0) {
-			codex_perror("SSL_get_peer_certificate");
 			break;
 		}
 
@@ -570,8 +573,9 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 				}
 
 				/*
-				 * Actual fully qualified domain name (FQDN) matches.
+				 * Fully qualified domain name (FQDN) matches.
 				 */
+				DIMINUTO_LOG_DEBUG("codex_connection_verify: FQDN matches\n");
 				found = !0;
 				break;
 			}
@@ -606,6 +610,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		/*
 		 * CommonName (CN) in certificate matches.
 		 */
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: CN matches\n");
 		found = !0;
 		break;
 

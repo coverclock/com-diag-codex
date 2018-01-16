@@ -229,7 +229,7 @@ SSL_GEN				:=	2
 $(SSL_DIR)/root.pwd:	$(ETC_DIR)/root.cnf
 	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
 
-$(SSL_DIR)/serverCA.pwd:	$(ETC_DIR)/serverCA.cnf
+$(SSL_DIR)/ca.pwd:	$(ETC_DIR)/ca.cnf
 	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
 
 $(SSL_DIR)/server.pwd:	$(ETC_DIR)/server.cnf
@@ -262,20 +262,20 @@ $(SSL_DIR)/root.pem:	$(SSL_DIR)/rootkey.pem $(SSL_DIR)/rootcert.pem
 
 ##### Certificate Authority
 
-$(SSL_DIR)/serverCAreq.pem:	$(ETC_DIR)/serverCA.cnf
+$(SSL_DIR)/careq.pem:	$(ETC_DIR)/ca.cnf
 	mkdir -p $(SSL_DIR)
-	openssl req -config $(ETC_DIR)/serverCA.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverCAkey.pem -out $@
+	openssl req -config $(ETC_DIR)/ca.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/cakey.pem -out $@
 	ls --full-time $(SSL_DIR)
 	
-$(SSL_DIR)/serverCAkey.pem:	$(SSL_DIR)/serverCAreq.pem
+$(SSL_DIR)/cakey.pem:	$(SSL_DIR)/careq.pem
 
-$(SSL_DIR)/serverCAcert.pem:	$(SSL_DIR)/serverCAreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/root.pem $(SSL_DIR)/root.pwd
+$(SSL_DIR)/cacert.pem:	$(SSL_DIR)/careq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/root.pem $(SSL_DIR)/root.pwd
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/serverCAreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -CA $(SSL_DIR)/root.pem -passin file:$(SSL_DIR)/root.pwd -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
+	openssl x509 -req -in $(SSL_DIR)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -CA $(SSL_DIR)/root.pem -passin file:$(SSL_DIR)/root.pwd -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
 	c_rehash $(SSL_DIR)
 	ls --full-time $(SSL_DIR)
 
-$(SSL_DIR)/serverCA.pem:	$(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/serverCAkey.pem $(SSL_DIR)/rootcert.pem
+$(SSL_DIR)/ca.pem:	$(SSL_DIR)/cacert.pem $(SSL_DIR)/cakey.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
 	cat $^ > $@
 	c_rehash $(SSL_DIR)
@@ -291,13 +291,13 @@ $(SSL_DIR)/serverreq.pem:	$(ETC_DIR)/server.cnf
 
 $(SSL_DIR)/serverkey.pem:	$(SSL_DIR)/serverreq.pem
 
-$(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/serverCA.pem $(SSL_DIR)/serverCA.pwd
+$(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/ca.pem $(SSL_DIR)/ca.pwd
 	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_DIR)/serverCA.pem -passin file:$(SSL_DIR)/serverCA.pwd -CAkey $(SSL_DIR)/serverCA.pem -CAcreateserial -out $@
+	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_DIR)/ca.pem -passin file:$(SSL_DIR)/ca.pwd -CAkey $(SSL_DIR)/ca.pem -CAcreateserial -out $@
 	c_rehash $(SSL_DIR)
 	ls --full-time $(SSL_DIR)
 
-$(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/serverCAcert.pem $(SSL_DIR)/rootcert.pem
+$(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/cacert.pem $(SSL_DIR)/rootcert.pem
 	mkdir -p $(SSL_DIR)
 	cat $^ > $@
 	c_rehash $(SSL_DIR)
@@ -360,17 +360,17 @@ $(SSL_DIR)/dh4096.pem:
 
 ##### Helpers
 
-credentials:	$(SSL_DIR)/root.pem $(SSL_DIR)/serverCA.pem $(SSL_DIR)/server.pem $(SSL_DIR)/client.pem
+credentials:	$(SSL_DIR)/root.pem $(SSL_DIR)/ca.pem $(SSL_DIR)/server.pem $(SSL_DIR)/client.pem
 
 credentials-show:
 	( cd $(SSL_DIR); test -r root.pem && openssl x509 -subject -issuer -noout -in root.pem || true )
-	( cd $(SSL_DIR); test -r serverCA.pem && openssl x509 -subject -issuer -noout -in serverCA.pem || true )
+	( cd $(SSL_DIR); test -r ca.pem && openssl x509 -subject -issuer -noout -in ca.pem || true )
 	( cd $(SSL_DIR); test -r server.pem && openssl x509 -subject -issuer -noout -in server.pem || true )
 	( cd $(SSL_DIR); test -r client.pem && openssl x509 -subject -issuer -noout -in client.pem || true )
 
 credentials-clean:
 	( cd $(SSL_DIR); rm -f root.pwd rootcert.pem rootkey.pem root.pem rootreq.pem root.srl )
-	( cd $(SSL_DIR); rm -f serverCA.pwd serverCAcert.pem serverCAkey.pem serverCA.pem serverCAreq.pem serverCA.srl )
+	( cd $(SSL_DIR); rm -f ca.pwd cacert.pem cakey.pem ca.pem careq.pem ca.srl )
 	( cd $(SSL_DIR); rm -f server.pwd servercert.pem serverkey.pem server.pem serverreq.pem )
 	( cd $(SSL_DIR); rm -f client.pwd clientkey.pem client.pem clientreq.pem )
 	
@@ -379,10 +379,10 @@ parameters:	 $(SSL_DIR)/dh0.pem $(SSL_DIR)/dh256.pem $(SSL_DIR)/dh512.pem $(SSL_
 parameters-clean:
 	( cd $(SSL_DIR); rm -f dh0.pem dh256.pem dh512.pem dh1024.pem dh2048.pem dh4096.pem )
 	
-passwords:	$(SSL_DIR)/root.pwd $(SSL_DIR)/serverCA.pwd $(SSL_DIR)/server.pwd $(SSL_DIR)/client.pwd
+passwords:	$(SSL_DIR)/root.pwd $(SSL_DIR)/ca.pwd $(SSL_DIR)/server.pwd $(SSL_DIR)/client.pwd
 
 passwords-clean:
-	( cd $(SSL_DIR); rm -f root.pwd serverCA.pwd server.pwd client.pwd )
+	( cd $(SSL_DIR); rm -f root.pwd ca.pwd server.pwd client.pwd )
 
 ########## Packaging and Distribution
 
