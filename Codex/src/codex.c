@@ -7,10 +7,7 @@
  * Chip Overclock (coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
  *
- * REFERENCES
- *
- * J. Viega, M. Messier, P. Chandra, _Network Security with OpenSSL_, O'Reilly,
- * 2002, pp. 112-170
+ * See the README.md for a list of references.
  */
 
 #define _GNU_SOURCE
@@ -61,12 +58,12 @@ static bool initialized = false;
 
 void codex_perror(const char * str)
 {
-	int number = -1;
+	int save = -1;
 	unsigned long error = -1;
 	int ii = 0;
 	char buffer[120];
 
-	number = errno;
+	save = errno;
 
 	while (!0) {
 		error = ERR_get_error();
@@ -78,7 +75,7 @@ void codex_perror(const char * str)
 	}
 
 	if (ii == 0) {
-		errno = number;
+		errno = save;
 		diminuto_perror(str);
 	}
 }
@@ -88,6 +85,9 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 	int action = 0;
 	int err = 0;
 	int temp = 0;
+	int save = -1;
+
+	save = errno;
 
 	err = SSL_get_error(ssl, rc);
 	switch (err) {
@@ -108,13 +108,20 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 
 	case SSL_ERROR_SYSCALL:
 	case SSL_ERROR_SSL:
-		codex_perror(str);
-		action = -1;
+		errno = save;
+		if (errno > 0) {
+			codex_perror(str);
+			action = -1;
+		}
 		break;
 
 	default:
 		break;
 
+	}
+
+	if (action != 0) {
+		DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d err=%d action=%d\n", str, ssl, rc, err, action);
 	}
 
 	return action;
@@ -349,7 +356,7 @@ int codex_parameters(const char * dh256f, const char * dh512f, const char * dh10
 }
 
 /*******************************************************************************
- * COMMON
+ * CONTEXT
  ******************************************************************************/
 
 codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * pem, int flags, int depth, int options)
@@ -442,6 +449,10 @@ codex_context_t * codex_context_free(codex_context_t * ctx)
 
 	return ctx;
 }
+
+/*******************************************************************************
+ * CONNECTION
+ ******************************************************************************/
 
 int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 {
@@ -629,13 +640,18 @@ bool codex_connection_closed(codex_connection_t * ssl)
 int codex_connection_close(codex_connection_t * ssl)
 {
 	int rc = 0;
+	int flags = 0;
+	int action = 0;
 
-	rc = SSL_get_shutdown(ssl);
-	if ((rc & SSL_SENT_SHUTDOWN) == 0) {
+	flags = SSL_get_shutdown(ssl);
+	if ((flags & SSL_SENT_SHUTDOWN) == 0) {
 		while (!0) {
 			rc = SSL_shutdown(ssl);
 			if (rc < 0) {
-				codex_serror("SSL_shutdown", ssl, rc);
+				action = codex_serror("SSL_shutdown", ssl, rc);
+				if (action == 0) {
+					rc = 0;
+				}
 				break;
 			} else if (rc > 0) {
 				rc = 0;
@@ -660,12 +676,16 @@ codex_connection_t * codex_connection_free(codex_connection_t * ssl)
 	return ssl;
 }
 
+/*******************************************************************************
+ * INPUT/OUTPUT
+ ******************************************************************************/
+
 int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 {
 	int len = 0;
 
 	len = SSL_read(ssl, buffer, size);
-	if (len <= 0) {
+	if (len < 0) {
 		codex_serror("SSL_read", ssl, len);
 	}
 
@@ -677,7 +697,7 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 	int len = 0;
 
 	len = SSL_write(ssl, buffer, size);
-	if (len <= 0) {
+	if (len < 0) {
 		codex_serror("SSL_write", ssl, len);
 	}
 
@@ -790,7 +810,7 @@ codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * acc)
 
 		rc = BIO_free(acc);
 		if (rc != 1) {
-			codex_perror("BIO_free");
+			codex_perror("BIO_free_all");
 			break;
 		}
 
