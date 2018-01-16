@@ -131,7 +131,7 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 	return action;
 }
 
-static DH * codex_parameters_import(const char * dhf)
+DH * codex_parameters_import(const char * dhf)
 {
 	DH * dhp = (DH *)0;
 	BIO * bio = (BIO *)0;
@@ -372,7 +372,7 @@ int codex_parameters(const char * dh256f, const char * dh512f, const char * dh10
  * CONTEXT
  ******************************************************************************/
 
-codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * pem, int flags, int depth, int options)
+codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * key, int flags, int depth, int options)
 {
 	SSL_CTX * result = (SSL_CTX *)0;
 	const SSL_METHOD * method = (SSL_METHOD *)0;
@@ -418,7 +418,7 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 			break;
 		}
 
-		rc = SSL_CTX_use_PrivateKey_file(ctx, pem, SSL_FILETYPE_PEM);
+		rc = SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM);
 		if (rc != 1) {
 			codex_perror("SSL_CTX_use_PrivateKey_file");
 			break;
@@ -506,7 +506,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		}
 
 		count = X509_get_ext_count(crt);
-		DIMINUTO_LOG_DEBUG("codex_connection_verify: ssl=%p crt=%p count=%d\n", ssl, crt, count);
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: ssl=%p crt=%p extensions=%d\n", ssl, crt, count);
 		for (ii = 0; ii < count; ++ii) {
 
 			ext = X509_get_ext(crt, ii);
@@ -551,6 +551,9 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			}
 
 			ptr = meth->d2i((void *)0, &dat, ext->value->length);
+			if (ptr == (void *)0) {
+				continue;
+			}
 
 			if (meth->i2v == (X509V3_EXT_I2V)0) {
 				continue;
@@ -562,6 +565,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			}
 
 			lim = sk_CONF_VALUE_num(vals);
+			DIMINUTO_LOG_DEBUG("codex_connection_verify: ssl=%p crt=%p values=%d\n", ssl, crt, lim);
 			for (jj = 0; jj < lim; ++jj) {
 
 				val = sk_CONF_VALUE_value(vals, jj);

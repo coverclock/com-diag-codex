@@ -23,98 +23,250 @@
  * TYPES
  ******************************************************************************/
 
+/**
+ * Type of object that contains the context for an OpenSSL server or client.
+ */
 typedef SSL_CTX codex_context_t;
 
+/**
+ * Type of object that defines the rendezvous to accept OpenSSL connections.
+ */
 typedef BIO codex_rendezvous_t;
 
+/**
+ * Type of object that describes an individualOpenSSL socket connection.
+ */
 typedef SSL codex_connection_t;
 
 /*******************************************************************************
  * GENERATORS
  ******************************************************************************/
 
+/**
+ * Defines the maximum number of certificates that may be chained together.
+ */
 static const int CODEX_CONTEXT_DEPTH = 9;
 
 /*******************************************************************************
  * CONSTANTS
  ******************************************************************************/
 
+/**
+ * Names the environmental variable whose value is the server password.
+ */
 extern const char * const codex_server_password_env;
 
+/**
+ * Names the environmental variable whose value is the client password.
+ */
 extern const char * const codex_client_password_env;
 
+/**
+ * Defines the available and usable cipher algorithms.
+ */
 extern const char * const codex_cipher_list;
 
 /*******************************************************************************
  * HELPERS
  ******************************************************************************/
 
+/**
+ * Logs the error messages found on the OpenSSL error queue.
+ * @param str points to the prefix string printed before each message.
+ */
 extern void codex_perror(const char * str);
 
+/**
+ * Logs the error message associated with a particular connection and return
+ * code.
+ * @param str points to the prefix string printed before each message.
+ * @param ssl points to the connection.
+ * @param rc is the return code returned by the failing function.
+ * @return 0 for no action needed, >0 for connection dead, <0 for error.
+ */
 extern int codex_serror(const char * str, const codex_connection_t * ssl, int rc);
 
 /*******************************************************************************
  * INITIALIZATION
  ******************************************************************************/
 
+/**
+ * Initializes the OpenSSL stack. Only needs to be called once per process.
+ * @return 0 if successful, <0 otherwise.
+ */
 extern int codex_initialize(void);
 
+/**
+ * Loads the Diffie Hellman parameter files for the supported key lengths.
+ * @param dh256f names the 256 bit parameter file.
+ * @param dh512f names the 512 bit parameter file.
+ * @param dh1024f names the 1024 bit parameter file.
+ * @param dh2048f names the 2048 bit parameter file.
+ * @param dh4096f names the 4096 bit parameter file.
+ * @return 0 if successful, <0 otherwise.
+ */
 extern int codex_parameters(const char * dh256f, const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f);
 
 /*******************************************************************************
  * CONTEXT
  ******************************************************************************/
 
-extern codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * pem, int flags, int depth, int options);
+/**
+ * Allocate a new OpenSSL context.
+ * @param env names the environmental variable containing the password.
+ * @param caf names the certificate file or NULL if none.
+ * @param cap names the certificate path or NULL if none.
+ * @param crt names the certificate to use.
+ * @param key names the private key to use.
+ * @param flags defines the peer verification options.
+ * @param depth defines the maximum certificate depth (9 works well).
+ * @param options defines the SSL protocol options.
+ * @return a pointer to the new context if successful, NULL otherwise.
+ */
+extern codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * key, int flags, int depth, int options);
 
+/**
+ * Free an existing OpenSSL context.
+ * @param ctx points to the context.
+ * @return NULL if successful, the original pointer otherwise.
+ */
 extern codex_context_t * codex_context_free(codex_context_t * ctx);
 
 /*******************************************************************************
  * CONNECTION
  ******************************************************************************/
 
+/**
+ * Walk the peer X309 certificate and verify that it came from the expected host
+ * by comparing the provided string against the FQDN or the CN, and furthermore
+ * examine the OpenSSL verification status.
+ * @param ssl points to the connection.
+ * @param expected names the expected host FQDN or CN or NULL if none.
+ * @return 0 if verified, <0 otherwise.
+ */
 extern int codex_connection_verify(codex_connection_t * ssl, const char * expected);
 
+/**
+ * Return true if the connection has been closed by the far end.
+ * @param ssl points to the connection.
+ * @return true if connection has been closed by the far end, false otherwise.
+ */
 extern bool codex_connection_closed(codex_connection_t * ssl);
 
+/**
+ * Close a connection by sending a shutdown requested to the far end.
+ * @param ssl points to the connection.
+ * @return 0 if successful, <0 otherwise.
+ */
 extern int codex_connection_close(codex_connection_t * ssl);
 
+/**
+ * Free a connection.
+ * @param ssl points to the connection.
+ * @return NULL if successful, the original pointer otherwise.
+ */
 extern codex_connection_t * codex_connection_free(codex_connection_t * ssl);
 
 /*******************************************************************************
  * INPUT/OUTPUT
  ******************************************************************************/
 
+/**
+ * Read data from a connection into a buffer of a specified size.
+ * @param ssl points to the connection.
+ * @param buffer points to the buffer.
+ * @param size is the size of the buffer in bytes.
+ * @return the number of bytes actually read, 0 if closed, <0 if in error.
+ */
 extern int codex_connection_read(codex_connection_t * ssl, void * buffer, int size);
 
+/**
+ * Write data to a connection from a buffer of a specified size.
+ * @param ssl points to the connection.
+ * @param buffer points to the buffer.
+ * @param size is the size of the buffer in bytes.
+ * @return the number of bytes actually written, 0 if closed, <0 if in error.
+ */
 extern int codex_connection_write(codex_connection_t * ssl, const void * buffer, int size);
 
 /*******************************************************************************
  * MULTIPLEXING
  ******************************************************************************/
 
+/**
+ * Return the file descriptor associated with a rendezvous. This should ONLY
+ * be used for multiplexing.
+ * @param acc points to the rendezvous (a BIO).
+ * @return a file descriptor >=0, or <0 if in error.
+ */
 extern int codex_rendezvous_descriptor(codex_rendezvous_t * acc);
 
+/**
+ * Return the file descriptor associated with a connection. This should ONLY
+ * be used for multiplexing.
+ * @param ssl points to the connection (an SSL).
+ * @return a file descriptor >=0, or <0 if in error.
+ */
 extern int codex_connection_descriptor(codex_connection_t * ssl);
 
 /*******************************************************************************
  * CLIENT
  ******************************************************************************/
 
+/**
+ * Allocate a new OpenSSL client context.
+ * @param env names the environmental variable containing the password.
+ * @param caf names the certificate file or NULL if none.
+ * @param cap names the certificate path or NULL if none.
+ * @param crt names the certificate to use.
+ * @param key names the private key to use.
+ * @return a pointer to the new context if successful, or NULL otherwise.
+ */
 extern codex_context_t * codex_client_context_new(const char * caf, const char * cap, const char * crt, const char * key);
 
+/**
+ * Allocate a new connection using a context to a specified farend.
+ * @param ctx points to the context.
+ * @param farend names the far end in the form "IPADDR:PORT" or "HOST:SERVICE".
+ * @return a pointer to the new connection if successful, or NULL otherwise.
+ */
 extern codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const char * farend);
 
 /*******************************************************************************
  * SERVER
  ******************************************************************************/
 
+/**
+ * Allocate a new OpenSSL server context.
+ * @param env names the environmental variable containing the password.
+ * @param caf names the certificate file or NULL if none.
+ * @param cap names the certificate path or NULL if none.
+ * @param crt names the certificate to use.
+ * @param key names the private key to use.
+ * @return a pointer to the context if successful, NULL otherwise.
+ */
 extern codex_context_t * codex_server_context_new(const char * caf, const char * cap, const char * crt, const char * key);
 
+/**
+ * Allocate a new server rendezvous (a BIO associated with a accepting socket).
+ * @param nearend names the near end in the form "PORT" or "SERVICE".
+ * @return a pointer to the new rendezvous if successful, or NULL otherwise.
+ */
 extern codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend);
 
+/**
+ * Free a server rendezvous.
+ * @param bio points to the server rendezvous.
+ * @return NULL if successful, the original pointer otherwise.
+ */
 extern codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * bio);
 
+/**
+ * Accept and allocate a new connection using a server context and a rendezvous.
+ * @param ctx points to the context.
+ * @param bio points to the rendezvous.
+ * @return a new connection if successful, or NULL otherwise.
+ */
 extern codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_rendezvous_t * bio);
 
 #endif

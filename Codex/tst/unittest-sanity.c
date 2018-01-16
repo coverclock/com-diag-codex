@@ -73,7 +73,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh0.pem", NULL, NULL, NULL, NULL);
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh0.pem", NULL, NULL, NULL, NULL);
 		EXPECT(rc < 0);
 
 		EXPECT(codex_dh256 == (DH *)0);
@@ -82,7 +82,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh0.pem", NULL, NULL, NULL);
+		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh0.pem", NULL, NULL, NULL);
 		EXPECT(rc < 0);
 
 		EXPECT(codex_dh256 == (DH *)0);
@@ -91,7 +91,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh0.pem", NULL, NULL);
+		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh0.pem", NULL, NULL);
 		EXPECT(rc < 0);
 
 		EXPECT(codex_dh256 == (DH *)0);
@@ -100,7 +100,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh0.pem", NULL);
+		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh0.pem", NULL);
 		EXPECT(rc < 0);
 
 		EXPECT(codex_dh256 == (DH *)0);
@@ -109,7 +109,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, NULL, NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh0.pem");
+		rc = codex_parameters(NULL, NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh0.pem");
 		EXPECT(rc < 0);
 
 		EXPECT(codex_dh256 == (DH *)0);
@@ -163,7 +163,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh4294967295.pem", NULL, NULL, NULL, NULL);
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh4294967295.pem", NULL, NULL, NULL, NULL);
 		EXPECT(rc < 0);
 
 		EXPECT(codex_dh256 == (DH *)0);
@@ -172,7 +172,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh4294967295.pem", NULL, NULL, NULL);
+		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh4294967295.pem", NULL, NULL, NULL);
 		EXPECT(rc < 0);
 
 		EXPECT(codex_dh256 == (DH *)0);
@@ -181,7 +181,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh4294967295.pem", NULL, NULL);
+		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh4294967295.pem", NULL, NULL);
 		EXPECT(rc < 0);
 
 		EXPECT(codex_dh256 == (DH *)0);
@@ -190,7 +190,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh4294967295.pem", NULL);
+		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh4294967295.pem", NULL);
 		EXPECT(rc < 0);
 
 		EXPECT(codex_dh256 == (DH *)0);
@@ -199,7 +199,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, NULL, NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh4294967295.pem");
+		rc = codex_parameters(NULL, NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh4294967295.pem");
 		EXPECT(rc < 0);
 
 		EXPECT(codex_dh256 == (DH *)0);
@@ -208,7 +208,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh256.pem", NULL, NULL, NULL, NULL);
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh256.pem", NULL, NULL, NULL, NULL);
 		EXPECT(rc == 0);
 
 		EXPECT(codex_dh256 != (DH *)0);
@@ -217,7 +217,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh512.pem", NULL, NULL, NULL);
+		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh512.pem", NULL, NULL, NULL);
 		EXPECT(rc == 0);
 
 		EXPECT(codex_dh256 != (DH *)0);
@@ -226,7 +226,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh1024.pem", NULL, NULL);
+		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh1024.pem", NULL, NULL);
 		EXPECT(rc == 0);
 
 		EXPECT(codex_dh256 != (DH *)0);
@@ -235,7 +235,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh2048.pem", NULL);
+		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh2048.pem", NULL);
 		EXPECT(rc == 0);
 
 		EXPECT(codex_dh256 != (DH *)0);
@@ -244,7 +244,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 != (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(NULL, NULL, NULL, NULL, COM_DIAG_CODEX_OUT_ETC_PATH "/dh4096.pem");
+		rc = codex_parameters(NULL, NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh4096.pem");
 		EXPECT(rc == 0);
 
 		EXPECT(codex_dh256 != (DH *)0);
@@ -259,7 +259,7 @@ int main(char * argc, char ** argv)
 		temp_dh2048 = codex_dh2048;
 		temp_dh4096 = codex_dh4096;
 
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh4096.pem");
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh4096.pem");
 		EXPECT(rc == 0);
 
 		EXPECT(codex_dh256 == temp_dh256);
@@ -284,7 +284,7 @@ int main(char * argc, char ** argv)
 		EXPECT(codex_dh2048 == (DH *)0);
 		EXPECT(codex_dh4096 == (DH *)0);
 
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh4096.pem");
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh4096.pem");
 		EXPECT(rc == 0);
 
 		EXPECT(codex_dh256 != (DH *)0);
@@ -380,7 +380,7 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
-		ctx = codex_client_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH, COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem");
+		ctx = codex_client_context_new(COM_DIAG_CODEX_OUT_CRT_PATH "/root.pem", COM_DIAG_CODEX_OUT_CRT_PATH, COM_DIAG_CODEX_OUT_CRT_PATH "/client.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/client.pem");
 		ASSERT(ctx != (codex_context_t *)0);
 
 		ctx = codex_context_free(ctx);
@@ -394,7 +394,7 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
-		ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH, COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
+		ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_CRT_PATH "/root.pem", COM_DIAG_CODEX_OUT_CRT_PATH, COM_DIAG_CODEX_OUT_CRT_PATH "/server.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/server.pem");
 		ASSERT(ctx != (codex_context_t *)0);
 
 		ctx = codex_context_free(ctx);
@@ -409,7 +409,7 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
-		ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", COM_DIAG_CODEX_OUT_ETC_PATH, COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/server.pem");
+		ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_CRT_PATH "/root.pem", COM_DIAG_CODEX_OUT_CRT_PATH, COM_DIAG_CODEX_OUT_CRT_PATH "/server.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/server.pem");
 		ASSERT(ctx != (codex_context_t *)0);
 
 		acc = codex_server_rendezvous_new("0");

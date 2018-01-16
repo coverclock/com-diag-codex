@@ -11,7 +11,8 @@
  * https://github.com/coverclock/com-diag-codex<BR>
  *
  * These elements are not part of the public API. They are typically exposed
- * only for unit testing.
+ * only for unit testing or for supporting separate translation modules in the
+ * underlying implementation.
  */
 
 /*******************************************************************************
@@ -81,5 +82,11 @@ extern int codex_password_callback(char * buffer, int size, int writing, void * 
 extern int codex_verification_callback(int ok, X509_STORE_CTX * ctx);
 
 extern DH * codex_parameters_callback(SSL * ssl, int exp, int length);
+
+/*******************************************************************************
+ * HELPERS
+ ******************************************************************************/
+
+extern DH * codex_parameters_import(const char * dhf);
 
 #endif

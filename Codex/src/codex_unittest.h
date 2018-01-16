@@ -15,6 +15,9 @@
  * GENERATORS
  ******************************************************************************/
 
-#define COM_DIAG_CODEX_OUT_ETC_PATH "out/host/etc"
+/**
+ * Generates the path that points to the certificates used by the unit tests.
+ */
+#define COM_DIAG_CODEX_OUT_CRT_PATH "out/host/crt"
 
 #endif

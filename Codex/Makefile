@@ -68,6 +68,7 @@ HOME_DIR			:=	$(HOME)/Projects
 ARC_DIR				:=	arc# Archive files for static linking
 BIN_DIR				:=	bin# Utility source files or stripped executable binaries
 CFG_DIR				:=	cfg# Build configuration files
+CRT_DIR				:=	crt# Certificate files
 DEP_DIR				:=	dep# Generated dependencies and other make files
 DOC_DIR				:=	doc# Documentation
 ETC_DIR				:=	etc# Miscellaneous files
@@ -76,10 +77,12 @@ INC_DIR				:=	inc# Header files
 LIB_DIR				:=	lib# Shared objects for dynamic linking
 OBC_DIR				:=	obc# C object modules
 OUT_DIR				:=	out# Build artifacts
+PWD_DIR				:=	pwd# Password files
 SRC_DIR				:=	src# Library source files
 SYM_DIR				:=	sym# Unstripped executable binaries
 TGZ_DIR				:=	tgz# Compressed tarballs
 TST_DIR				:=	tst# Unit tests
+TXT_DIR				:=	txt# Text files
 
 ########## Configuration
 
@@ -179,11 +182,9 @@ TARGETSHARED		:=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
-SSL_DIR				:=	$(OUT)/$(ETC_DIR)
-
-TARGETCREDENTIALS	:=	$(SSL_DIR)/root.pem $(SSL_DIR)/client.pem $(SSL_DIR)/server.pem
-TARGETPARAMETERS	:=	$(SSL_DIR)/dh0.pem $(SSL_DIR)/dh256.pem $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem $(SSL_DIR)/dh2048.pem $(SSL_DIR)/dh4096.pem
-TARGETPASSWORDS		:=	$(SSL_DIR)/client.pwd $(SSL_DIR)/server.pwd
+TARGETCREDENTIALS	:=	$(OUT)/$(TXT_DIR)/root.txt $(OUT)/$(TXT_DIR)/ca.txt $(OUT)/$(TXT_DIR)/client.txt $(OUT)/$(TXT_DIR)/server.txt
+TARGETPARAMETERS	:=	$(OUT)/$(CRT_DIR)/dh0.pem $(OUT)/$(CRT_DIR)/dh256.pem $(OUT)/$(CRT_DIR)/dh512.pem $(OUT)/$(CRT_DIR)/dh1024.pem $(OUT)/$(CRT_DIR)/dh2048.pem $(OUT)/$(CRT_DIR)/dh4096.pem
+TARGETPASSWORDS		:=	$(OUT)/$(PWD_DIR)/root.pwd $(OUT)/$(PWD_DIR)/ca.pwd $(OUT)/$(PWD_DIR)/client.pwd $(OUT)/$(PWD_DIR)/server.pwd
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
 TARGETPROGRAMS		:=	$(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS)
@@ -217,172 +218,168 @@ clobber:	pristine
 #
 # OpenSSL, documentation, <https://www.openssl.org/docs/>
 
-.PHONY:	credentials credentials-show credentials-clean parameters parameters-clean passwords passwords-clean
+.PHONY:	credentials credentials-clean parameters parameters-clean passwords passwords-clean
 
 SSL_KEY 			:=	rsa:2048
 SSL_ALG				:=	sha1
 SSL_GEN				:=	2
 #SSL_GEN			:=	5
 
+SSL_CRT				:=	$(OUT)/$(CRT_DIR)
+SSL_PWD				:=	$(OUT)/$(PWD_DIR)
+SSL_TXT				:=	$(OUT)/$(TXT_DIR)
+
 ##### Passwords
 
-$(SSL_DIR)/root.pwd:	$(ETC_DIR)/root.cnf
+$(SSL_PWD)/%.pwd:	$(ETC_DIR)/%.cnf
+	D=`dirname $@`; mkdir -p $$D
 	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
 
-$(SSL_DIR)/ca.pwd:	$(ETC_DIR)/ca.cnf
-	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
+##### Text Dumps
 
-$(SSL_DIR)/server.pwd:	$(ETC_DIR)/server.cnf
-	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
-
-$(SSL_DIR)/client.pwd:	$(ETC_DIR)/client.cnf
-	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
+$(SSL_TXT)/%.txt:	$(SSL_CRT)/%.pem
+	D=`dirname $@`; mkdir -p $$D
+	openssl x509 -text -noout -in $< > $@
 
 ##### Root
 
-$(SSL_DIR)/rootreq.pem:	$(ETC_DIR)/root.cnf
-	mkdir -p $(SSL_DIR)
-	openssl req -config $(ETC_DIR)/root.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/rootkey.pem -out $@
-	ls --full-time $(SSL_DIR)
+$(SSL_CRT)/rootreq.pem:	$(ETC_DIR)/root.cnf
+	D=`dirname $@`; mkdir -p $$D
+	openssl req -config $(ETC_DIR)/root.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/rootkey.pem -out $@
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/rootkey.pem:	$(SSL_DIR)/rootreq.pem
+$(SSL_CRT)/rootkey.pem:	$(SSL_CRT)/rootreq.pem
 
-$(SSL_DIR)/rootcert.pem:	$(SSL_DIR)/rootreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/rootkey.pem $(SSL_DIR)/root.pwd
-	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -signkey $(SSL_DIR)/rootkey.pem -passin file:$(SSL_DIR)/root.pwd -out $@
-	c_rehash $(SSL_DIR)
-	ls --full-time $(SSL_DIR)
+$(SSL_CRT)/rootcert.pem:	$(SSL_CRT)/rootreq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/rootkey.pem $(SSL_PWD)/root.pwd
+	D=`dirname $@`; mkdir -p $$D
+	openssl x509 -req -in $(SSL_CRT)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -signkey $(SSL_CRT)/rootkey.pem -passin file:$(SSL_PWD)/root.pwd -out $@
+	c_rehash $(SSL_CRT)
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/root.pem:	$(SSL_DIR)/rootkey.pem $(SSL_DIR)/rootcert.pem
-	mkdir -p $(SSL_DIR)
+$(SSL_CRT)/root.pem:	$(SSL_CRT)/rootkey.pem $(SSL_CRT)/rootcert.pem
+	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
-	c_rehash $(SSL_DIR)
-	ls --full-time $(SSL_DIR)
+	c_rehash $(SSL_CRT)
+	ls --full-time $(SSL_CRT)
 	openssl x509 -subject -issuer -noout -in $@
 
 ##### Certificate Authority
 
-$(SSL_DIR)/careq.pem:	$(ETC_DIR)/ca.cnf
-	mkdir -p $(SSL_DIR)
-	openssl req -config $(ETC_DIR)/ca.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/cakey.pem -out $@
-	ls --full-time $(SSL_DIR)
+$(SSL_CRT)/careq.pem:	$(ETC_DIR)/ca.cnf
+	D=`dirname $@`; mkdir -p $$D
+	openssl req -config $(ETC_DIR)/ca.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/cakey.pem -out $@
+	ls --full-time $(SSL_CRT)
 	
-$(SSL_DIR)/cakey.pem:	$(SSL_DIR)/careq.pem
+$(SSL_CRT)/cakey.pem:	$(SSL_CRT)/careq.pem
 
-$(SSL_DIR)/cacert.pem:	$(SSL_DIR)/careq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/root.pem $(SSL_DIR)/root.pwd
-	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -CA $(SSL_DIR)/root.pem -passin file:$(SSL_DIR)/root.pwd -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
-	c_rehash $(SSL_DIR)
-	ls --full-time $(SSL_DIR)
+$(SSL_CRT)/cacert.pem:	$(SSL_CRT)/careq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+	D=`dirname $@`; mkdir -p $$D
+	openssl x509 -req -in $(SSL_CRT)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	c_rehash $(SSL_CRT)
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/ca.pem:	$(SSL_DIR)/cacert.pem $(SSL_DIR)/cakey.pem $(SSL_DIR)/rootcert.pem
-	mkdir -p $(SSL_DIR)
+$(SSL_CRT)/ca.pem:	$(SSL_CRT)/cacert.pem $(SSL_CRT)/cakey.pem $(SSL_CRT)/rootcert.pem
+	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
-	c_rehash $(SSL_DIR)
-	ls --full-time $(SSL_DIR)
+	c_rehash $(SSL_CRT)
+	ls --full-time $(SSL_CRT)
 	openssl x509 -subject -issuer -noout -in $@
 
 ##### Server
 
-$(SSL_DIR)/serverreq.pem:	$(ETC_DIR)/server.cnf
-	mkdir -p $(SSL_DIR)
-	openssl req -config $(ETC_DIR)/server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/serverkey.pem -out $@
-	ls --full-time $(SSL_DIR)
+$(SSL_CRT)/serverreq.pem:	$(ETC_DIR)/server.cnf
+	D=`dirname $@`; mkdir -p $$D
+	openssl req -config $(ETC_DIR)/server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/serverkey.pem -out $@
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/serverkey.pem:	$(SSL_DIR)/serverreq.pem
+$(SSL_CRT)/serverkey.pem:	$(SSL_CRT)/serverreq.pem
 
-$(SSL_DIR)/servercert.pem:	$(SSL_DIR)/serverreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/ca.pem $(SSL_DIR)/ca.pwd
-	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_DIR)/ca.pem -passin file:$(SSL_DIR)/ca.pwd -CAkey $(SSL_DIR)/ca.pem -CAcreateserial -out $@
-	c_rehash $(SSL_DIR)
-	ls --full-time $(SSL_DIR)
+$(SSL_CRT)/servercert.pem:	$(SSL_CRT)/serverreq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
+	D=`dirname $@`; mkdir -p $$D
+	openssl x509 -req -in $(SSL_CRT)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
+	c_rehash $(SSL_CRT)
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/server.pem:	$(SSL_DIR)/servercert.pem $(SSL_DIR)/serverkey.pem $(SSL_DIR)/cacert.pem $(SSL_DIR)/rootcert.pem
-	mkdir -p $(SSL_DIR)
+$(SSL_CRT)/server.pem:	$(SSL_CRT)/servercert.pem $(SSL_CRT)/serverkey.pem $(SSL_CRT)/cacert.pem $(SSL_CRT)/rootcert.pem
+	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
-	c_rehash $(SSL_DIR)
-	ls --full-time $(SSL_DIR)
+	c_rehash $(SSL_CRT)
+	ls --full-time $(SSL_CRT)
 	openssl x509 -subject -issuer -noout -in $@
 
 ##### Client
 
-$(SSL_DIR)/clientreq.pem:	$(ETC_DIR)/client.cnf
-	mkdir -p $(SSL_DIR)
-	openssl req -config $(ETC_DIR)/client.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_DIR)/clientkey.pem -out $@
-	ls --full-time $(SSL_DIR)
+$(SSL_CRT)/clientreq.pem:	$(ETC_DIR)/client.cnf
+	D=`dirname $@`; mkdir -p $$D
+	openssl req -config $(ETC_DIR)/client.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/clientkey.pem -out $@
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/clientkey.pem:	$(SSL_DIR)/clientreq.pem
+$(SSL_CRT)/clientkey.pem:	$(SSL_CRT)/clientreq.pem
 
-$(SSL_DIR)/clientcert.pem:	$(SSL_DIR)/clientreq.pem $(ETC_DIR)/openssl.cnf $(SSL_DIR)/root.pem $(SSL_DIR)/root.pwd
-	mkdir -p $(SSL_DIR)
-	openssl x509 -req -in $(SSL_DIR)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_DIR)/root.pem -passin file:$(SSL_DIR)/root.pwd -CAkey $(SSL_DIR)/root.pem -CAcreateserial -out $@
-	c_rehash $(SSL_DIR)
-	ls --full-time $(SSL_DIR)
+$(SSL_CRT)/clientcert.pem:	$(SSL_CRT)/clientreq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+	D=`dirname $@`; mkdir -p $$D
+	openssl x509 -req -in $(SSL_CRT)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	c_rehash $(SSL_CRT)
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/client.pem:	$(SSL_DIR)/clientcert.pem $(SSL_DIR)/clientkey.pem $(SSL_DIR)/rootcert.pem
-	mkdir -p $(SSL_DIR)
+$(SSL_CRT)/client.pem:	$(SSL_CRT)/clientcert.pem $(SSL_CRT)/clientkey.pem $(SSL_CRT)/rootcert.pem
+	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
-	c_rehash $(SSL_DIR)
-	ls --full-time $(SSL_DIR)
+	c_rehash $(SSL_CRT)
+	ls --full-time $(SSL_CRT)
 	openssl x509 -subject -issuer -noout -in $@
 
 ##### Diffie Hellman Parameters (runs for a looooooong time)
 
-$(SSL_DIR)/dh0.pem:
-	mkdir -p $(SSL_DIR)
+$(SSL_CRT)/dh0.pem:
+	D=`dirname $@`; mkdir -p $$D
 	cp /dev/null $@
-	ls --full-time $(SSL_DIR)
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/dh256.pem:
-	mkdir -p $(SSL_DIR)
+$(SSL_CRT)/dh256.pem:
+	D=`dirname $@`; mkdir -p $$D
 	openssl dhparam -check -text -$(SSL_GEN) 256 -out $@
-	ls --full-time $(SSL_DIR)
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/dh512.pem:
-	mkdir -p $(SSL_DIR)
+$(SSL_CRT)/dh512.pem:
+	D=`dirname $@`; mkdir -p $$D
 	openssl dhparam -check -text -$(SSL_GEN) 512 -out $@
-	ls --full-time $(SSL_DIR)
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/dh1024.pem:
-	mkdir -p $(SSL_DIR)
+$(SSL_CRT)/dh1024.pem:
+	D=`dirname $@`; mkdir -p $$D
 	openssl dhparam -check -text -$(SSL_GEN) 1024 -out $@
-	ls --full-time $(SSL_DIR)
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/dh2048.pem:
-	mkdir -p $(SSL_DIR)
+$(SSL_CRT)/dh2048.pem:
+	D=`dirname $@`; mkdir -p $$D
 	openssl dhparam -check -text -$(SSL_GEN) 2048 -out $@
-	ls --full-time $(SSL_DIR)
+	ls --full-time $(SSL_CRT)
 
-$(SSL_DIR)/dh4096.pem:
-	mkdir -p $(SSL_DIR)
+$(SSL_CRT)/dh4096.pem:
+	D=`dirname $@`; mkdir -p $$D
 	openssl dhparam -check -text -$(SSL_GEN) 4096 -out $@
-	ls --full-time $(SSL_DIR)
+	ls --full-time $(SSL_CRT)
 
 ##### Helpers
 
-credentials:	$(SSL_DIR)/root.pem $(SSL_DIR)/ca.pem $(SSL_DIR)/server.pem $(SSL_DIR)/client.pem
-
-credentials-show:
-	( cd $(SSL_DIR); test -r root.pem && openssl x509 -subject -issuer -noout -in root.pem || true )
-	( cd $(SSL_DIR); test -r ca.pem && openssl x509 -subject -issuer -noout -in ca.pem || true )
-	( cd $(SSL_DIR); test -r server.pem && openssl x509 -subject -issuer -noout -in server.pem || true )
-	( cd $(SSL_DIR); test -r client.pem && openssl x509 -subject -issuer -noout -in client.pem || true )
+credentials:	$(TARGETCREDENTIALS)
 
 credentials-clean:
-	( cd $(SSL_DIR); rm -f root.pwd rootcert.pem rootkey.pem root.pem rootreq.pem root.srl )
-	( cd $(SSL_DIR); rm -f ca.pwd cacert.pem cakey.pem ca.pem careq.pem ca.srl )
-	( cd $(SSL_DIR); rm -f server.pwd servercert.pem serverkey.pem server.pem serverreq.pem )
-	( cd $(SSL_DIR); rm -f client.pwd clientkey.pem client.pem clientreq.pem )
+	( cd $(SSL_CRT); rm -f rootcert.pem rootkey.pem root.pem rootreq.pem root.srl )
+	( cd $(SSL_CRT); rm -f cacert.pem cakey.pem ca.pem careq.pem ca.srl )
+	( cd $(SSL_CRT); rm -f servercert.pem serverkey.pem server.pem serverreq.pem )
+	( cd $(SSL_CRT); rm -f clientkey.pem client.pem clientreq.pem )
 	
-parameters:	 $(SSL_DIR)/dh0.pem $(SSL_DIR)/dh256.pem $(SSL_DIR)/dh512.pem $(SSL_DIR)/dh1024.pem $(SSL_DIR)/dh2048.pem $(SSL_DIR)/dh4096.pem
+parameters:	 $(TARGETPARAMETERS)
 
 parameters-clean:
-	( cd $(SSL_DIR); rm -f dh0.pem dh256.pem dh512.pem dh1024.pem dh2048.pem dh4096.pem )
+	( cd $(SSL_CRT); rm -f dh0.pem dh256.pem dh512.pem dh1024.pem dh2048.pem dh4096.pem )
 	
-passwords:	$(SSL_DIR)/root.pwd $(SSL_DIR)/ca.pwd $(SSL_DIR)/server.pwd $(SSL_DIR)/client.pwd
+passwords:	$(TARGETPASSWORDS)
 
 passwords-clean:
-	( cd $(SSL_DIR); rm -f root.pwd ca.pwd server.pwd client.pwd )
+	( cd $(SSL_PWD); rm -f root.pwd ca.pwd server.pwd client.pwd )
 
 ########## Packaging and Distribution
 
@@ -460,11 +457,6 @@ $(OUT)/$(LIB_DIR)/lib$(PROJECT).$(SO):	$(OUT)/$(LIB_DIR)/lib$(PROJECT).$(SO).$(M
 $(OUT)/$(SYM_DIR)/%:	$(OUT)/$(OBC_DIR)/$(BIN_DIR)/%.o $(TARGETLIBRARIES)
 	D=`dirname $@`; mkdir -p $$D
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
-
-########## Target Aliases
-
-$(OUT)/$(BIN_DIR)/hex $(OUT)/$(BIN_DIR)/oct $(OUT)/$(BIN_DIR)/ntohs $(OUT)/$(BIN_DIR)/htons $(OUT)/$(BIN_DIR)/ntohl $(OUT)/$(BIN_DIR)/htonl:	$(OUT)/$(BIN_DIR)/dec
-	ln -f $< $@
 
 ########## Unit Tests
 
@@ -679,8 +671,8 @@ $(OUT)/$(BIN_DIR)/setup:	Makefile
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $${BASH_ARGV[0]}`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
 	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
-	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/client.pwd`' >> $@
-	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/server.pwd`' >> $@
+	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
+	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo '. $(DIMINUTO_ROOT)/$(OUT)/$(BIN_DIR)/setup' >> $@
 	chmod 644 $@
 
@@ -689,8 +681,8 @@ $(OUT)/$(SYM_DIR)/setup:	Makefile
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $${BASH_ARGV[0]}`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
 	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
-	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/client.pwd`' >> $@
-	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/server.pwd`' >> $@
+	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
+	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo '. $(DIMINUTO_ROOT)/$(OUT)/$(SYM_DIR)/setup' >> $@
 	chmod 644 $@
 
@@ -701,8 +693,8 @@ $(OUT)/$(BIN_DIR)/generate:	Makefile
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'echo export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
 	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
-	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/client.pwd`' >> $@
-	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/server.pwd`' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(BIN_DIR)/setup' >> $@
 	chmod 755 $@
 
@@ -711,8 +703,8 @@ $(OUT)/$(SYM_DIR)/generate:	Makefile
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'echo export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
 	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
-	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/client.pwd`' >> $@
-	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(ETC_DIR)/server.pwd`' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(SYM_DIR)/setup' >> $@
 	chmod 755 $@
 

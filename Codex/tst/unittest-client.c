@@ -84,10 +84,10 @@ int main(int argc, char ** argv)
 	rc = codex_initialize();
 	ASSERT(rc == 0);
 
-	rc = codex_parameters(COM_DIAG_CODEX_OUT_ETC_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/dh4096.pem");
+	rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh4096.pem");
 	ASSERT(rc == 0);
 
-	ctx = codex_client_context_new(COM_DIAG_CODEX_OUT_ETC_PATH "/root.pem", (const char *)0, COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem", COM_DIAG_CODEX_OUT_ETC_PATH "/client.pem");
+	ctx = codex_client_context_new(COM_DIAG_CODEX_OUT_CRT_PATH "/root.pem", (const char *)0, COM_DIAG_CODEX_OUT_CRT_PATH "/client.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/client.pem");
 	ASSERT(ctx != (SSL_CTX *)0);
 
 	ssl = codex_client_connection_new(ctx, farend);
