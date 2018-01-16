@@ -200,36 +200,45 @@ int codex_password_callback(char * buffer, int size, int writing, void * that)
 int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 {
 	X509 * crt = (X509 *)0;
+	X509_NAME * nam = (X509_NAME *)0;
 	int depth = -1;
 	int error = 0;
 	const char * text = (const char *)0;
 	char name[256];
 
+	depth = X509_STORE_CTX_get_error_depth(ctx);
+
+	crt = X509_STORE_CTX_get_current_cert(ctx);
+	if (crt != (X509 *)0) {
+
+		/*
+		 * These fields are deliberately displayed in the same order as when
+		 * using the "openssl x509 -subject -issuer -noout" command.
+		 */
+
+		name[0] = '\0';
+		nam = X509_get_issuer_name(crt);
+		if (nam != (X509_NAME *)0) {
+			X509_NAME_oneline(nam, name, sizeof(name));
+			name[sizeof(name) - 1] = '\0';
+		}
+		DIMINUTO_LOG_DEBUG("codex_verification_callback: subject[%d]=\"%s\"\n", depth, name);
+
+		name[0] = '\0';
+		nam = X509_get_issuer_name(crt);
+		if (nam != (X509_NAME *)0) {
+			X509_NAME_oneline(nam, name, sizeof(name));
+			name[sizeof(name) - 1] = '\0';
+		}
+		DIMINUTO_LOG_DEBUG("codex_verification_callback: issuer[%d]=\"%s\"\n", depth, name);
+
+	}
+
 	if (!ok) {
 
-		depth = X509_STORE_CTX_get_error_depth(ctx);
-		DIMINUTO_LOG_WARNING("codex_verification_callback: depth=%d\n", depth);
-
-		crt = X509_STORE_CTX_get_current_cert(ctx);
-		if (crt != (X509 *)0) {
-
-			name[0] = '\0';
-			X509_NAME_oneline(X509_get_issuer_name(crt), name, sizeof(name));
-			name[sizeof(name) - 1] = '\0';
-			DIMINUTO_LOG_WARNING("codex_verification_callback: issuer=\"%s\"\n", name);
-
-			name[0] = '\0';
-			X509_NAME_oneline(X509_get_subject_name(crt), name, sizeof(name));
-			name[sizeof(name) - 1] = '\0';
-			DIMINUTO_LOG_WARNING("codex_verification_callback: subject=\"%s\"\n", name);
-
-		}
-
 		error = X509_STORE_CTX_get_error(ctx);
-		if (error != X509_V_OK) {
-			text = X509_verify_cert_error_string(error);
-			DIMINUTO_LOG_WARNING("codex_verification_callback: error=%d=\"%s\"\n", error, (text != (const char *)0) ? text : "");
-		}
+		text = X509_verify_cert_error_string(error);
+		DIMINUTO_LOG_WARNING("codex_verification_callback: error=%d=\"%s\"\n", error, (text != (const char *)0) ? text : "");
 
 	}
 
@@ -485,12 +494,19 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 	do {
 
+		if (expected == (const char *)0) {
+			DIMINUTO_LOG_WARNING("codex_connection_verify: ssl=%p expected=%p\n", ssl, expected);
+			break;
+		}
+
 		crt = SSL_get_peer_certificate(ssl);
 		if (crt == (X509 *)0) {
+			DIMINUTO_LOG_WARNING("codex_connection_verify: ssl=%p crt=%p\n", ssl, crt);
 			break;
 		}
 
 		count = X509_get_ext_count(crt);
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: ssl=%p crt=%p count=%d\n", ssl, crt, count);
 		for (ii = 0; ii < count; ++ii) {
 
 			ext = X509_get_ext(crt, ii);
@@ -546,7 +562,6 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			}
 
 			lim = sk_CONF_VALUE_num(vals);
-
 			for (jj = 0; jj < lim; ++jj) {
 
 				val = sk_CONF_VALUE_value(vals, jj);
@@ -616,12 +631,20 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 	} while (0);
 
-	if (crt != (X509 *)0) {
-		X509_free(crt);
+	/*
+	 * If either we weren't asked to check the peer FQDN or CN, or if we were
+	 * and the result was a match against our expected FQDN or CN, then we
+	 * change the error number to what the API's own verification returned.
+	 * Otherwise we leave the error set to the Application Verification error
+	 * number.
+	 */
+
+	if ((expected == (const char *)0) || found) {
+		error = SSL_get_verify_result(ssl);
 	}
 
-	if (found) {
-		error = SSL_get_verify_result(ssl);
+	if (crt != (X509 *)0) {
+		X509_free(crt);
 	}
 
 	if (error != X509_V_OK) {
@@ -710,8 +733,27 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 }
 
 /*******************************************************************************
+ * MULTIPLEXING
+ ******************************************************************************/
+
+int codex_rendezvous_descriptor(codex_rendezvous_t * acc)
+{
+	return BIO_get_fd(acc, (int *)0);
+}
+
+int codex_connection_descriptor(codex_connection_t * ssl)
+{
+	return SSL_get_fd(ssl);
+}
+
+/*******************************************************************************
  * CLIENT
  ******************************************************************************/
+
+codex_context_t * codex_client_context_new(const char * caf, const char * cap, const char * crt, const char * key)
+{
+	return codex_context_new(codex_client_password_env, caf, cap, crt, key, SSL_VERIFY_PEER, CODEX_CONTEXT_DEPTH, SSL_OP_ALL | SSL_OP_NO_SSLv2);
+}
 
 codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const char * farend)
 {
@@ -771,6 +813,11 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 /*******************************************************************************
  * SERVER
  ******************************************************************************/
+
+codex_context_t * codex_server_context_new(const char * caf, const char * cap, const char * crt, const char * key)
+{
+	return codex_context_new(codex_server_password_env, caf, cap, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, CODEX_CONTEXT_DEPTH, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
+}
 
 codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 {

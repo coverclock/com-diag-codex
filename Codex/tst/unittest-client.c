@@ -26,13 +26,14 @@ int main(int argc, char ** argv)
 	const char * program = "unittest-client";
 	const char * farend = "localhost:49152";
 	const char * expected = "server.prairiethorn.org";
-	bool enforce = false;
+	bool enforce = true;
 	int rc;
 	codex_context_t * ctx;
 	diminuto_mux_t mux;
 	int fd;
 	codex_connection_t * ssl;
 	uint8_t buffer[256];
+	int bytes;
 	int reads;
 	int writes;
 	bool eof;
@@ -47,9 +48,13 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "e:f:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "Ve:f:v?")) >= 0) {
 
         switch (opt) {
+
+        case 'V':
+        	enforce = false;
+        	break;
 
         case 'e':
             expected = optarg;
@@ -64,7 +69,7 @@ int main(int argc, char ** argv)
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -f %s ] [ -e %s ] [ -v ]\n", program, farend, expected);
+        	fprintf(stderr, "usage: %s [ -f %s ] [ -e %s ] [ -V | -v ]\n", program, farend, expected);
             return 1;
             break;
 
@@ -88,6 +93,13 @@ int main(int argc, char ** argv)
 	ssl = codex_client_connection_new(ctx, farend);
 	ASSERT(ssl != (SSL *)0);
 
+	fd = codex_connection_descriptor(ssl);
+	ASSERT(fd >= 0);
+	ASSERT(fd != STDIN_FILENO);
+	ASSERT(fd != STDOUT_FILENO);
+
+	DIMINUTO_LOG_DEBUG("%s: connection=%p fd=%d\n", program, ssl, fd);
+
 	rc = codex_connection_verify(ssl, expected);
 	if (enforce && (rc < 0)) {
 
@@ -99,11 +111,6 @@ int main(int argc, char ** argv)
 
 		exit(1);
 	}
-
-	fd = codex_connection_descriptor(ssl);
-	ASSERT(fd >= 0);
-	ASSERT(fd != STDIN_FILENO);
-	ASSERT(fd != STDOUT_FILENO);
 
 	rc = diminuto_mux_register_read(&mux, STDIN_FILENO);
 	ASSERT(rc >= 0);
@@ -126,19 +133,19 @@ int main(int argc, char ** argv)
 		fd = diminuto_mux_ready_read(&mux);
 		if (fd == codex_connection_descriptor(ssl)) {
 
-			rc = codex_connection_read(ssl, buffer, sizeof(buffer));
+			bytes = codex_connection_read(ssl, buffer, sizeof(buffer));
 			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, rc);
-			if (rc <= 0) {
+			if (bytes <= 0) {
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
 				break;
 			}
 
-			for (reads = rc, writes = 0; writes < reads; writes += rc) {
-				rc = write(STDOUT_FILENO, buffer + writes, reads - writes);
-				DIMINUTO_LOG_DEBUG("%s: fd=%d written=%d\n", program, STDOUT_FILENO, rc);
-				if (rc <= 0) {
-					if (rc < 0) { diminuto_perror("write"); }
+			for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
+				bytes = write(STDOUT_FILENO, buffer + writes, reads - writes);
+				DIMINUTO_LOG_DEBUG("%s: fd=%d written=%d\n", program, STDOUT_FILENO, bytes);
+				if (bytes <= 0) {
+					if (bytes < 0) { diminuto_perror("write"); }
 					break;
 				}
 			}
@@ -147,20 +154,20 @@ int main(int argc, char ** argv)
 
 		} else if (fd == STDIN_FILENO) {
 
-			rc = read(fd, buffer, sizeof(buffer));
-			DIMINUTO_LOG_DEBUG("%s: fd=%d read=%d\n", program, fd, rc);
-			if (rc <= 0) {
-				if (rc < 0) { diminuto_perror("read"); }
+			bytes = read(fd, buffer, sizeof(buffer));
+			DIMINUTO_LOG_DEBUG("%s: fd=%d read=%d\n", program, fd, bytes);
+			if (bytes <= 0) {
+				if (bytes < 0) { diminuto_perror("read"); }
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
 				eof = true;
 				continue;
 			}
 
-			for (reads = rc, writes = 0; writes < reads; writes += rc) {
-				rc = codex_connection_write(ssl, buffer + writes, reads - writes);
-				DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", program, ssl, rc);
-				if (rc <= 0) {
+			for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
+				bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
+				DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", program, ssl, bytes);
+				if (bytes <= 0) {
 					break;
 				}
 			}
@@ -169,18 +176,20 @@ int main(int argc, char ** argv)
 
 		} else {
 
-			DIMINUTO_LOG_DEBUG("%s: fd=%d\n", program, fd);
+			FAILURE();
 
 		}
 	}
 
+	EXPECT(eof && (output == input));
+
 	diminuto_mux_fini(&mux);
 
 	rc = codex_connection_close(ssl);
-	ASSERT(rc >= 0);
+	EXPECT(rc >= 0);
 
 	ssl = codex_connection_free(ssl);
-	ASSERT(ssl == (codex_connection_t *)0);
+	EXPECT(ssl == (codex_connection_t *)0);
 
 	ctx = codex_context_free(ctx);
 	EXPECT(ctx == (codex_context_t *)0);

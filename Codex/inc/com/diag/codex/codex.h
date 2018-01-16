@@ -33,7 +33,7 @@ typedef SSL codex_connection_t;
  * GENERATORS
  ******************************************************************************/
 
-static const int CODEX_CONTEXT_DEPTH = 4;
+static const int CODEX_CONTEXT_DEPTH = 9;
 
 /*******************************************************************************
  * CONSTANTS
@@ -90,13 +90,18 @@ extern int codex_connection_read(codex_connection_t * ssl, void * buffer, int si
 extern int codex_connection_write(codex_connection_t * ssl, const void * buffer, int size);
 
 /*******************************************************************************
+ * MULTIPLEXING
+ ******************************************************************************/
+
+extern int codex_rendezvous_descriptor(codex_rendezvous_t * acc);
+
+extern int codex_connection_descriptor(codex_connection_t * ssl);
+
+/*******************************************************************************
  * CLIENT
  ******************************************************************************/
 
-static inline codex_context_t * codex_client_context_new(const char * caf, const char * cap, const char * crt, const char * key)
-{
-	return codex_context_new(codex_client_password_env, caf, cap, crt, key, SSL_VERIFY_PEER, CODEX_CONTEXT_DEPTH, SSL_OP_ALL | SSL_OP_NO_SSLv2);
-}
+extern codex_context_t * codex_client_context_new(const char * caf, const char * cap, const char * crt, const char * key);
 
 extern codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const char * farend);
 
@@ -104,29 +109,12 @@ extern codex_connection_t * codex_client_connection_new(codex_context_t * ctx, c
  * SERVER
  ******************************************************************************/
 
-static inline codex_context_t * codex_server_context_new(const char * caf, const char * cap, const char * crt, const char * key)
-{
-	return codex_context_new(codex_server_password_env, caf, cap, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, CODEX_CONTEXT_DEPTH, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
-}
+extern codex_context_t * codex_server_context_new(const char * caf, const char * cap, const char * crt, const char * key);
 
 extern codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend);
 
 extern codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * bio);
 
 extern codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_rendezvous_t * bio);
-
-/*******************************************************************************
- * MULTIPLEXING
- ******************************************************************************/
-
-extern int codex_rendezvous_descriptor(codex_rendezvous_t * acc)
-{
-	return BIO_get_fd(acc, (int *)0);
-}
-
-extern int codex_connection_descriptor(codex_connection_t * ssl)
-{
-	return SSL_get_fd(ssl);
-}
 
 #endif

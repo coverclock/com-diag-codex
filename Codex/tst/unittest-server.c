@@ -21,13 +21,14 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdlib.h>
 
 int main(int argc, char ** argv)
 {
 	const char * program = "unittest-server";
 	const char * nearend = "49152";
 	const char * expected = "client.prairiethorn.org";
-	bool enforce = false;
+	bool enforce = true;
 	int rc;
 	codex_context_t * ctx;
 	codex_rendezvous_t * bio;
@@ -38,8 +39,11 @@ int main(int argc, char ** argv)
 	int fd;
 	codex_connection_t * ssl;
 	uint8_t buffer[256];
+	int bytes;
 	int reads;
 	int writes;
+	uintptr_t temp;
+	bool tripwire;
     int opt;
     extern char * optarg;
 
@@ -49,9 +53,13 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "e:n:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "Ve:n:v?")) >= 0) {
 
         switch (opt) {
+
+        case 'V':
+        	enforce = false;
+        	break;
 
         case 'e':
             expected = optarg;
@@ -66,7 +74,7 @@ int main(int argc, char ** argv)
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -n %s ] [ -e %s ] [ -v ]\n", program, nearend, expected);
+        	fprintf(stderr, "usage: %s [ -n %s ] [ -e %s ] [ -V | -v ]\n", program, nearend, expected);
             return 1;
             break;
 
@@ -131,31 +139,28 @@ int main(int argc, char ** argv)
 			ssl = codex_server_connection_new(ctx, bio);
 			ASSERT(ssl != (codex_connection_t *)0);
 
-			rc = codex_connection_verify(ssl, expected);
-			if (enforce && (rc < 0)) {
+			fd = codex_connection_descriptor(ssl);
+			ASSERT(fd >= 0);
 
-				rc = codex_connection_close(ssl);
-				EXPECT(rc >= 0);
+			DIMINUTO_LOG_DEBUG("%s: connection=%p fd=%d\n", program, ssl, fd);
 
-				ssl = codex_connection_free(ssl);
-				EXPECT(ssl == (codex_connection_t *)0);
+			here = diminuto_fd_map_ref(map, fd);
+			ASSERT(here != (void **)0);
+			ASSERT(*here == (void *)0);
+			/*
+			 * This is horribly horribly dangerous: we're keeping a one-bit
+			 * flag in the low order bit of the connection (SSL) address. This
+			 * only works because the first field in the SSL structure is word
+			 * aligned, not byte aligned. One minor change to the SSL structure
+			 * and this breaks. But doing this keeps us from having to have a
+			 * second file descriptor map.
+			 */
+			temp = (uintptr_t)ssl;
+			temp |= 0x1;
+			*here = (void *)temp;
 
-			} else {
-
-				fd = codex_connection_descriptor(ssl);
-				ASSERT(fd >= 0);
-
-				DIMINUTO_LOG_DEBUG("%s: connection=%p fd=%d\n", program, ssl, fd);
-
-				here = diminuto_fd_map_ref(map, fd);
-				ASSERT(here != (void **)0);
-				ASSERT(*here == (void *)0);
-				*here = (void *)ssl;
-
-				rc = diminuto_mux_register_read(&mux, fd);
-				ASSERT(rc >= 0);
-
-			}
+			rc = diminuto_mux_register_read(&mux, fd);
+			ASSERT(rc >= 0);
 
 		}
 
@@ -165,23 +170,39 @@ int main(int argc, char ** argv)
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
 			ASSERT(*here != (void *)0);
-			ssl = (codex_connection_t *)*here;
+			temp = (uintptr_t)*here;
+			tripwire = (temp & 0x1) != 0;
+			if (tripwire) {
+				temp &= ~(uintptr_t)0x1;
+				*here = (void *)temp;
+			}
+			ssl = (codex_connection_t *)temp;
 
-			rc = codex_connection_read(ssl, buffer, sizeof(buffer));
-			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, rc);
-			if (rc > 0) {
+			bytes = codex_connection_read(ssl, buffer, sizeof(buffer));
+			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, bytes);
 
-				for (reads = rc, writes = 0; writes < reads; writes += rc) {
-					rc = codex_connection_write(ssl, buffer + writes, reads - writes);
-					DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", program, ssl, rc);
-					if (rc <= 0) {
+			if (tripwire) {
+				rc = codex_connection_verify(ssl, expected);
+				if (rc >= 0) {
+					/* Do nothing. */
+				} else if (!enforce) {
+					/* Do nothing. */
+				} else {
+					bytes = 0;
+				}
+			}
+
+			if (bytes > 0) {
+
+				for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
+					bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
+					DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", program, ssl, bytes);
+					if (bytes <= 0) {
 						break;
 					}
 				}
 
-			}
-
-			if (rc <= 0) {
+			} else {
 
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
@@ -221,7 +242,9 @@ int main(int argc, char ** argv)
 		here = diminuto_fd_map_ref(map, fd);
 		ASSERT(here != (void **)0);
 		if (*here == (void *)0) { continue; }
-		ssl = (codex_connection_t *)*here;
+		temp = (uintptr_t)*here;
+		temp &= ~(uintptr_t)0x1;
+		ssl = (codex_connection_t *)temp;
 
 		rc = codex_connection_close(ssl);
 		ASSERT(rc >= 0);
@@ -232,6 +255,8 @@ int main(int argc, char ** argv)
 		*here = (void *)0;
 
 	}
+
+	free(map);
 
 	ctx = codex_context_free(ctx);
 	EXPECT(ctx == (codex_context_t *)0);
