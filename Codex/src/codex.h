@@ -37,41 +37,25 @@
 
 #define COM_DIAG_CODEX_CLIENT_PASSWORD_ENV "COM_DIAG_CODEX_CLIENT_PASSWORD"
 
-/**
- * Cipher suite selection control string.
- *
- * ALL:			All cipher suites;<BR>
- * !aNULL:		except those not offering authentication;<BR>
- * !ADH:		except Anonymous Diffie Hellman suites;<BR>
- * !LOW:		except Low Strength suites;<BR>
- * !EXP:		except Export Strength suites;<BR>
- * !MD5:		except Message Digest 5 suites;<BR>
- * @STRENGTH:	and select in order of highest strength to lowest.<BR>
- *
- * Try "openssl ciphers -v" followed by the control string below (probably in
- * single quotes) to see a list of possible cipher suites.
- *
- * See ciphers(1).
- */
-#define COM_DIAG_CODEX_CIPHER_LIST "ALL:!aNULL:!ADH:!LOW:!EXP:!MD5:@STRENGTH"
-
 #define COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME "subjectAltName"
 
 #define COM_DIAG_CODEX_CONFNAME_DNS "DNS"
+
+#if !defined(COM_DIAG_CODEX_CIPHER_LIST)
+#	define COM_DIAG_CODEX_CIPHER_LIST ""
+#	warning COM_DIAG_CODEX_CIPER_LIST undefined!
+#endif
+
+#if !defined(COM_DIAG_CODEX_CERTIFICATE_DEPTH)
+#	define COM_DIAG_CODEX_CERTIFICATE_DEPTH 0
+#	warning COM_DIAG_CODEX_CERTIFICATE_DEPTH undefined!
+#endif
 
 /*******************************************************************************
  * GLOBALS
  ******************************************************************************/
 
-extern DH * codex_dh256;
-
-extern DH * codex_dh512;
-
-extern DH * codex_dh1024;
-
-extern DH * codex_dh2048;
-
-extern DH * codex_dh4096;
+extern DH * codex_dh;
 
 /*******************************************************************************
  * CALLBACKS

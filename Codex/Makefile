@@ -22,7 +22,7 @@ TITLE				:=	Codex
 PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
-MAJOR				:=	0# API changes that may require that applications be modified.
+MAJOR				:=	1# API changes that may require that applications be modified.
 MINOR				:=	0# Only functionality or features added with no legacy API changes.
 BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
@@ -122,6 +122,25 @@ TARGETMAKEFILE		:= $(CFG_DIR)/$(TARGET).mk
 
 include $(TARGETMAKEFILE)
 
+########## OpenSSL Configuration
+
+SSL_KEY 			:=	rsa:3072
+SSL_ALG				:=	sha256
+SSL_GEN				:=	2
+#SSL_GEN			:=	5
+SSL_LST				:=	TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL
+SSL_DEP				:=	9
+SSL_DHK				:=	2048
+SSL_EXP				:=	365
+
+SSL_CRT				:=	$(OUT)/$(CRT_DIR)
+SSL_PWD				:=	$(OUT)/$(PWD_DIR)
+SSL_TXT				:=	$(OUT)/$(TXT_DIR)
+
+CDEFINES			:=
+CDEFINES			+=	-DCOM_DIAG_CODEX_CIPHER_LIST=\"$(SSL_LST)\"
+CDEFINES			+=	-DCOM_DIAG_CODEX_CERTIFICATE_DEPTH=$(SSL_DEP)
+
 ########## Diminuto Configuration
 
 DIMINUTO_TITLE		:=	Diminuto
@@ -147,8 +166,6 @@ CC					:=	$(CROSS_COMPILE)gcc
 AR					:=	$(CROSS_COMPILE)ar
 RANLIB				:=	$(CROSS_COMPILE)ranlib
 STRIP				:=	$(CROSS_COMPILE)strip
-
-CDEFINES			:=
 
 LDLIBRARIES			:=	-lssl -lcrypto
 
@@ -183,7 +200,7 @@ TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
 TARGETCREDENTIALS	:=	$(OUT)/$(TXT_DIR)/root.txt $(OUT)/$(TXT_DIR)/ca.txt $(OUT)/$(TXT_DIR)/client.txt $(OUT)/$(TXT_DIR)/server.txt
-TARGETPARAMETERS	:=	$(OUT)/$(CRT_DIR)/dh0.pem $(OUT)/$(CRT_DIR)/dh256.pem $(OUT)/$(CRT_DIR)/dh512.pem $(OUT)/$(CRT_DIR)/dh1024.pem $(OUT)/$(CRT_DIR)/dh2048.pem $(OUT)/$(CRT_DIR)/dh4096.pem
+TARGETPARAMETERS	:=	$(OUT)/$(CRT_DIR)/dh.pem
 TARGETPASSWORDS		:=	$(OUT)/$(PWD_DIR)/root.pwd $(OUT)/$(PWD_DIR)/ca.pwd $(OUT)/$(PWD_DIR)/client.pwd $(OUT)/$(PWD_DIR)/server.pwd
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
@@ -211,23 +228,7 @@ clobber:	pristine
 
 ########## Certificate and Key Generation (primarily for unit testing)
 
-# REFERENCES
-#
-# J. Viega, M. Messier, P. Chandra, _Network Security with OpenSSL_, O'Reilly,
-# 2002, pp. 124-125
-#
-# OpenSSL, documentation, <https://www.openssl.org/docs/>
-
 .PHONY:	credentials credentials-clean parameters parameters-clean passwords passwords-clean
-
-SSL_KEY 			:=	rsa:2048
-SSL_ALG				:=	sha1
-SSL_GEN				:=	2
-#SSL_GEN			:=	5
-
-SSL_CRT				:=	$(OUT)/$(CRT_DIR)
-SSL_PWD				:=	$(OUT)/$(PWD_DIR)
-SSL_TXT				:=	$(OUT)/$(TXT_DIR)
 
 ##### Passwords
 
@@ -252,7 +253,7 @@ $(SSL_CRT)/rootkey.pem:	$(SSL_CRT)/rootreq.pem
 
 $(SSL_CRT)/rootcert.pem:	$(SSL_CRT)/rootreq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/rootkey.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -in $(SSL_CRT)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -signkey $(SSL_CRT)/rootkey.pem -passin file:$(SSL_PWD)/root.pwd -out $@
+	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -signkey $(SSL_CRT)/rootkey.pem -passin file:$(SSL_PWD)/root.pwd -out $@
 	c_rehash $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
@@ -274,7 +275,7 @@ $(SSL_CRT)/cakey.pem:	$(SSL_CRT)/careq.pem
 
 $(SSL_CRT)/cacert.pem:	$(SSL_CRT)/careq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -in $(SSL_CRT)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	c_rehash $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
@@ -296,7 +297,7 @@ $(SSL_CRT)/serverkey.pem:	$(SSL_CRT)/serverreq.pem
 
 $(SSL_CRT)/servercert.pem:	$(SSL_CRT)/serverreq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -in $(SSL_CRT)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
+	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
 	c_rehash $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
@@ -318,7 +319,7 @@ $(SSL_CRT)/clientkey.pem:	$(SSL_CRT)/clientreq.pem
 
 $(SSL_CRT)/clientcert.pem:	$(SSL_CRT)/clientreq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -in $(SSL_CRT)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	c_rehash $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
@@ -329,36 +330,11 @@ $(SSL_CRT)/client.pem:	$(SSL_CRT)/clientcert.pem $(SSL_CRT)/clientkey.pem $(SSL_
 	ls --full-time $(SSL_CRT)
 	openssl x509 -subject -issuer -noout -in $@
 
-##### Diffie Hellman Parameters (runs for a looooooong time)
+##### Diffie Hellman Parameters
 
-$(SSL_CRT)/dh0.pem:
+$(SSL_CRT)/dh.pem:
 	D=`dirname $@`; mkdir -p $$D
-	cp /dev/null $@
-	ls --full-time $(SSL_CRT)
-
-$(SSL_CRT)/dh256.pem:
-	D=`dirname $@`; mkdir -p $$D
-	openssl dhparam -check -text -$(SSL_GEN) 256 -out $@
-	ls --full-time $(SSL_CRT)
-
-$(SSL_CRT)/dh512.pem:
-	D=`dirname $@`; mkdir -p $$D
-	openssl dhparam -check -text -$(SSL_GEN) 512 -out $@
-	ls --full-time $(SSL_CRT)
-
-$(SSL_CRT)/dh1024.pem:
-	D=`dirname $@`; mkdir -p $$D
-	openssl dhparam -check -text -$(SSL_GEN) 1024 -out $@
-	ls --full-time $(SSL_CRT)
-
-$(SSL_CRT)/dh2048.pem:
-	D=`dirname $@`; mkdir -p $$D
-	openssl dhparam -check -text -$(SSL_GEN) 2048 -out $@
-	ls --full-time $(SSL_CRT)
-
-$(SSL_CRT)/dh4096.pem:
-	D=`dirname $@`; mkdir -p $$D
-	openssl dhparam -check -text -$(SSL_GEN) 4096 -out $@
+	openssl dhparam -check -text -$(SSL_GEN) $(SSL_DHK) -out $@
 	ls --full-time $(SSL_CRT)
 
 ##### Helpers
@@ -374,7 +350,7 @@ credentials-clean:
 parameters:	 $(TARGETPARAMETERS)
 
 parameters-clean:
-	( cd $(SSL_CRT); rm -f dh0.pem dh256.pem dh512.pem dh1024.pem dh2048.pem dh4096.pem )
+	( cd $(SSL_CRT); rm -f dh.pem )
 	
 passwords:	$(TARGETPASSWORDS)
 
@@ -483,7 +459,9 @@ $(OUT)/$(TST_DIR)/%:	$(OUT)/$(OBC_DIR)/$(TST_DIR)/%.o $(TARGETLIBRARIES)
 # into a variety of tools including bash. e.g. eval $(vintage 2> /dev/null) .
 #
 # NOTE: in the generated C code below, whether you should have \\n or \n in the
-# echo statements seems to depend on what version of make you are running.
+# echo statements seems to depend on what version of make you are running. I
+# tried (elsewhere) to automate that decision, but for reasons I haven't taken
+# the time to understand, that mechanism quit working just recently.
 
 SLASHES=2
 

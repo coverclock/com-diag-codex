@@ -39,15 +39,6 @@ typedef BIO codex_rendezvous_t;
 typedef SSL codex_connection_t;
 
 /*******************************************************************************
- * GENERATORS
- ******************************************************************************/
-
-/**
- * Defines the maximum number of certificates that may be chained together.
- */
-static const int CODEX_CONTEXT_DEPTH = 9;
-
-/*******************************************************************************
  * CONSTANTS
  ******************************************************************************/
 
@@ -65,6 +56,11 @@ extern const char * const codex_client_password_env;
  * Defines the available and usable cipher algorithms.
  */
 extern const char * const codex_cipher_list;
+
+/**
+ * Defines the maximum depth to which certificates may be chained.
+ */
+extern const int codex_certificate_depth;
 
 /*******************************************************************************
  * HELPERS
@@ -97,15 +93,12 @@ extern int codex_serror(const char * str, const codex_connection_t * ssl, int rc
 extern int codex_initialize(void);
 
 /**
- * Loads the Diffie Hellman parameter files for the supported key lengths.
- * @param dh256f names the 256 bit parameter file.
- * @param dh512f names the 512 bit parameter file.
- * @param dh1024f names the 1024 bit parameter file.
+ * Loads a Diffie Hellman parameter file. Currently only 2048 bit keys are
+ * supported.
  * @param dh2048f names the 2048 bit parameter file.
- * @param dh4096f names the 4096 bit parameter file.
  * @return 0 if successful, <0 otherwise.
  */
-extern int codex_parameters(const char * dh256f, const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f);
+extern int codex_parameters(const char * dh2048f);
 
 /*******************************************************************************
  * CONTEXT

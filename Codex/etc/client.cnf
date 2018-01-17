@@ -1,8 +1,8 @@
 [ req ]
 prompt                 = no
 output_password        = cl13nt
-default_bits           = 1024
-default_md             = sha1
+default_bits           = 3072
+default_md             = sha256
 distinguished_name     = req_distinguished_name
 
 [ req_distinguished_name ]

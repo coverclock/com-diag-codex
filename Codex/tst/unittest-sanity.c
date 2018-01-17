@@ -14,6 +14,7 @@
 #include "com/diag/codex/codex.h"
 #include "../src/codex_unittest.h"
 #include "../src/codex.h"
+#include <string.h>
 
 int main(char * argc, char ** argv)
 {
@@ -21,6 +22,18 @@ int main(char * argc, char ** argv)
 	(void)diminuto_core_enable();
 
 	diminuto_log_setmask();
+
+	{
+		TEST();
+
+		COMMENT("codex_certificate_depth=%d\n", codex_certificate_depth);
+		EXPECT(codex_certificate_depth > 0);
+
+		COMMENT("codex_cipher_list=\"%s\"\n", codex_cipher_list);
+		EXPECT(*codex_cipher_list != '\0');
+
+		STATUS();
+	}
 
 	{
 		const char * value;
@@ -47,285 +60,39 @@ int main(char * argc, char ** argv)
 		STATUS();
 	}
 
-
 	{
 		int rc;
-		DH * temp_dh256;
-		DH * temp_dh512;
-		DH * temp_dh1024;
-		DH * temp_dh2048;
-		DH * temp_dh4096;
+		DH * dh;
 
 		TEST();
 
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, NULL, NULL, NULL);
+		EXPECT(codex_dh == (DH *)0);
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
 		EXPECT(rc == 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh0.pem", NULL, NULL, NULL, NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh0.pem", NULL, NULL, NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh0.pem", NULL, NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh0.pem", NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh0.pem");
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters("/dev/null", NULL, NULL, NULL, NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, "/dev/null", NULL, NULL, NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, "/dev/null", NULL, NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, NULL, "/dev/null", NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, NULL, NULL, "/dev/null");
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh4294967295.pem", NULL, NULL, NULL, NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh4294967295.pem", NULL, NULL, NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh4294967295.pem", NULL, NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh4294967295.pem", NULL);
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh4294967295.pem");
-		EXPECT(rc < 0);
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh256.pem", NULL, NULL, NULL, NULL);
+		EXPECT(codex_dh != (DH *)0);
+		dh = codex_dh;
+		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
 		EXPECT(rc == 0);
+		EXPECT(codex_dh == dh);
 
-		EXPECT(codex_dh256 != (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh512.pem", NULL, NULL, NULL);
-		EXPECT(rc == 0);
-
-		EXPECT(codex_dh256 != (DH *)0);
-		EXPECT(codex_dh512 != (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh1024.pem", NULL, NULL);
-		EXPECT(rc == 0);
-
-		EXPECT(codex_dh256 != (DH *)0);
-		EXPECT(codex_dh512 != (DH *)0);
-		EXPECT(codex_dh1024 != (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh2048.pem", NULL);
-		EXPECT(rc == 0);
-
-		EXPECT(codex_dh256 != (DH *)0);
-		EXPECT(codex_dh512 != (DH *)0);
-		EXPECT(codex_dh1024 != (DH *)0);
-		EXPECT(codex_dh2048 != (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(NULL, NULL, NULL, NULL, COM_DIAG_CODEX_OUT_CRT_PATH "/dh4096.pem");
-		EXPECT(rc == 0);
-
-		EXPECT(codex_dh256 != (DH *)0);
-		EXPECT(codex_dh512 != (DH *)0);
-		EXPECT(codex_dh1024 != (DH *)0);
-		EXPECT(codex_dh2048 != (DH *)0);
-		EXPECT(codex_dh4096 != (DH *)0);
-
-		temp_dh256 = codex_dh256;
-		temp_dh512 = codex_dh512;
-		temp_dh1024 = codex_dh1024;
-		temp_dh2048 = codex_dh2048;
-		temp_dh4096 = codex_dh4096;
-
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh4096.pem");
-		EXPECT(rc == 0);
-
-		EXPECT(codex_dh256 == temp_dh256);
-		EXPECT(codex_dh512 == temp_dh512);
-		EXPECT(codex_dh1024 == temp_dh1024);
-		EXPECT(codex_dh2048 == temp_dh2048);
-		EXPECT(codex_dh4096 == temp_dh4096);
-
-		/*
-		 * Probable memory leak here to set up for the following unit test.
-		 */
-
-		codex_dh256 = (DH *)0;
-		codex_dh512 = (DH *)0;
-		codex_dh1024 = (DH *)0;
-		codex_dh2048 = (DH *)0;
-		codex_dh4096 = (DH *)0;
-
-		EXPECT(codex_dh256 == (DH *)0);
-		EXPECT(codex_dh512 == (DH *)0);
-		EXPECT(codex_dh1024 == (DH *)0);
-		EXPECT(codex_dh2048 == (DH *)0);
-		EXPECT(codex_dh4096 == (DH *)0);
-
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh4096.pem");
-		EXPECT(rc == 0);
-
-		EXPECT(codex_dh256 != (DH *)0);
-		EXPECT(codex_dh512 != (DH *)0);
-		EXPECT(codex_dh1024 != (DH *)0);
-		EXPECT(codex_dh2048 != (DH *)0);
-		EXPECT(codex_dh4096 != (DH *)0);
-
-		STATUS();
 	}
 
 	{
 		DH * dh;
 		int exp;
+		int key;
 
 		TEST();
 
+		EXPECT(codex_dh != (DH *)0);
+
 		for (exp = 0; exp <= 1; ++exp) {
+			for (key = 256; key <= 2048; key *= 2) {
 
-			EXPECT(codex_dh256 != (DH *)0);
-			dh = codex_parameters_callback((SSL *)0, exp, 256);
-			EXPECT(dh == codex_dh256);
+				dh = codex_parameters_callback((SSL *)0, exp, key);
+				EXPECT(dh == codex_dh);
 
-			EXPECT(codex_dh512 != (DH *)0);
-			dh = codex_parameters_callback((SSL *)0, exp, 512);
-			EXPECT(dh == codex_dh512);
-
-			EXPECT(codex_dh1024 != (DH *)0);
-			dh = codex_parameters_callback((SSL *)0, exp, 1024);
-			EXPECT(dh == codex_dh1024);
-
-			EXPECT(codex_dh2048 != (DH *)0);
-			dh = codex_parameters_callback((SSL *)0, exp, 2048);
-			EXPECT(dh == codex_dh2048);
-
-			EXPECT(codex_dh4096 != (DH *)0);
-			dh = codex_parameters_callback((SSL *)0, exp, 4096);
-			EXPECT(dh == codex_dh4096);
-
-			dh = codex_parameters_callback((SSL *)0, exp, 8192);
-			EXPECT(dh == (DH *)0);
+			}
 
 		}
 

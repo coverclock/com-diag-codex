@@ -98,10 +98,10 @@ int main(int argc, char ** argv)
 	rc = codex_initialize();
 	ASSERT(rc == 0);
 
-	rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/dh256.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh512.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh1024.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh2048.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/dh4096.pem");
+	rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
 	ASSERT(rc == 0);
 
-	ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_CRT_PATH "/root.pem", (const char *)0, COM_DIAG_CODEX_OUT_CRT_PATH "/server.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/server.pem");
+	ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem", (const char *)0, COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem");
 	ASSERT(ctx != (codex_context_t *)0);
 
 	bio = codex_server_rendezvous_new(nearend);

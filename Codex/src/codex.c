@@ -34,19 +34,13 @@ const char * const codex_server_password_env = COM_DIAG_CODEX_SERVER_PASSWORD_EN
 
 const char * const codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
 
+const int codex_certificate_depth = COM_DIAG_CODEX_CERTIFICATE_DEPTH;
+
 /*******************************************************************************
  * GLOBALS
  ******************************************************************************/
 
-DH * codex_dh256 = (DH *)0;
-
-DH * codex_dh512 = (DH *)0;
-
-DH * codex_dh1024 = (DH *)0;
-
-DH * codex_dh2048 = (DH *)0;
-
-DH * codex_dh4096 = (DH *)0;
+DH * codex_dh = (DH *)0;
 
 /*******************************************************************************
  * STATICS
@@ -249,37 +243,10 @@ DH * codex_parameters_callback(SSL * ssl, int exp, int length)
 {
 	DH * dhp = (DH *)0;
 
-	DIMINUTO_LOG_DEBUG("codex_parameters_callback: ssl=%p export=%d length=%d\n", ssl, exp, length);
-
-	switch (length) {
-
-	case 256:
-		dhp = codex_dh256;
-		break;
-
-	case 512:
-		dhp = codex_dh512;
-		break;
-
-	case 1024:
-		dhp = codex_dh1024;
-		break;
-
-	case 2048:
-		dhp = codex_dh2048;
-		break;
-
-	case 4096:
-		dhp = codex_dh4096;
-		break;
-
-	default:
-		break;
-
-	}
+	dhp = codex_dh;
 
 	if (dhp == (DH *)0) {
-		DIMINUTO_LOG_WARNING("codex_parameters_callback: ssl=%p export=%d length=%d result=NULL\n", ssl, exp, length);
+		DIMINUTO_LOG_ERROR("codex_parameters_callback: ssl=%p export=%d length=%d result=NULL\n", ssl, exp, length);
 	}
 
 	return dhp;
@@ -320,48 +287,25 @@ int codex_initialize(void)
 	return initialized ? 0 : -1;
 }
 
-#define CODEX_PARAMETERS(_LENGTH_) \
-		do { \
-			if (dh##_LENGTH_##f == (const char *)0) { \
-				/* Do nothing. */ \
-			} else if (codex_dh##_LENGTH_ != (DH *)0) { \
-				/* Do nothing. */ \
-			} else { \
-				codex_dh##_LENGTH_ = codex_parameters_import(dh##_LENGTH_##f); \
-				if (codex_dh##_LENGTH_ == (DH *)0) { \
-					rc = -1; \
-				} \
-			} \
-			if (codex_dh##_LENGTH_ != (DH *)0) { \
-				any = codex_dh##_LENGTH_; \
-			} \
-		} while (0)
-
-int codex_parameters(const char * dh256f, const char * dh512f, const char * dh1024f, const char * dh2048f, const char * dh4096f)
+int codex_parameters(const char * dh2048f)
 {
 	int rc = 0;
-	DH * any = (DH *)0;
 
 	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
 
-		do {
-
-			CODEX_PARAMETERS(256);
-
-			CODEX_PARAMETERS(512);
-
-			CODEX_PARAMETERS(1024);
-
-			CODEX_PARAMETERS(2048);
-
-			CODEX_PARAMETERS(4096);
-
-		} while (0);
+		if (dh2048f == (const char *)0) {
+			/* Do nothing. */
+		} else  if (codex_dh != (DH *)0) {
+			/* Do nothing. */
+		} else {
+			codex_dh = codex_parameters_import(dh2048f);
+		}
 
 	DIMINUTO_CRITICAL_SECTION_END;
 
-	if (any == (DH *)0) {
+	if (codex_dh == (DH *)0) {
 		DIMINUTO_LOG_WARNING("codex_parameters: result=NULL");
+		rc = -1;
 	}
 
 	return rc;
@@ -382,7 +326,7 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 
 	do {
 
-		method = SSLv23_method();
+		method = TLSv1_2_method();
 		if (method == (SSL_METHOD *)0) {
 			codex_perror("SSLv23_method");
 			break;
@@ -756,7 +700,7 @@ int codex_connection_descriptor(codex_connection_t * ssl)
 
 codex_context_t * codex_client_context_new(const char * caf, const char * cap, const char * crt, const char * key)
 {
-	return codex_context_new(codex_client_password_env, caf, cap, crt, key, SSL_VERIFY_PEER, CODEX_CONTEXT_DEPTH, SSL_OP_ALL | SSL_OP_NO_SSLv2);
+	return codex_context_new(codex_client_password_env, caf, cap, crt, key, SSL_VERIFY_PEER, codex_certificate_depth, SSL_OP_ALL | SSL_OP_NO_SSLv2);
 }
 
 codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const char * farend)
@@ -820,7 +764,7 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 
 codex_context_t * codex_server_context_new(const char * caf, const char * cap, const char * crt, const char * key)
 {
-	return codex_context_new(codex_server_password_env, caf, cap, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, CODEX_CONTEXT_DEPTH, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
+	return codex_context_new(codex_server_password_env, caf, cap, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, codex_certificate_depth, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
 }
 
 codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
