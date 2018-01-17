@@ -1,5 +1,7 @@
 # com-diag-codex
 
+Learning How to Use the Open Secure Socket Layer (OpenSSL) API
+
 ## Copyright
 
 Copyright 2018 Digital Aggregates Corporation, Arvada Colorado USA
@@ -21,6 +23,15 @@ interface to the Open Secure Socket Layer (OpenSSL) API. Mostly it's my
 excuse to learn how to use OpenSSL for both authentication and encryption
 for the kinds of low-level, typically C or C++, code that I get paid
 to develop.
+
+## Contact
+
+Chip Overclock  
+<coverclock@diag.com>  
+Digital Aggregates Corporation  
+<http://www.diag.com>  
+3440 Youngfield St. #209  
+Wheat Ridge CO 80033 USA  
 
 ## Dependencies
 
