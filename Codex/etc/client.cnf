@@ -13,3 +13,10 @@ O                      = Prairie Thorn
 OU                     = RnD
 CN                     = client.prairiethorn.org
 emailAddress           = rnd@prairiethorn.org
+
+[ usr_cert ]
+basicConstraints       = CA:FALSE
+nsComment              = "OpenSSL Generated Certificate"
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid,issuer
+subjectAltName         = DNS:client1.prairiethorn.org, DNS:client2.prairiethorn.org, DNS:client3.prairiethorn.org

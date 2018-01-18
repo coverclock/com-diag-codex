@@ -19,6 +19,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
+#include <stdio.h>
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
@@ -243,7 +244,11 @@ DH * codex_parameters_callback(SSL * ssl, int exp, int length)
 {
 	DH * dhp = (DH *)0;
 
-	dhp = codex_dh;
+	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
+
+		dhp = codex_dh;
+
+	DIMINUTO_CRITICAL_SECTION_END;
 
 	if (dhp == (DH *)0) {
 		DIMINUTO_LOG_ERROR("codex_parameters_callback: ssl=%p export=%d length=%d result=NULL\n", ssl, exp, length);
@@ -262,51 +267,43 @@ int codex_initialize(void)
 
 	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
 
-		do {
+		if (!initialized) {
 
-			if (!initialized) {
-
-				rc = SSL_library_init();
-				if (rc != 1) {
-					codex_perror("SSL_library_init");
-					break;
-				}
-
+			rc = SSL_library_init();
+			if (rc != 1) {
+				codex_perror("SSL_library_init");
+			} else {
 				SSL_load_error_strings();
-
 				OPENSSL_config((const char *)0);
-
 				initialized = true;
-
 			}
 
-		} while (0);
+		}
 
 	DIMINUTO_CRITICAL_SECTION_END;
 
 	return initialized ? 0 : -1;
 }
 
-int codex_parameters(const char * dh2048f)
+int codex_parameters(const char * dhf)
 {
 	int rc = 0;
 
 	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
 
-		if (dh2048f == (const char *)0) {
+		if (dhf == (const char *)0) {
 			/* Do nothing. */
 		} else  if (codex_dh != (DH *)0) {
 			/* Do nothing. */
 		} else {
-			codex_dh = codex_parameters_import(dh2048f);
+			codex_dh = codex_parameters_import(dhf);
+			if (codex_dh == (DH *)0) {
+				rc = -1;
+			}
 		}
 
 	DIMINUTO_CRITICAL_SECTION_END;
 
-	if (codex_dh == (DH *)0) {
-		DIMINUTO_LOG_WARNING("codex_parameters: result=NULL");
-		rc = -1;
-	}
 
 	return rc;
 
@@ -411,6 +408,17 @@ codex_context_t * codex_context_free(codex_context_t * ctx)
  * CONNECTION
  ******************************************************************************/
 
+#if 0
+#	define CODEX_WTF fprintf(stderr, "NULL: %s[%d]\n", __FILE__, __LINE__)
+#else
+#	define CODEX_WTF ((void)0)
+#endif
+
+/*
+ * This was mostly written by reverse engineering X509V3_EXT_print() in
+ * crypto/x509v3/v3_prn.c from https://github.com/openssl/openssl.git. I
+ * have tried to exercise all the sunny day paths, but no guarantees.
+ */
 int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 {
 	int result = 0;
@@ -425,7 +433,6 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 	int nid = -1;
 	const char * str = (char *)0;
 	const X509V3_EXT_METHOD * meth = (X509V3_EXT_METHOD *)0;
-	const unsigned char * dat = (const unsigned char *)0;
 	void * ptr = (void *)0;
 	STACK_OF(CONF_VALUE) * vals = (STACK_OF(CONF_VALUE) *)0;
 	int jj = 0;
@@ -435,6 +442,11 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 	char buffer[256];
 	int rc = -1;
 	const char * text = (const char *)0;
+	char * value = (char *)0;
+	const unsigned char * p = (const unsigned char *)0;
+	ASN1_OCTET_STRING * extoct = (ASN1_OCTET_STRING *)0;
+	int extlen = 0;
+	const ASN1_ITEM * it = (const ASN1_ITEM *)0;
 
 	do {
 
@@ -449,106 +461,164 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			break;
 		}
 
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: ssl=%p crt=%p expected=\"%s\"\n", ssl, crt, expected);
+
 		count = X509_get_ext_count(crt);
 		DIMINUTO_LOG_DEBUG("codex_connection_verify: ssl=%p crt=%p extensions=%d\n", ssl, crt, count);
 		for (ii = 0; ii < count; ++ii) {
 
 			ext = X509_get_ext(crt, ii);
 			if (ext == (X509_EXTENSION *)0) {
+				CODEX_WTF;
 				continue;
 			}
 
 			obj = X509_EXTENSION_get_object(ext);
 			if (obj == (ASN1_OBJECT *)0) {
+				CODEX_WTF;
 				continue;
 			}
 
 			nid = OBJ_obj2nid(obj);
 			if (nid == NID_undef) {
+				CODEX_WTF;
 				continue;
 			}
 
 			str = OBJ_nid2sn(nid);
 			if (str == (const char *)0) {
+				CODEX_WTF;
 				continue;
 			}
 
-			DIMINUTO_LOG_DEBUG("codex_connection_verify: \"%s\" ? \"%s\"\n", str, COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME);
+			DIMINUTO_LOG_DEBUG("codex_connection_verify: EXT \"%s\"\n", str);
 
 			if (strcmp(str, COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME) != 0) {
+				CODEX_WTF;
+				continue;
+			}
+
+			extoct = X509_EXTENSION_get_data(ext);
+			if (extoct == (ASN1_OCTET_STRING *)0) {
+				CODEX_WTF;
+				continue;
+			}
+
+			extlen = ASN1_STRING_length(extoct);
+
+			p = extoct->data; /* ASN1_STRING_get0_data(extoct)? */
+			if (p == (const unsigned char *)0) {
+				CODEX_WTF;
 				continue;
 			}
 
 			meth = X509V3_EXT_get(ext);
 			if (meth == (X509V3_EXT_METHOD *)0) {
+				DIMINUTO_LOG_DEBUG("codex_connection_verify: none \"%s\"\n", p);
 				continue;
 			}
 
-			if (ext->value == (ASN1_OCTET_STRING *)0) {
-				continue;
-			}
+			it = ASN1_ITEM_ptr(meth->it);
 
-			dat = ext->value->data;
+			if (it != (ASN1_ITEM_EXP *)0) {
 
-			if (meth->d2i == (X509V3_EXT_D2I)0) {
-				continue;
-			}
-
-			ptr = meth->d2i((void *)0, &dat, ext->value->length);
-			if (ptr == (void *)0) {
-				continue;
-			}
-
-			if (meth->i2v == (X509V3_EXT_I2V)0) {
-				continue;
-			}
-
-			vals = meth->i2v(meth, ptr, (STACK_OF(CONF_VALUE) *)0);
-			if (vals == (STACK_OF(CONF_VALUE) *)0) {
-				continue;
-			}
-
-			lim = sk_CONF_VALUE_num(vals);
-			DIMINUTO_LOG_DEBUG("codex_connection_verify: ssl=%p crt=%p values=%d\n", ssl, crt, lim);
-			for (jj = 0; jj < lim; ++jj) {
-
-				val = sk_CONF_VALUE_value(vals, jj);
-				if (val == (CONF_VALUE *)0) {
+				ptr = ASN1_item_d2i((ASN1_VALUE **)0, &p, extlen, it);
+				if (ptr == (void *)0) {
+					CODEX_WTF;
 					continue;
 				}
 
-				if (val->name == (char *)0) {
+			} else if (meth->d2i != (X509V3_EXT_D2I)0) {
+
+				ptr = meth->d2i((void *)0, &p, extlen);
+				if (ptr == (void *)0) {
+					CODEX_WTF;
 					continue;
 				}
 
-				if (val->value == (char *)0) {
+			} else {
+
+				CODEX_WTF;
+				continue;
+
+			}
+
+			if (meth->i2v != (X509V3_EXT_I2V)0) {
+
+				vals = meth->i2v(meth, ptr, (STACK_OF(CONF_VALUE) *)0);
+				if (vals == (STACK_OF(CONF_VALUE) *)0) {
 					continue;
 				}
 
-				DIMINUTO_LOG_DEBUG("codex_connection_verify: \"%s\"=\"%s\" ? \"%s\"=\"%s\"\n", val->name, val->value, COM_DIAG_CODEX_CONFNAME_DNS, expected);
+				lim = sk_CONF_VALUE_num(vals);
+				DIMINUTO_LOG_DEBUG("codex_connection_verify: ssl=%p crt=%p stack=%d\n", ssl, crt, lim);
+				for (jj = 0; jj < lim; ++jj) {
 
-				if (strcmp(val->name, COM_DIAG_CODEX_CONFNAME_DNS) != 0) {
-					continue;
+					val = sk_CONF_VALUE_value(vals, jj);
+					if (val == (CONF_VALUE *)0) {
+						CODEX_WTF;
+						continue;
+					}
+
+					if (val->name == (char *)0) {
+						CODEX_WTF;
+						continue;
+					}
+
+					if (val->value == (char *)0) {
+						CODEX_WTF;
+						continue;
+					}
+
+					DIMINUTO_LOG_DEBUG("codex_connection_verify: FQDN \"%s\"=\"%s\"\n", val->name, val->value);
+
+					if (strcmp(val->name, COM_DIAG_CODEX_CONFNAME_DNS) != 0) {
+						CODEX_WTF;
+						continue;
+					}
+
+					if (strcmp(val->value, expected) != 0) {
+						CODEX_WTF;
+						continue;
+					}
+
+					found = !0;
+					break;
 				}
 
-				if (strcmp(val->value, expected) != 0) {
+				if (found) {
+					break;
+				}
+
+			} else if (meth->i2s != (X509V3_EXT_I2S)0) {
+
+				value = meth->i2s(meth, ptr);
+				if (value == (char *)0) {
+					CODEX_WTF;
 					continue;
 				}
 
 				/*
-				 * Fully qualified domain name (FQDN) matches.
+				 * I don't actually know how this one can occur, so I skip it.
+				 * But I'm interested in what it's value might be.
 				 */
-				DIMINUTO_LOG_DEBUG("codex_connection_verify: FQDN matches\n");
-				found = !0;
-				break;
-			}
 
-			if (found) {
-				break;
+				DIMINUTO_LOG_DEBUG("codex_connection_verify: FQDN \"%s\"\n", value);
+				continue;
+
+			} else {
+
+				DIMINUTO_LOG_DEBUG("codex_connection_verify: other \"%s\"\n", p);
+				continue;
+
 			}
 		}
 
 		if (found) {
+			/*
+			 * Fully qualified domain name (FQDN) matches.
+			 */
+			DIMINUTO_LOG_DEBUG("codex_connection_verify: FQDN matches\n");
 			break;
 		}
 
@@ -564,7 +634,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		}
 		buffer[sizeof(buffer) - 1] = '\0';
 
-		DIMINUTO_LOG_DEBUG("codex_connection_verify: \"%s\"=\"%s\" ? \"%s\"\n", SN_commonName, buffer, expected);
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: CN \"%s\"=\"%s\"\n", SN_commonName, buffer);
 
 		if (strcasecmp(buffer, expected) != 0) {
 			break;
@@ -852,13 +922,13 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 		}
 
 		/*
-		 * Indicate to SSL that this connection is the server side.
+		 * Indicate to SSL that this connection is the server side...
 		 */
 
 		SSL_set_accept_state(ssl);
 
 		/*
-		 * And the BIO we just received is both the source and the sink.
+		 * and the BIO we just received is both the source and the sink.
 		 */
 
 		SSL_set_bio(ssl, bio, bio);

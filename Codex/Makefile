@@ -106,7 +106,7 @@ OLD					:=	dummy
 
 PACKAGE				:=	$(OUT)/$(TGZ_DIR)/$(PROJECT)-$(TARGET)
 
-MANIFEST			:=	$(ARC_DIR) $(BIN_DIR) $(INC_DIR) $(LIB_DIR) $(MOD_DIR) $(TST_DIR)
+MANIFEST			:=	$(ARC_DIR) $(BIN_DIR) $(INC_DIR) $(LIB_DIR) $(TST_DIR)
 
 DISTRIBUTION		:=	$(OUT)/$(TGZ_DIR)/$(PROJECT)-$(MAJOR).$(MINOR).$(BUILD)
 
@@ -251,9 +251,9 @@ $(SSL_CRT)/rootreq.pem:	$(ETC_DIR)/root.cnf
 
 $(SSL_CRT)/rootkey.pem:	$(SSL_CRT)/rootreq.pem
 
-$(SSL_CRT)/rootcert.pem:	$(SSL_CRT)/rootreq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/rootkey.pem $(SSL_PWD)/root.pwd
+$(SSL_CRT)/rootcert.pem:	$(SSL_CRT)/rootreq.pem $(ETC_DIR)/root.cnf $(SSL_CRT)/rootkey.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -signkey $(SSL_CRT)/rootkey.pem -passin file:$(SSL_PWD)/root.pwd -out $@
+	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/root.cnf -extensions v3_ca -signkey $(SSL_CRT)/rootkey.pem -passin file:$(SSL_PWD)/root.pwd -out $@
 	c_rehash $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
@@ -273,9 +273,9 @@ $(SSL_CRT)/careq.pem:	$(ETC_DIR)/ca.cnf
 	
 $(SSL_CRT)/cakey.pem:	$(SSL_CRT)/careq.pem
 
-$(SSL_CRT)/cacert.pem:	$(SSL_CRT)/careq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+$(SSL_CRT)/cacert.pem:	$(SSL_CRT)/careq.pem $(ETC_DIR)/ca.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions v3_ca -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/ca.cnf -extensions v3_ca -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	c_rehash $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
@@ -295,9 +295,9 @@ $(SSL_CRT)/serverreq.pem:	$(ETC_DIR)/server.cnf
 
 $(SSL_CRT)/serverkey.pem:	$(SSL_CRT)/serverreq.pem
 
-$(SSL_CRT)/servercert.pem:	$(SSL_CRT)/serverreq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
+$(SSL_CRT)/servercert.pem:	$(SSL_CRT)/serverreq.pem $(ETC_DIR)/server.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
+	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/server.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
 	c_rehash $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
@@ -317,9 +317,9 @@ $(SSL_CRT)/clientreq.pem:	$(ETC_DIR)/client.cnf
 
 $(SSL_CRT)/clientkey.pem:	$(SSL_CRT)/clientreq.pem
 
-$(SSL_CRT)/clientcert.pem:	$(SSL_CRT)/clientreq.pem $(ETC_DIR)/openssl.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+$(SSL_CRT)/clientcert.pem:	$(SSL_CRT)/clientreq.pem $(ETC_DIR)/client.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/openssl.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/client.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	c_rehash $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
@@ -729,7 +729,7 @@ documentation $(OUT)/$(DOC_DIR)/latex $(OUT)/$(DOC_DIR)/man $(OUT)/$(DOC_DIR)/pd
 # step below, examining the refman.log output file in the output directory,
 # and figuring out what Latex macro packages from CTAN to manually download,
 # install in a subdirectory of /usr/share/texmf/tex/latex, and then run texhash.
-# It was very tedius. Here's a list of what I installed.
+# It was very tedious. Here's a list of what I installed.
 # https://www.ctan.org/tex-archive/macros/latex/contrib/xtab
 # https://www.ctan.org/tex-archive/macros/latex/contrib/multirow
 # https://www.ctan.org/pkg/sectsty
@@ -786,7 +786,7 @@ DEPENDENCIES := $(OUT)/$(DEP_DIR)/dependencies.mk
 depend:	$(TARGETSYNTHESIZED)
 	M=`dirname $(DEPENDENCIES)`; mkdir -p $$M
 	cp /dev/null $(DEPENDENCIES)
-	for S in $(BIN_DIR) $(MOD_DIR) $(SRC_DIR) $(TST_DIR); do \
+	for S in $(BIN_DIR) $(SRC_DIR) $(TST_DIR); do \
 		if [ -d $$S ]; then \
 			for F in $$S/*.c; do \
 				D=`dirname $$F`; \

@@ -13,3 +13,8 @@ O                      = Prairie Thorn
 OU                     = CA
 CN                     = ca.prairiethorn.org
 emailAddress           = ca@prairiethorn.org
+
+[ v3_ca ]
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints       = CA:true

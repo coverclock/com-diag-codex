@@ -93,12 +93,13 @@ extern int codex_serror(const char * str, const codex_connection_t * ssl, int rc
 extern int codex_initialize(void);
 
 /**
- * Loads a Diffie Hellman parameter file. Currently only 2048 bit keys are
- * supported.
- * @param dh2048f names the 2048 bit parameter file.
+ * Loads a Diffie Hellman parameter file. I strongly suggest using no parameter
+ * file for a key length less than 2048 (or whatever the Codex Makefile
+ * currently generates for unit testing).
+ * @param dhf names the DH parameter file.
  * @return 0 if successful, <0 otherwise.
  */
-extern int codex_parameters(const char * dh2048f);
+extern int codex_parameters(const char * dhf);
 
 /*******************************************************************************
  * CONTEXT

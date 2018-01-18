@@ -28,6 +28,7 @@
 #include <openssl/x509.h>
 #include <openssl/objects.h>
 #include <openssl/conf.h>
+#include <openssl/asn1.h>
 
 /*******************************************************************************
  * GENERATORS

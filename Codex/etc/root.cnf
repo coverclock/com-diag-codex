@@ -13,3 +13,8 @@ O                      = Prairie Thorn
 OU                     = HQ
 CN                     = hq.prairiethorn.org
 emailAddress           = hq@prairiethorn.org
+
+[ v3_ca ]
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints       = CA:true
