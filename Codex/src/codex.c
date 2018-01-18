@@ -679,11 +679,11 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 bool codex_connection_closed(codex_connection_t * ssl)
 {
-	int rc = 0;
+	int flags = 0;
 
-	rc = SSL_get_shutdown(ssl);
+	flags = SSL_get_shutdown(ssl);
 
-	return ((rc & SSL_RECEIVED_SHUTDOWN) != 0);
+	return ((flags & SSL_RECEIVED_SHUTDOWN) != 0);
 }
 
 int codex_connection_close(codex_connection_t * ssl)
