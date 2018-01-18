@@ -183,7 +183,7 @@ int main(int argc, char ** argv)
 
 			if (tripwire) {
 				rc = codex_connection_verify(ssl, expected);
-				if (rc >= 0) {
+				if (rc == CODEX_CONNECTION_VERIFY_CN) {
 					/* Do nothing. */
 				} else if (!enforce) {
 					/* Do nothing. */

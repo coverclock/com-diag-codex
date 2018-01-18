@@ -38,6 +38,17 @@ typedef BIO codex_rendezvous_t;
  */
 typedef SSL codex_connection_t;
 
+/**
+ * These are the values the integer returned by codex_connection_verify() may
+ * assume.
+ */
+typedef enum CodexConnectionVerify {
+	CODEX_CONNECTION_VERIFY_FAILED = -1,	/* Verification failed. */
+	CODEX_CONNECTION_VERIFY_PASSED = 0,		/* Verification passed with nothing expected. */
+	CODEX_CONNECTION_VERIFY_CN = 1,			/* Verification passed matching CN. */
+	CODEX_CONNECTION_VERIFY_FQDN = 2,		/* Verification passed matching FQDN. */
+} codex_connection_verify_t;
+
 /*******************************************************************************
  * CONSTANTS
  ******************************************************************************/
@@ -136,7 +147,7 @@ extern codex_context_t * codex_context_free(codex_context_t * ctx);
  * examine the OpenSSL verification status.
  * @param ssl points to the connection.
  * @param expected names the expected host FQDN or CN or NULL if none.
- * @return 0 if verified, <0 otherwise.
+ * @return <0 if unverified, 2 if FQDN matched, 1 if CN matched, 0 otherwise.
  */
 extern int codex_connection_verify(codex_connection_t * ssl, const char * expected);
 

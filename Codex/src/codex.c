@@ -421,7 +421,7 @@ codex_context_t * codex_context_free(codex_context_t * ctx)
  */
 int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 {
-	int result = 0;
+	codex_connection_verify_t result = CODEX_CONNECTION_VERIFY_PASSED;
 	long error = X509_V_ERR_APPLICATION_VERIFICATION;
 	int found = 0;
 	X509 * crt = (X509 *)0;
@@ -506,7 +506,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 			extlen = ASN1_STRING_length(extoct);
 
-			p = extoct->data; /* ASN1_STRING_get0_data(extoct)? */
+			p = extoct->data; /* ?ASN1_STRING_get0_data(extoct)? */
 			if (p == (const unsigned char *)0) {
 				CODEX_WTF;
 				continue;
@@ -616,9 +616,10 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 		if (found) {
 			/*
-			 * Fully qualified domain name (FQDN) matches.
+			 * Fully Qualified Domain Name (FQDN) matches.
 			 */
 			DIMINUTO_LOG_DEBUG("codex_connection_verify: FQDN matches\n");
+			result = CODEX_CONNECTION_VERIFY_FQDN;
 			break;
 		}
 
@@ -641,9 +642,11 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		}
 
 		/*
-		 * CommonName (CN) in certificate matches.
+		 * Common Name (CN) matches.
 		 */
 		DIMINUTO_LOG_DEBUG("codex_connection_verify: CN matches\n");
+		result = CODEX_CONNECTION_VERIFY_CN;
+
 		found = !0;
 		break;
 
@@ -654,7 +657,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 	 * and the result was a match against our expected FQDN or CN, then we
 	 * change the error number to what the API's own verification returned.
 	 * Otherwise we leave the error set to the Application Verification error
-	 * number.
+	 * number to indicate we reject it regardless of what the API said.
 	 */
 
 	if ((expected == (const char *)0) || found) {
@@ -668,7 +671,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 	if (error != X509_V_OK) {
 		text = X509_verify_cert_error_string(error);
 		DIMINUTO_LOG_WARNING("codex_connection_verify: FAILED <%d> \"%s\"\n", error, (text != (const char *)0) ? text : "");
-		result = -1;
+		result = CODEX_CONNECTION_VERIFY_FAILED;
 	}
 
 	return result;

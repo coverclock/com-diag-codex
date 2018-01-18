@@ -101,7 +101,7 @@ int main(int argc, char ** argv)
 	DIMINUTO_LOG_DEBUG("%s: connection=%p fd=%d\n", program, ssl, fd);
 
 	rc = codex_connection_verify(ssl, expected);
-	if (enforce && (rc < 0)) {
+	if (enforce && (rc != CODEX_CONNECTION_VERIFY_FQDN)) {
 
 		rc = codex_connection_close(ssl);
 		ASSERT(rc >= 0);
