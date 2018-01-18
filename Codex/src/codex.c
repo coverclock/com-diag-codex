@@ -23,6 +23,7 @@
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
+#include "com/diag/diminuto/diminuto_ipc.h"
 #include "codex.h"
 
 /*******************************************************************************
@@ -81,21 +82,20 @@ void codex_perror(const char * str)
 
 int codex_serror(const char * str, const SSL * ssl, int rc)
 {
-	int action = 0;
-	int err = 0;
-	int temp = 0;
+	codex_serror_t action = CODEX_SERROR_RECOVERABLE;
+	int error = 0;
 	int save = -1;
 
 	save = errno;
 
-	err = SSL_get_error(ssl, rc);
-	switch (err) {
+	error = SSL_get_error(ssl, rc);
+	switch (error) {
 
 	case SSL_ERROR_NONE:
 		break;
 
 	case SSL_ERROR_ZERO_RETURN:
-		action = 1;
+		action = CODEX_SERROR_CLOSED;
 		break;
 
 	case SSL_ERROR_WANT_READ:
@@ -108,10 +108,8 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 	case SSL_ERROR_SYSCALL:
 	case SSL_ERROR_SSL:
 		errno = save;
-		if (errno > 0) {
-			codex_perror(str);
-			action = -1;
-		}
+		codex_perror(str);
+		action = CODEX_SERROR_UNRECOVERABLE;
 		break;
 
 	default:
@@ -120,7 +118,7 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 	}
 
 	if (action != 0) {
-		DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d err=%d action=%d\n", str, ssl, rc, err, action);
+		DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d err=%d action=%d\n", str, ssl, rc, error, action);
 	}
 
 	return action;
@@ -698,7 +696,7 @@ int codex_connection_close(codex_connection_t * ssl)
 			rc = SSL_shutdown(ssl);
 			if (rc < 0) {
 				action = codex_serror("SSL_shutdown", ssl, rc);
-				if (action == 0) {
+				if (action != CODEX_SERROR_UNRECOVERABLE) {
 					rc = 0;
 				}
 				break;
@@ -731,35 +729,67 @@ codex_connection_t * codex_connection_free(codex_connection_t * ssl)
 
 int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 {
-	int len = 0;
+	int rc = 0;
+	int act = 0;
 
-	len = SSL_read(ssl, buffer, size);
-	if (len < 0) {
-		codex_serror("SSL_read", ssl, len);
+	while (!0) {
+
+		rc = SSL_read(ssl, buffer, size);
+		if (rc > 0) {
+			break;
+		}
+
+		act = codex_serror("SSL_read", ssl, rc);
+		if (act == CODEX_SERROR_RECOVERABLE) {
+			continue;
+		} else if (act == CODEX_SERROR_CLOSED) {
+			rc = 0;
+			break;
+		} else {
+			rc = -1;
+			break;
+		}
+
 	}
 
-	return len;
+	return rc;
 }
 
 int codex_connection_write(codex_connection_t * ssl, const void * buffer, int size)
 {
-	int len = 0;
+	int rc = 0;
+	int act = 0;
 
-	len = SSL_write(ssl, buffer, size);
-	if (len < 0) {
-		codex_serror("SSL_write", ssl, len);
+	while (!0) {
+
+		rc = SSL_write(ssl, buffer, size);
+		if (rc > 0) {
+			break;
+		}
+
+		act = codex_serror("SSL_read", ssl, rc);
+		if (act == CODEX_SERROR_RECOVERABLE) {
+			continue;
+		} else if (act == CODEX_SERROR_CLOSED) {
+			rc = 0;
+			break;
+		} else {
+			rc = -1;
+			break;
+		}
+
 	}
 
-	return len;
+	return rc;
 }
 
 /*******************************************************************************
  * MULTIPLEXING
  ******************************************************************************/
 
-int codex_rendezvous_descriptor(codex_rendezvous_t * acc)
+int codex_rendezvous_descriptor(codex_rendezvous_t * bio)
 {
-	return BIO_get_fd(acc, (int *)0);
+	return BIO_get_fd(bio, (int *)0);
 }
 
 int codex_connection_descriptor(codex_connection_t * ssl)
@@ -781,6 +811,7 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 	SSL * ssl = (SSL *)0;
 	BIO * bio = (BIO *)0;
 	int rc = -1;
+	int act = 0;
 
 	do {
 
@@ -804,11 +835,19 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 
 		SSL_set_bio(ssl, bio, bio);
 
-		rc = SSL_connect(ssl);
+		while (!0) {
+			rc = SSL_connect(ssl);
+			if (rc > 0) {
+				break;
+			}
+			act = codex_serror("SSL_connect", ssl, rc);
+			if (act != CODEX_SERROR_RECOVERABLE) {
+				break;
+			}
+		}
 		if (rc > 0) {
 			break;
 		}
-		codex_serror("SSL_connect", ssl, rc);
 
 		SSL_free(ssl);
 
@@ -842,24 +881,26 @@ codex_context_t * codex_server_context_new(const char * caf, const char * cap, c
 
 codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 {
-	BIO * acc = (BIO *)0;
+	BIO * bio = (BIO *)0;
 	int rc = -1;
+	int fd = -1;
 
 	do {
 
-		acc = BIO_new_accept(nearend);
-		if (acc == (BIO *)0) {
+		bio = BIO_new_accept(nearend);
+		if (bio == (BIO *)0) {
 			codex_perror("BIO_new_accept");
 			break;
 		}
 
-		rc = BIO_do_accept(acc);
+		rc = BIO_do_accept(bio);
 		if (rc > 0) {
+			diminuto_ipc_set_reuseaddress(BIO_get_fd(bio, (int *)0), !0);
 			break;
 		}
 		codex_perror("BIO_do_accept");
 
-		rc = BIO_free(acc);
+		rc = BIO_free(bio);
 		if (rc != 1) {
 			codex_perror("BIO_free");
 		}
@@ -868,51 +909,51 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 		 * Potential memory leak here in the unlikely event BIO_free() fails.
 		 */
 
-		acc = (BIO *)0;
+		bio = (BIO *)0;
 
 	} while (0);
 
-	return acc;
+	return bio;
 }
 
-codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * acc)
+codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * bio)
 {
 	int rc = -1;
 
 	do {
 
-		rc = BIO_free(acc);
+		rc = BIO_free(bio);
 		if (rc != 1) {
 			codex_perror("BIO_free_all");
 			break;
 		}
 
-		acc = (BIO *)0;
+		bio = (BIO *)0;
 
 	} while (0);
 
-	return acc;
+	return bio;
 }
 
-codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_rendezvous_t * acc)
+codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_rendezvous_t * bio)
 {
 	SSL * ssl = (SSL *)0;
-	BIO * bio = (BIO *)0;
+	BIO * tmp = (BIO *)0;
 	int rc = -1;
 
 	do {
 
-		bio = BIO_pop(acc);
-		if (bio == (BIO *)0) {
+		tmp = BIO_pop(bio);
+		if (tmp == (BIO *)0) {
 
-			rc = BIO_do_accept(acc);
+			rc = BIO_do_accept(bio);
 			if (rc <= 0) {
 				codex_perror("BIO_do_accept");
 				break;
 			}
 
-			bio = BIO_pop(acc);
-			if (bio == (BIO *)0) {
+			tmp = BIO_pop(bio);
+			if (tmp == (BIO *)0) {
 				break;
 			}
 
@@ -934,16 +975,16 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 		 * and the BIO we just received is both the source and the sink.
 		 */
 
-		SSL_set_bio(ssl, bio, bio);
+		SSL_set_bio(ssl, tmp, tmp);
 
 	} while (0);
 
 	if (ssl != (SSL *)0) {
 		/* Do nothing. */
-	} else if (bio == (BIO *)0) {
+	} else if (tmp == (BIO *)0) {
 		/* Do nothing. */
 	} else {
-		rc = BIO_free(acc);
+		rc = BIO_free(bio);
 		if (rc != 1) {
 			codex_perror("BIO_free");
 		}

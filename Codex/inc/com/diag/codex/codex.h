@@ -39,14 +39,23 @@ typedef BIO codex_rendezvous_t;
 typedef SSL codex_connection_t;
 
 /**
+ * These are the values the integer returned by codex_serror() may assume.
+ */
+typedef enum CodexSerror {
+	CODEX_SERROR_UNRECOVERABLE	= -1,
+	CODEX_SERROR_CLOSED			= 0,
+	CODEX_SERROR_RECOVERABLE	= 1,
+} codex_serror_t;
+
+/**
  * These are the values the integer returned by codex_connection_verify() may
  * assume.
  */
 typedef enum CodexConnectionVerify {
-	CODEX_CONNECTION_VERIFY_FAILED = -1,	/* Verification failed. */
-	CODEX_CONNECTION_VERIFY_PASSED = 0,		/* Verification passed with nothing expected. */
-	CODEX_CONNECTION_VERIFY_CN = 1,			/* Verification passed matching CN. */
-	CODEX_CONNECTION_VERIFY_FQDN = 2,		/* Verification passed matching FQDN. */
+	CODEX_CONNECTION_VERIFY_FAILED	= -1,	/* Verification failed. */
+	CODEX_CONNECTION_VERIFY_PASSED	= 0,	/* Verification passed with nothing expected. */
+	CODEX_CONNECTION_VERIFY_CN		= 1,	/* Verification passed matching CN. */
+	CODEX_CONNECTION_VERIFY_FQDN	= 2,	/* Verification passed matching FQDN. */
 } codex_connection_verify_t;
 
 /*******************************************************************************
@@ -89,7 +98,7 @@ extern void codex_perror(const char * str);
  * @param str points to the prefix string printed before each message.
  * @param ssl points to the connection.
  * @param rc is the return code returned by the failing function.
- * @return 0 for no action needed, >0 for connection dead, <0 for error.
+ * @return 0 for closed, >0 for recoverable, <0 for unrecoverable.
  */
 extern int codex_serror(const char * str, const codex_connection_t * ssl, int rc);
 
@@ -201,10 +210,10 @@ extern int codex_connection_write(codex_connection_t * ssl, const void * buffer,
 /**
  * Return the file descriptor associated with a rendezvous. This should ONLY
  * be used for multiplexing.
- * @param acc points to the rendezvous (a BIO).
+ * @param bio points to the rendezvous (a BIO).
  * @return a file descriptor >=0, or <0 if in error.
  */
-extern int codex_rendezvous_descriptor(codex_rendezvous_t * acc);
+extern int codex_rendezvous_descriptor(codex_rendezvous_t * bio);
 
 /**
  * Return the file descriptor associated with a connection. This should ONLY
