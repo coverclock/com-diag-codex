@@ -409,7 +409,7 @@ codex_context_t * codex_context_free(codex_context_t * ctx)
  ******************************************************************************/
 
 #if 0
-#	define CODEX_WTF fprintf(stderr, "NULL: %s[%d]\n", __FILE__, __LINE__)
+#	define CODEX_WTF ((void)fprintf(stderr, "NULL: %s[%d]\n", __FILE__, __LINE__))
 #else
 #	define CODEX_WTF ((void)0)
 #endif
