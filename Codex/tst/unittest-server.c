@@ -15,6 +15,7 @@
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_delay.h"
+#include "com/diag/diminuto/diminuto_ipc.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex_unittest.h"
 #include <stdint.h>
@@ -111,6 +112,8 @@ int main(int argc, char ** argv)
 	ASSERT(fd >= 0);
 
 	DIMINUTO_LOG_DEBUG("%s: rendezvous=%p fd=%d\n", program, bio, fd);
+
+	(void)diminuto_ipc_set_reuseaddress(fd, !0);
 
 	here = diminuto_fd_map_ref(map, fd);
 	ASSERT(here != (void **)0);

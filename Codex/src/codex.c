@@ -23,7 +23,6 @@
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
-#include "com/diag/diminuto/diminuto_ipc.h"
 #include "codex.h"
 
 /*******************************************************************************
@@ -895,7 +894,6 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 
 		rc = BIO_do_accept(bio);
 		if (rc > 0) {
-			diminuto_ipc_set_reuseaddress(BIO_get_fd(bio, (int *)0), !0);
 			break;
 		}
 		codex_perror("BIO_do_accept");

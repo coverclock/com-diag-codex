@@ -40,11 +40,13 @@ typedef SSL codex_connection_t;
 
 /**
  * These are the values the integer returned by codex_serror() may assume.
+ * (One typical recoverable error is an EINTR from a system call that was
+ * interrupted by a signal.)
  */
 typedef enum CodexSerror {
-	CODEX_SERROR_UNRECOVERABLE	= -1,
-	CODEX_SERROR_CLOSED			= 0,
-	CODEX_SERROR_RECOVERABLE	= 1,
+	CODEX_SERROR_UNRECOVERABLE	= -1,		/* Connection had unrecoverable error. */
+	CODEX_SERROR_CLOSED			= 0,		/* Connection closed. */
+	CODEX_SERROR_RECOVERABLE	= 1,		/* Connection had recoverable error (retry). */
 } codex_serror_t;
 
 /**
