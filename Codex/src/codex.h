@@ -43,13 +43,23 @@
 #define COM_DIAG_CODEX_CONFNAME_DNS "DNS"
 
 #if !defined(COM_DIAG_CODEX_CIPHER_LIST)
-#	define COM_DIAG_CODEX_CIPHER_LIST ""
+#	define COM_DIAG_CODEX_CIPHER_LIST "TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL"
 #	warning COM_DIAG_CODEX_CIPER_LIST undefined!
 #endif
 
 #if !defined(COM_DIAG_CODEX_CERTIFICATE_DEPTH)
-#	define COM_DIAG_CODEX_CERTIFICATE_DEPTH 0
+#	define COM_DIAG_CODEX_CERTIFICATE_DEPTH 9
 #	warning COM_DIAG_CODEX_CERTIFICATE_DEPTH undefined!
+#endif
+
+#if !defined(COM_DIAG_CODEX_RENEGOTIATE_BYTES)
+#	define COM_DIAG_CODEX_RENEGOTIATE_BYTES 512
+#	warning COM_DIAG_CODEX_RENEGOTIATE_BYTES undefined!
+#endif
+
+#if !defined(COM_DIAG_CODEX_RENEGOTIATE_SECONDS)
+#	define COM_DIAG_CODEX_RENEGOTIATE_SECONDS 60
+#	warning COM_DIAG_CODEX_RENEGOTIATE_SECONDS undefined!
 #endif
 
 /*******************************************************************************

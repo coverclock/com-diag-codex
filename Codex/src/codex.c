@@ -37,6 +37,10 @@ const char * const codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
 
 const int codex_certificate_depth = COM_DIAG_CODEX_CERTIFICATE_DEPTH;
 
+const long codex_renegotiate_bytes = COM_DIAG_CODEX_RENEGOTIATE_BYTES;
+
+const long codex_renegotiate_seconds = COM_DIAG_CODEX_RENEGOTIATE_SECONDS;
+
 /*******************************************************************************
  * GLOBALS
  ******************************************************************************/
@@ -52,7 +56,7 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static bool initialized = false;
 
 /*******************************************************************************
- * HELPERS
+ * ERRORS
  ******************************************************************************/
 
 void codex_perror(const char * str)
@@ -122,6 +126,10 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 
 	return action;
 }
+
+/*******************************************************************************
+ * HELPERS
+ ******************************************************************************/
 
 DH * codex_parameters_import(const char * dhf)
 {
@@ -414,7 +422,7 @@ codex_context_t * codex_context_free(codex_context_t * ctx)
 /*
  * This was mostly written by reverse engineering X509V3_EXT_print() in
  * crypto/x509v3/v3_prn.c from https://github.com/openssl/openssl.git. I
- * have tried to exercise all the sunny day paths, but no guarantees.
+ * have tried to exercise all the nominal paths, but no guarantees.
  */
 int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 {
@@ -502,6 +510,15 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			}
 
 			extlen = ASN1_STRING_length(extoct);
+
+			/*
+			 * The function X509V3_EXT_print() uses ASN1_STRING_get0_data()
+			 * to extract this value. But even though that function uses it, and
+			 * I find the function in the ASN.1 library in libcrypto, and
+			 * there's a function prototype for it in the openssl/asn1.h header
+			 * file, and a man page for it on the OpenSSL.org web site, the
+			 * linker can't find it. Weird.
+			 */
 
 			p = extoct->data; /* ?ASN1_STRING_get0_data(extoct)? */
 			if (p == (const unsigned char *)0) {
@@ -720,6 +737,93 @@ codex_connection_t * codex_connection_free(codex_connection_t * ssl)
 	ssl = (SSL *)0;
 
 	return ssl;
+}
+
+/*******************************************************************************
+ * HANDSHAKE
+ ******************************************************************************/
+
+int codex_connection_renegotiate(codex_connection_t * ssl)
+{
+	int rc = -1;
+	int error = 0;
+
+	if (SSL_renegotiate_pending(ssl)) {
+		rc = 0;
+	} else if ((error = SSL_renegotiate(ssl)) != 1) {
+		codex_serror("SSL_renegotiate", ssl, error);
+	} else if ((error = SSL_do_handshake(ssl)) != 1) {
+		codex_serror("SSL_do_handshake", ssl, error);
+	} else {
+		rc = 0;
+	}
+
+	return rc;
+}
+
+int codex_connection_renegotiating(codex_connection_t * ssl)
+{
+	return SSL_renegotiate_pending(ssl);
+}
+
+long codex_connection_renegotiate_bytes(codex_connection_t * ssl, long bytes)
+{
+	long prior = -1;
+	BIO * bio = (BIO *)0;
+
+	do {
+
+		if (bytes < codex_renegotiate_bytes) {
+			DIMINUTO_LOG_WARNING("codex_connection_renegotiate_bytes: (%ld<%ld)\n", bytes, codex_renegotiate_bytes);
+			bytes = codex_renegotiate_bytes;
+		}
+
+		/*
+		 * This API only deals with SSLs for which the read and the write
+		 * BIOs are the same.
+		 */
+
+		bio = SSL_get_rbio(ssl);
+		if (bio == (BIO *)0) {
+			DIMINUTO_LOG_ERROR("SSL_get_rbio: NULL");
+			break;
+		}
+
+		prior = BIO_set_ssl_renegotiate_bytes(bio, bytes);
+
+	} while (0);
+
+	return prior;
+}
+
+long codex_connection_renegotiate_seconds(codex_connection_t * ssl, long seconds)
+{
+	long prior = -1;
+	BIO * bio = (BIO *)0;
+
+	do {
+
+		if (seconds < codex_renegotiate_seconds) {
+			DIMINUTO_LOG_WARNING("codex_connection_renegotiate_seconds: (%ld<%ld)\n", seconds, codex_renegotiate_seconds);
+			seconds = codex_renegotiate_seconds;
+		}
+
+		/*
+		 * This API only deals with SSLs for which the read and the write
+		 * BIOs are the same.
+		 */
+
+		bio = SSL_get_rbio(ssl);
+		if (bio == (BIO *)0) {
+			DIMINUTO_LOG_ERROR("SSL_get_rbio: NULL");
+			break;
+		}
+
+		prior = BIO_set_ssl_renegotiate_timeout(bio, seconds);
+
+	} while (0);
+
+	return prior;
 }
 
 /*******************************************************************************

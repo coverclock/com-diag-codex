@@ -13,6 +13,7 @@
 #include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_delay.h"
+#include "com/diag/diminuto/diminuto_hangup.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex_unittest.h"
 #include <stdint.h>
@@ -20,6 +21,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 int main(int argc, char ** argv)
 {
@@ -27,19 +29,21 @@ int main(int argc, char ** argv)
 	const char * farend = "localhost:49152";
 	const char * expected = "server.prairiethorn.org";
 	bool enforce = true;
-	int rc;
-	codex_context_t * ctx;
-	diminuto_mux_t mux;
-	int fd;
-	codex_connection_t * ssl;
-	uint8_t buffer[256];
-	int bytes;
-	int reads;
-	int writes;
-	bool eof;
-	size_t input;
-	size_t output;
-    int opt;
+	size_t bufsize = 256;
+	uint8_t * buffer = (uint8_t *)0;
+	int rc = -1;
+	codex_context_t * ctx = (codex_context_t *)0;
+	diminuto_mux_t mux = { 0 };
+	int fd = -1;
+	codex_connection_t * ssl = (codex_connection_t *)0;
+	int bytes = -1;
+	int reads = -1;
+	int writes = -1;
+	bool eof = false;
+	size_t input = 0;
+	size_t output = 0;
+	char * endptr = (char *)0;
+    int opt = '\0';
     extern char * optarg;
 
 	(void)diminuto_core_enable();
@@ -48,9 +52,13 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "Ve:f:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:Vf:e:v?")) >= 0) {
 
         switch (opt) {
+
+        case 'B':
+        	bufsize = strtoul(optarg, &endptr, 0);
+        	break;
 
         case 'V':
         	enforce = false;
@@ -69,7 +77,7 @@ int main(int argc, char ** argv)
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -f %s ] [ -e %s ] [ -V | -v ]\n", program, farend, expected);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -e EXPECTED ] [ -f FAREND ] [ -V | -v ]\n", program);
             return 1;
             break;
 
@@ -77,7 +85,13 @@ int main(int argc, char ** argv)
 
     }
 
-	DIMINUTO_LOG_DEBUG("%s: farend=\"%s\" expected=\"%s\" enforce=%d length=%zu\n", program, farend, expected, enforce, sizeof(buffer));
+	DIMINUTO_LOG_DEBUG("%s: f=\"%s\" e=\"%s\" v=%d B=%zu\n", program, farend, expected, enforce, bufsize);
+
+	buffer = (uint8_t *)malloc(bufsize);
+	ASSERT(buffer != (uint8_t *)0);
+
+	rc = diminuto_hangup_install(!0);
+	ASSERT(rc == 0);
 
 	diminuto_mux_init(&mux);
 
@@ -123,6 +137,12 @@ int main(int argc, char ** argv)
 	output = 0;
 	while ((!eof) || (output < input)) {
 
+		if (diminuto_hangup_check()) {
+			DIMINUTO_LOG_DEBUG("%s: SIGHUP\n", program);
+			rc = codex_connection_renegotiate(ssl);
+			ASSERT(rc == 0);
+		}
+
 		rc = diminuto_mux_wait(&mux, -1);
 		if ((rc == 0) || ((rc < 0) && (errno == EINTR))) {
 			diminuto_yield();
@@ -133,7 +153,7 @@ int main(int argc, char ** argv)
 		fd = diminuto_mux_ready_read(&mux);
 		if (fd == codex_connection_descriptor(ssl)) {
 
-			bytes = codex_connection_read(ssl, buffer, sizeof(buffer));
+			bytes = codex_connection_read(ssl, buffer, bufsize);
 			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, bytes);
 			if (bytes <= 0) {
 				rc = diminuto_mux_unregister_read(&mux, fd);
@@ -154,7 +174,7 @@ int main(int argc, char ** argv)
 
 		} else if (fd == STDIN_FILENO) {
 
-			bytes = read(fd, buffer, sizeof(buffer));
+			bytes = read(fd, buffer, bufsize);
 			DIMINUTO_LOG_DEBUG("%s: fd=%d read=%d\n", program, fd, bytes);
 			if (bytes <= 0) {
 				if (bytes < 0) { diminuto_perror("read"); }
@@ -193,6 +213,8 @@ int main(int argc, char ** argv)
 
 	ctx = codex_context_free(ctx);
 	EXPECT(ctx == (codex_context_t *)0);
+
+	free(buffer);
 
 	EXIT();
 }

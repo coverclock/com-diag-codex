@@ -84,8 +84,18 @@ extern const char * const codex_cipher_list;
  */
 extern const int codex_certificate_depth;
 
+/**
+ * Defines the minimum number of bytes which may trigger a renegotiation.
+ */
+extern const long codex_renegotiate_bytes;
+
+/**
+ * Defines the minimum number of seconds which may trigger a renegotiation.
+ */
+extern const long codex_renegotiate_seconds;
+
 /*******************************************************************************
- * HELPERS
+ * ERRORS
  ******************************************************************************/
 
 /**
@@ -224,6 +234,43 @@ extern int codex_rendezvous_descriptor(codex_rendezvous_t * bio);
  * @return a file descriptor >=0, or <0 if in error.
  */
 extern int codex_connection_descriptor(codex_connection_t * ssl);
+
+/*******************************************************************************
+ * HANDSHAKE
+ ******************************************************************************/
+
+/**
+ * Immediate force a peer to renegotiate a connection. This occurs concurrently
+ * and (it is said) transparently with ongoing input/output.
+ * @param ssl points to the connection (an SSL).
+ * @return 0 for success, <0 otherwise.
+ */
+extern int codex_connection_renegotiate(codex_connection_t * ssl);
+
+/**
+ * Return true if the connection is awaiting a pending renegotiation.
+ * @param ssl points to the connection (an SSL).
+ * @return !0 if a renegotiation is pending, 0 otherwise.
+ */
+extern int codex_connection_renegotiating(codex_connection_t * ssl);
+
+/**
+ * Set an I/O limit in bytes after which a connection will automatically be
+ * renegotiated.
+ * @param ssl points to the connection (an SSL).
+ * @param bytes is the limit in bytes.
+ * @return the prior limit in bytes if successful, <0 otherwise.
+ */
+extern long codex_connection_renegotiate_bytes(codex_connection_t * ssl, long bytes);
+
+/**
+ * Set a time limit in seconds after which a connection will automatically be
+ * renegotiated.
+ * @param ssl points to the connection (an SSL).
+ * @param seconds is the limit in seconds.
+ * @return the prior limit in seconds if successful, <0 otherwise.
+ */
+extern long codex_connection_renegotiate_seconds(codex_connection_t * ssl, long seconds);
 
 /*******************************************************************************
  * CLIENT

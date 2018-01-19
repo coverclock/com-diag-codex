@@ -30,22 +30,27 @@ int main(int argc, char ** argv)
 	const char * nearend = "49152";
 	const char * expected = "client.prairiethorn.org";
 	bool enforce = true;
-	int rc;
-	codex_context_t * ctx;
-	codex_rendezvous_t * bio;
-	ssize_t count;
-	diminuto_fd_map_t * map;
-	void ** here;
-	diminuto_mux_t mux;
-	int fd;
-	codex_connection_t * ssl;
-	uint8_t buffer[256];
-	int bytes;
-	int reads;
-	int writes;
-	uintptr_t temp;
-	bool tripwire;
-    int opt;
+	long seconds = -1;
+	long octets = -1;
+	size_t bufsize = 256;
+	uint8_t * buffer = (uint8_t *)0;
+	int rc = -1;
+	codex_context_t * ctx = (codex_context_t *)0;
+	codex_rendezvous_t * bio = (codex_rendezvous_t *)0;
+	ssize_t count = 0;
+	diminuto_fd_map_t * map = (diminuto_fd_map_t *)0;
+	void ** here = (void **)0;
+	diminuto_mux_t mux = { 0 };
+	int fd = -1;
+	codex_connection_t * ssl = (codex_connection_t *)0;
+	int bytes = -1;
+	int reads = -1;
+	int writes = -1;
+	uintptr_t temp = 0;
+	bool tripwire = false;
+	char * endptr = (char *)0;
+	long prior = -1;
+    int opt = '\0';
     extern char * optarg;
 
 	(void)diminuto_core_enable();
@@ -54,12 +59,20 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "Ve:n:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:Vb:e:n:s:v?")) >= 0) {
 
         switch (opt) {
 
+        case 'B':
+        	bufsize = strtoul(optarg, &endptr, 0);
+        	break;
+
         case 'V':
         	enforce = false;
+        	break;
+
+        case 'b':
+        	octets = strtol(optarg, &endptr, 0);
         	break;
 
         case 'e':
@@ -70,12 +83,16 @@ int main(int argc, char ** argv)
         	nearend = optarg;
         	break;
 
+        case 's':
+        	seconds = strtol(optarg, &endptr, 0);
+        	break;
+
         case 'v':
         	enforce = true;
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -n %s ] [ -e %s ] [ -V | -v ]\n", program, nearend, expected);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -b BYTES ] [ -e EXPECTED ] [ -n NEAREND ] [ -s SECONDS ] [ -V | -v ]\n", program);
             return 1;
             break;
 
@@ -86,7 +103,10 @@ int main(int argc, char ** argv)
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
 
-	DIMINUTO_LOG_DEBUG("%s: nearend=\"%s\" expected=\"%s\" enforce=%d length=%zu count=%d\n", program, nearend, expected, enforce, sizeof(buffer), count);
+	DIMINUTO_LOG_DEBUG("%s: n=\"%s\" e=\"%s\" v=%d b=%ld s=%ld B=%zu fdcount=%d\n", program, nearend, expected, enforce, octets, seconds, bufsize, count);
+
+	buffer = (uint8_t *)malloc(bufsize);
+	ASSERT(buffer != (uint8_t *)0);
 
 	map = diminuto_fd_map_alloc(count);
 	ASSERT(map != (diminuto_fd_map_t *)0);
@@ -181,10 +201,11 @@ int main(int argc, char ** argv)
 			}
 			ssl = (codex_connection_t *)temp;
 
-			bytes = codex_connection_read(ssl, buffer, sizeof(buffer));
+			bytes = codex_connection_read(ssl, buffer, bufsize);
 			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, bytes);
 
 			if (tripwire) {
+
 				rc = codex_connection_verify(ssl, expected);
 				if (rc == CODEX_CONNECTION_VERIFY_CN) {
 					/* Do nothing. */
@@ -193,6 +214,17 @@ int main(int argc, char ** argv)
 				} else {
 					bytes = 0;
 				}
+
+				if (seconds > 0) {
+					prior = codex_connection_renegotiate_seconds(ssl, seconds);
+					DIMINUTO_LOG_DEBUG("%s: connection=%p seconds=%ld was=%ld\n", program, ssl, seconds, prior);
+				}
+
+				if (octets > 0) {
+					prior = codex_connection_renegotiate_bytes(ssl, octets);
+					DIMINUTO_LOG_DEBUG("%s: connection=%p bytes=%ld was=%ld\n", program, ssl, bytes, prior);
+				}
+
 			}
 
 			if (bytes > 0) {
@@ -265,6 +297,8 @@ int main(int argc, char ** argv)
 
 	ctx = codex_context_free(ctx);
 	EXPECT(ctx == (codex_context_t *)0);
+
+	free(buffer);
 
 	EXIT();
 }

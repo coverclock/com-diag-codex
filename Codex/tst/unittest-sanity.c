@@ -32,6 +32,13 @@ int main(char * argc, char ** argv)
 		COMMENT("codex_cipher_list=\"%s\"\n", codex_cipher_list);
 		EXPECT(*codex_cipher_list != '\0');
 
+		COMMENT("codex_renegotiate_bytes=%ld\n", codex_renegotiate_bytes);
+		EXPECT(codex_renegotiate_bytes > 0);
+
+		COMMENT("codex_renegotiate_seconds=%ld\n", codex_renegotiate_seconds);
+		EXPECT(codex_renegotiate_seconds > 0);
+
+
 		STATUS();
 	}
 

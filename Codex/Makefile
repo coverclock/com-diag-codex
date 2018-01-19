@@ -116,6 +116,8 @@ SO					:=	so
 
 A2SOARCH			:=	-shared -Wl,-soname,lib$(PROJECT).$(SO).$(MAJOR).$(MINOR)
 
+CDEFINES			:=
+
 ########## Configuration Makefile
 
 TARGETMAKEFILE		:= $(CFG_DIR)/$(TARGET).mk
@@ -132,14 +134,17 @@ SSL_LST				:=	TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL
 SSL_DEP				:=	9
 SSL_DHK				:=	2048
 SSL_EXP				:=	365
+SSL_REB				:=	512
+SSL_RES				:=	60
 
 SSL_CRT				:=	$(OUT)/$(CRT_DIR)
 SSL_PWD				:=	$(OUT)/$(PWD_DIR)
 SSL_TXT				:=	$(OUT)/$(TXT_DIR)
 
-CDEFINES			:=
 CDEFINES			+=	-DCOM_DIAG_CODEX_CIPHER_LIST=\"$(SSL_LST)\"
 CDEFINES			+=	-DCOM_DIAG_CODEX_CERTIFICATE_DEPTH=$(SSL_DEP)
+CDEFINES			+=	-DCOM_DIAG_CODEX_RENEGOTIATE_BYTES=$(SSL_REB)
+CDEFINES			+=	-DCOM_DIAG_CODEX_RENEGOTIATE_SECONDS=$(SSL_RES)
 
 ########## Diminuto Configuration
 
