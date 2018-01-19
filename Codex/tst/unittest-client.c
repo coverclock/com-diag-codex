@@ -14,6 +14,7 @@
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_hangup.h"
+#include "com/diag/diminuto/diminuto_fletcher.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex_unittest.h"
 #include <stdint.h>
@@ -43,6 +44,14 @@ int main(int argc, char ** argv)
 	size_t input = 0;
 	size_t output = 0;
 	char * endptr = (char *)0;
+	uint16_t f16source = 0;
+	uint8_t f16sourceA = 0;
+	uint8_t f16sourceB = 0;
+	uint16_t f16sink = 0;
+	uint8_t f16sinkA = 0;
+	uint8_t f16sinkB = 0;
+	size_t sourced = 0;
+	size_t sunk = 0;
     int opt = '\0';
     extern char * optarg;
 
@@ -170,6 +179,8 @@ int main(int argc, char ** argv)
 				}
 			}
 
+			f16source = diminuto_fletcher_16(buffer, writes, &f16sourceA, &f16sourceB);
+
 			output += writes;
 
 		} else if (fd == STDIN_FILENO) {
@@ -192,6 +203,8 @@ int main(int argc, char ** argv)
 				}
 			}
 
+			f16sink = diminuto_fletcher_16(buffer, reads, &f16sinkA, &f16sinkB);
+
 			input += reads;
 
 		} else {
@@ -201,7 +214,10 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	EXPECT(eof && (output == input));
+	DIMINUTO_LOG_DEBUG("%s: eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, input, output, f16sink, f16source);
+	EXPECT(eof);
+	EXPECT(input == output);
+	EXPECT(f16source == f16sink);
 
 	diminuto_mux_fini(&mux);
 
