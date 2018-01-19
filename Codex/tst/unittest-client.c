@@ -52,6 +52,7 @@ int main(int argc, char ** argv)
 	uint8_t f16sinkB = 0;
 	size_t sourced = 0;
 	size_t sunk = 0;
+	long count = 0;
     int opt = '\0';
     extern char * optarg;
 
@@ -94,7 +95,7 @@ int main(int argc, char ** argv)
 
     }
 
-	DIMINUTO_LOG_DEBUG("%s: f=\"%s\" e=\"%s\" v=%d B=%zu\n", program, farend, expected, enforce, bufsize);
+	DIMINUTO_LOG_INFORMATION("%s: f=\"%s\" e=\"%s\" v=%d B=%zu\n", program, farend, expected, enforce, bufsize);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);
@@ -147,7 +148,7 @@ int main(int argc, char ** argv)
 	while ((!eof) || (output < input)) {
 
 		if (diminuto_hangup_check()) {
-			DIMINUTO_LOG_DEBUG("%s: SIGHUP\n", program);
+			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
 			rc = codex_connection_renegotiate(ssl);
 			ASSERT(rc == 0);
 		}
@@ -214,7 +215,10 @@ int main(int argc, char ** argv)
 		}
 	}
 
-	DIMINUTO_LOG_DEBUG("%s: eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, input, output, f16sink, f16source);
+	count = codex_connection_renegotiations(ssl);
+	EXPECT(count >= 0);
+
+	DIMINUTO_LOG_INFORMATION("%s: eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x renegotiations=%ld\n", program, eof, input, output, f16sink, f16source, count);
 	EXPECT(eof);
 	EXPECT(input == output);
 	EXPECT(f16source == f16sink);

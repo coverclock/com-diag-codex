@@ -50,6 +50,7 @@ int main(int argc, char ** argv)
 	bool tripwire = false;
 	char * endptr = (char *)0;
 	long prior = -1;
+	long renegotiations = 0;
     int opt = '\0';
     extern char * optarg;
 
@@ -103,7 +104,7 @@ int main(int argc, char ** argv)
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
 
-	DIMINUTO_LOG_DEBUG("%s: n=\"%s\" e=\"%s\" v=%d b=%ld s=%ld B=%zu fdcount=%d\n", program, nearend, expected, enforce, octets, seconds, bufsize, count);
+	DIMINUTO_LOG_INFORMATION("%s: n=\"%s\" e=\"%s\" v=%d b=%ld s=%ld B=%zu fdcount=%d\n", program, nearend, expected, enforce, octets, seconds, bufsize, count);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);
@@ -165,7 +166,7 @@ int main(int argc, char ** argv)
 			fd = codex_connection_descriptor(ssl);
 			ASSERT(fd >= 0);
 
-			DIMINUTO_LOG_DEBUG("%s: connection=%p fd=%d\n", program, ssl, fd);
+			DIMINUTO_LOG_INFORMATION("%s: connection=%p fd=%d\n", program, ssl, fd);
 
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
@@ -217,12 +218,12 @@ int main(int argc, char ** argv)
 
 				if (seconds > 0) {
 					prior = codex_connection_renegotiate_seconds(ssl, seconds);
-					DIMINUTO_LOG_DEBUG("%s: connection=%p seconds=%ld was=%ld\n", program, ssl, seconds, prior);
+					DIMINUTO_LOG_INFORMATION("%s: connection=%p seconds=%ld was=%ld\n", program, ssl, seconds, prior);
 				}
 
 				if (octets > 0) {
 					prior = codex_connection_renegotiate_bytes(ssl, octets);
-					DIMINUTO_LOG_DEBUG("%s: connection=%p bytes=%ld was=%ld\n", program, ssl, bytes, prior);
+					DIMINUTO_LOG_INFORMATION("%s: connection=%p bytes=%ld was=%ld\n", program, ssl, bytes, prior);
 				}
 
 			}
@@ -239,7 +240,9 @@ int main(int argc, char ** argv)
 
 			} else {
 
-				DIMINUTO_LOG_DEBUG("%s: connection=%p closing\n", program, ssl);
+				renegotiations = codex_connection_renegotiations(ssl);
+
+				DIMINUTO_LOG_INFORMATION("%s: connection=%p renegotiations=%ld\n", program, ssl, renegotiations);
 
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);

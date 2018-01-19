@@ -255,6 +255,13 @@ extern int codex_connection_renegotiate(codex_connection_t * ssl);
 extern int codex_connection_renegotiating(codex_connection_t * ssl);
 
 /**
+ * Return the number of renegotiations performed on a connection.
+ * @param ssl points to the connection (an SSL).
+ * @return the number of renegotiations if successful, <0 otherwise.
+ */
+extern long codex_connection_renegotiations(codex_connection_t * ssl);
+
+/**
  * Set an I/O limit in bytes after which a connection will automatically be
  * renegotiated.
  * @param ssl points to the connection (an SSL).

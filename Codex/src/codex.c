@@ -766,6 +766,31 @@ int codex_connection_renegotiating(codex_connection_t * ssl)
 	return SSL_renegotiate_pending(ssl);
 }
 
+long codex_connection_renegotiations(codex_connection_t * ssl)
+{
+	long count = -1;
+	BIO * bio = (BIO *)0;
+
+	do {
+
+		/*
+		 * This API only deals with SSLs for which the read and the write
+		 * BIOs are the same.
+		 */
+
+		bio = SSL_get_rbio(ssl);
+		if (bio == (BIO *)0) {
+			DIMINUTO_LOG_ERROR("SSL_get_rbio: NULL");
+			break;
+		}
+
+		count = BIO_get_num_renegotiates(bio);
+
+	} while (0);
+
+	return count;
+}
+
 long codex_connection_renegotiate_bytes(codex_connection_t * ssl, long bytes)
 {
 	long prior = -1;
