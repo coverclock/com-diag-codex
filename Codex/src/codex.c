@@ -23,6 +23,7 @@
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
+#include "com/diag/diminuto/diminuto_delay.h"
 #include "codex.h"
 
 /*******************************************************************************
@@ -86,7 +87,8 @@ void codex_perror(const char * str)
 int codex_serror(const char * str, const SSL * ssl, int rc)
 {
 	codex_serror_t action = CODEX_SERROR_RECOVERABLE;
-	int error = 0;
+	int error = -1;
+	long queued = -1;
 	int save = -1;
 
 	save = errno;
@@ -95,6 +97,9 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 	switch (error) {
 
 	case SSL_ERROR_NONE:
+		/*
+		 * Only occurs if rc > 0.
+		 */
 		break;
 
 	case SSL_ERROR_ZERO_RETURN:
@@ -109,8 +114,15 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 		break;
 
 	case SSL_ERROR_SYSCALL:
-	case SSL_ERROR_SSL:
+		queued = ERR_peek_error();
 		errno = save;
+		if ((queued != 0) || (errno != 0)) {
+			codex_perror(str);
+			action = CODEX_SERROR_UNRECOVERABLE;
+		}
+		break;
+
+	case SSL_ERROR_SSL:
 		codex_perror(str);
 		action = CODEX_SERROR_UNRECOVERABLE;
 		break;
@@ -125,6 +137,31 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 	}
 
 	return action;
+}
+
+/*******************************************************************************
+ * DEBUGGING
+ ******************************************************************************/
+
+#if 0
+#	define CODEX_WTF ((void)fprintf(stderr, "CODEX_WTF: %s[%d]\n", __FILE__, __LINE__))
+#else
+#	define CODEX_WTF ((void)0)
+#endif
+
+static inline void codex_wtf(const char * file, int line, const SSL * ssl, int rc)
+{
+#if !0
+	int nerror = -1;
+	unsigned long lerror = -1;
+	int ierror = -1;
+
+	nerror = errno;
+	lerror = ERR_peek_error();
+	if (ssl != (SSL *)0) { ierror = SSL_get_error(ssl, rc); }
+
+	DIMINUTO_LOG_NOTICE("codex_wtf: file=\"%s\" line=%d ssl=%p rc=%d ERR_get_error=%ld SSL_get_error=%d errno=%d\n", file, line, ssl, rc, lerror, ierror, nerror);
+#endif
 }
 
 /*******************************************************************************
@@ -412,12 +449,6 @@ codex_context_t * codex_context_free(codex_context_t * ctx)
 /*******************************************************************************
  * CONNECTION
  ******************************************************************************/
-
-#if 0
-#	define CODEX_WTF ((void)fprintf(stderr, "NULL: %s[%d]\n", __FILE__, __LINE__))
-#else
-#	define CODEX_WTF ((void)0)
-#endif
 
 /*
  * This was mostly written by reverse engineering X509V3_EXT_print() in
@@ -720,6 +751,7 @@ int codex_connection_close(codex_connection_t * ssl)
 				rc = 0;
 				break;
 			} else {
+				diminuto_yield();
 				continue;
 			}
 		}
@@ -752,8 +784,10 @@ int codex_connection_renegotiate(codex_connection_t * ssl)
 		rc = 0;
 	} else if ((error = SSL_renegotiate(ssl)) != 1) {
 		codex_serror("SSL_renegotiate", ssl, error);
+#if 0
 	} else if ((error = SSL_do_handshake(ssl)) != 1) {
 		codex_serror("SSL_do_handshake", ssl, error);
+#endif
 	} else {
 		rc = 0;
 	}
@@ -867,8 +901,11 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 			break;
 		}
 
+		codex_wtf(__FILE__, __LINE__, ssl, rc);
+
 		act = codex_serror("SSL_read", ssl, rc);
 		if (act == CODEX_SERROR_RECOVERABLE) {
+			diminuto_yield();
 			continue;
 		} else if (act == CODEX_SERROR_CLOSED) {
 			rc = 0;
@@ -895,8 +932,11 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 			break;
 		}
 
+		codex_wtf(__FILE__, __LINE__, ssl, rc);
+
 		act = codex_serror("SSL_read", ssl, rc);
 		if (act == CODEX_SERROR_RECOVERABLE) {
+			diminuto_yield();
 			continue;
 		} else if (act == CODEX_SERROR_CLOSED) {
 			rc = 0;

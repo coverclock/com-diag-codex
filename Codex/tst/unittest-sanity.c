@@ -12,8 +12,8 @@
 #include "com/diag/diminuto/diminuto_log.h"
 #include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/codex/codex.h"
-#include "../src/codex_unittest.h"
 #include "../src/codex.h"
+#include "../src/codex_unittest.h"
 #include <string.h>
 
 int main(char * argc, char ** argv)
@@ -47,10 +47,18 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
+		ASSERT(codex_server_password_env != (char *)0);
+		EXPECT(*codex_server_password_env != '\0');
 		value = getenv(codex_server_password_env);
+		ASSERT(value != (const char *)0);
+		ADVISE(*value != '\0');
 		COMMENT("%s=\"%s\"\n", codex_server_password_env, (value != (const char *)0) ? "(defined)" : "(UNDEFINED)");
 
+		ASSERT(codex_client_password_env != (char *)0);
+		EXPECT(*codex_client_password_env != '\0');
 		value = getenv(codex_client_password_env);
+		ASSERT(value != (const char *)0);
+		ADVISE(*value != '\0');
 		COMMENT("%s=\"%s\"\n", codex_client_password_env, (value != (const char *)0) ? "(defined)" : "(UNDEFINED)");
 
 		STATUS();
