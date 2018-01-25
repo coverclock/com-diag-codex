@@ -34,6 +34,11 @@
  * PARAMETERS
  ******************************************************************************/
 
+#if !defined(COM_DIAG_CODEX_METHOD)
+#	warning COM_DIAG_CODEX_METHOD undefined!
+#	define COM_DIAG_CODEX_METHOD ((SSL_METHOD *)0)
+#endif
+
 #if !defined(COM_DIAG_CODEX_CIPHER_LIST)
 #	warning COM_DIAG_CODEX_CIPER_LIST undefined!
 #	define COM_DIAG_CODEX_CIPHER_LIST ""

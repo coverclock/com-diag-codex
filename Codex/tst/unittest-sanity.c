@@ -26,6 +26,9 @@ int main(char * argc, char ** argv)
 	{
 		TEST();
 
+		COMMENT("codex_method=(%s)\n", codex_method);
+		EXPECT(*codex_method != '\0');
+
 		COMMENT("codex_certificate_depth=%d\n", codex_certificate_depth);
 		EXPECT(codex_certificate_depth > 0);
 

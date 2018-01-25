@@ -24,6 +24,7 @@
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
 #include "com/diag/diminuto/diminuto_delay.h"
+#include "com/diag/diminuto/diminuto_token.h"
 #include "codex.h"
 
 /*******************************************************************************
@@ -33,6 +34,8 @@
 const char * const codex_client_password_env = COM_DIAG_CODEX_CLIENT_PASSWORD_ENV;
 
 const char * const codex_server_password_env = COM_DIAG_CODEX_SERVER_PASSWORD_ENV;
+
+const char * const codex_method = DIMINUTO_TOKEN_TOKEN(COM_DIAG_CODEX_METHOD);
 
 const char * const codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
 
@@ -97,9 +100,7 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 	switch (error) {
 
 	case SSL_ERROR_NONE:
-		/*
-		 * Only occurs if rc > 0.
-		 */
+		/* Only occurs if (rc > 0). */
 		break;
 
 	case SSL_ERROR_ZERO_RETURN:
@@ -365,7 +366,7 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 
 	do {
 
-		method = TLSv1_2_method();
+		method = COM_DIAG_CODEX_METHOD;
 		if (method == (SSL_METHOD *)0) {
 			codex_perror("SSLv23_method");
 			break;
@@ -772,24 +773,20 @@ codex_connection_t * codex_connection_free(codex_connection_t * ssl)
 }
 
 /*******************************************************************************
- * HANDSHAKE
+ * RENEGOTIATION (EXPERIMENTAL)
  ******************************************************************************/
 
 int codex_connection_renegotiate(codex_connection_t * ssl)
 {
 	int rc = -1;
-	int error = 0;
 
-	if (SSL_renegotiate_pending(ssl)) {
-		rc = 0;
-	} else if ((error = SSL_renegotiate(ssl)) != 1) {
-		codex_serror("SSL_renegotiate", ssl, error);
-#if 0
-	} else if ((error = SSL_do_handshake(ssl)) != 1) {
-		codex_serror("SSL_do_handshake", ssl, error);
-#endif
-	} else {
-		rc = 0;
+	if (SSL_renegotiate(ssl) == 1) {
+		while (SSL_renegotiate_pending(ssl)) {
+			if (SSL_do_handshake(ssl) != 1) {
+				codex_serror("SSL_do_handshake", ssl, 0);
+				break;
+			}
+		}
 	}
 
 	return rc;

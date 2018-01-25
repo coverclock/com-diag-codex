@@ -75,22 +75,27 @@ extern const char * const codex_server_password_env;
 extern const char * const codex_client_password_env;
 
 /**
- * Defines the available and usable cipher algorithms.
+ * Declares the name of the secure socket layer method.
+ */
+extern const char * const codex_method;
+
+/**
+ * Declares the available and usable cipher algorithms.
  */
 extern const char * const codex_cipher_list;
 
 /**
- * Defines the maximum depth to which certificates may be chained.
+ * Declares the maximum depth to which certificates may be chained.
  */
 extern const int codex_certificate_depth;
 
 /**
- * Defines the minimum number of bytes which may trigger a renegotiation.
+ * Declares the minimum number of bytes which may trigger a renegotiation.
  */
 extern const long codex_renegotiate_bytes;
 
 /**
- * Defines the minimum number of seconds which may trigger a renegotiation.
+ * Declares the minimum number of seconds which may trigger a renegotiation.
  */
 extern const long codex_renegotiate_seconds;
 
@@ -236,7 +241,7 @@ extern int codex_rendezvous_descriptor(codex_rendezvous_t * bio);
 extern int codex_connection_descriptor(codex_connection_t * ssl);
 
 /*******************************************************************************
- * HANDSHAKE
+ * RENEGOTIATION (EXPERIMENTAL)
  ******************************************************************************/
 
 /**
