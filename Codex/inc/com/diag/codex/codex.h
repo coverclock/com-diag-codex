@@ -40,13 +40,18 @@ typedef SSL codex_connection_t;
 
 /**
  * These are the values the integer returned by codex_serror() may assume.
- * (One typical recoverable error is an EINTR from a system call that was
- * interrupted by a signal.)
+ * They are just enumerations of the defined numbers that SSL_error() returns.
  */
 typedef enum CodexSerror {
-	CODEX_SERROR_UNRECOVERABLE	= -1,		/* Connection had unrecoverable error. */
-	CODEX_SERROR_CLOSED			= 0,		/* Connection closed. */
-	CODEX_SERROR_RECOVERABLE	= 1,		/* Connection had recoverable error (retry). */
+	CODEX_SERROR_NONE		= SSL_ERROR_NONE,
+	CODEX_SERROR_SSL		= SSL_ERROR_SSL,
+	CODEX_SERROR_READ		= SSL_ERROR_WANT_READ,
+	CODEX_SERROR_WRITE		= SSL_ERROR_WANT_WRITE,
+	CODEX_SERROR_LOOKUP		= SSL_ERROR_WANT_X509_LOOKUP,
+	CODEX_SERROR_SYSCALL	= SSL_ERROR_SYSCALL,
+	CODEX_SERROR_ZERO		= SSL_ERROR_ZERO_RETURN,
+	CODEX_SERROR_CONNECT	= SSL_ERROR_WANT_CONNECT,
+	CODEX_SERROR_ACCEPT		= SSL_ERROR_WANT_ACCEPT,
 } codex_serror_t;
 
 /**
@@ -55,9 +60,9 @@ typedef enum CodexSerror {
  */
 typedef enum CodexConnectionVerify {
 	CODEX_CONNECTION_VERIFY_FAILED	= -1,	/* Verification failed. */
-	CODEX_CONNECTION_VERIFY_PASSED	= 0,	/* Verification passed with nothing expected. */
-	CODEX_CONNECTION_VERIFY_CN		= 1,	/* Verification passed matching CN. */
-	CODEX_CONNECTION_VERIFY_FQDN	= 2,	/* Verification passed matching FQDN. */
+	CODEX_CONNECTION_VERIFY_PASSED	=  0,	/* Verification passed with nothing expected. */
+	CODEX_CONNECTION_VERIFY_CN		=  1,	/* Verification passed matching CN. */
+	CODEX_CONNECTION_VERIFY_FQDN	=  2,	/* Verification passed matching FQDN. */
 } codex_connection_verify_t;
 
 /*******************************************************************************
@@ -98,6 +103,22 @@ extern const long codex_renegotiate_bytes;
  * Declares the minimum number of seconds which may trigger a renegotiation.
  */
 extern const long codex_renegotiate_seconds;
+
+/*******************************************************************************
+ * DEBUGGING
+ ******************************************************************************/
+
+/**
+ * Log at NOTICE a line containing the file name, line number, connection
+ * pointer, first peeked error value, return code, SSL error value, and
+ * errno (as errnumber).
+ * @param file names the translation unit.
+ * @param line is the line number.
+ * @param ssl points to the connection.
+ * @param rc is the return code.
+ * @param errnumber is a copy of errno.
+ */
+extern void codex_wtf(const char * file, int line, const codex_connection_t * ssl, int rc, int errnumber);
 
 /*******************************************************************************
  * ERRORS

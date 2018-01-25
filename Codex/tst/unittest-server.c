@@ -104,7 +104,7 @@ int main(int argc, char ** argv)
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
 
-	DIMINUTO_LOG_INFORMATION("%s: n=\"%s\" e=\"%s\" v=%d b=%ld s=%ld B=%zu fdcount=%d\n", program, nearend, expected, enforce, octets, seconds, bufsize, count);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN n=\"%s\" e=\"%s\" v=%d b=%ld s=%ld B=%zu fdcount=%d\n", program, nearend, expected, enforce, octets, seconds, bufsize, count);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);
@@ -132,7 +132,7 @@ int main(int argc, char ** argv)
 	fd = codex_rendezvous_descriptor(bio);
 	ASSERT(fd >= 0);
 
-	DIMINUTO_LOG_DEBUG("%s: rendezvous=%p fd=%d\n", program, bio, fd);
+	DIMINUTO_LOG_DEBUG("%s: RUN rendezvous=%p fd=%d\n", program, bio, fd);
 
 	(void)diminuto_ipc_set_reuseaddress(fd, !0);
 
@@ -166,7 +166,7 @@ int main(int argc, char ** argv)
 			fd = codex_connection_descriptor(ssl);
 			ASSERT(fd >= 0);
 
-			DIMINUTO_LOG_INFORMATION("%s: connection=%p fd=%d\n", program, ssl, fd);
+			DIMINUTO_LOG_INFORMATION("%s: START connection=%p fd=%d\n", program, ssl, fd);
 
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
@@ -203,7 +203,7 @@ int main(int argc, char ** argv)
 			ssl = (codex_connection_t *)temp;
 
 			bytes = codex_connection_read(ssl, buffer, bufsize);
-			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, bytes);
+			DIMINUTO_LOG_DEBUG("%s: RUN connection=%p read=%d\n", program, ssl, bytes);
 
 			if (tripwire) {
 
@@ -218,12 +218,12 @@ int main(int argc, char ** argv)
 
 				if (seconds > 0) {
 					prior = codex_connection_renegotiate_seconds(ssl, seconds);
-					DIMINUTO_LOG_INFORMATION("%s: connection=%p seconds=%ld was=%ld\n", program, ssl, seconds, prior);
+					DIMINUTO_LOG_INFORMATION("%s: RUN connection=%p seconds=%ld was=%ld\n", program, ssl, seconds, prior);
 				}
 
 				if (octets > 0) {
 					prior = codex_connection_renegotiate_bytes(ssl, octets);
-					DIMINUTO_LOG_INFORMATION("%s: connection=%p bytes=%ld was=%ld\n", program, ssl, bytes, prior);
+					DIMINUTO_LOG_INFORMATION("%s: RUN connection=%p bytes=%ld was=%ld\n", program, ssl, bytes, prior);
 				}
 
 			}
@@ -232,7 +232,7 @@ int main(int argc, char ** argv)
 
 				for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
 					bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
-					DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", program, ssl, bytes);
+					DIMINUTO_LOG_DEBUG("%s: RUN connection=%p written=%d\n", program, ssl, bytes);
 					if (bytes <= 0) {
 						break;
 					}
@@ -242,7 +242,7 @@ int main(int argc, char ** argv)
 
 				renegotiations = codex_connection_renegotiations(ssl);
 
-				DIMINUTO_LOG_INFORMATION("%s: connection=%p renegotiations=%ld\n", program, ssl, renegotiations);
+				DIMINUTO_LOG_INFORMATION("%s: FINISH connection=%p renegotiations=%ld\n", program, ssl, renegotiations);
 
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
@@ -260,6 +260,8 @@ int main(int argc, char ** argv)
 		}
 
 	}
+
+	DIMINUTO_LOG_INFORMATION("%s: END renegotiations=%ld\n", program, ssl, renegotiations);
 
 	diminuto_mux_fini(&mux);
 

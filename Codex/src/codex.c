@@ -60,6 +60,27 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static bool initialized = false;
 
 /*******************************************************************************
+ * DEBUGGING
+ ******************************************************************************/
+
+#if 0
+#	define CODEX_WTF ((void)fprintf(stderr, "CODEX_WTF: %s[%d]\n", __FILE__, __LINE__))
+#else
+#	define CODEX_WTF ((void)0)
+#endif
+
+void codex_wtf(const char * file, int line, const codex_connection_t * ssl, int rc, int errnumber)
+{
+	unsigned long error = -1;
+	int serror = -1;
+
+	error = ERR_peek_error();
+	if (ssl != (SSL *)0) { serror = SSL_get_error(ssl, rc); }
+
+	DIMINUTO_LOG_NOTICE("codex_wtf: file=\"%s\" line=%d ssl=%p rc=%d ERR_get_error=%ld SSL_get_error=%d errno=%d\n", file, line, ssl, rc, error, serror, errnumber);
+}
+
+/*******************************************************************************
  * ERRORS
  ******************************************************************************/
 
@@ -89,80 +110,81 @@ void codex_perror(const char * str)
 
 int codex_serror(const char * str, const SSL * ssl, int rc)
 {
-	codex_serror_t action = CODEX_SERROR_RECOVERABLE;
 	int error = -1;
-	long queued = -1;
 	int save = -1;
+	long queued = -1;
+	const char * tag = (const char *)0;
 
 	save = errno;
 
 	error = SSL_get_error(ssl, rc);
 	switch (error) {
 
-	case SSL_ERROR_NONE:
-		/* Only occurs if (rc > 0). */
+	case CODEX_SERROR_NONE:
+		/* Only happens if (rc > 0). */
+		tag = "NONE";
 		break;
 
-	case SSL_ERROR_ZERO_RETURN:
-		action = CODEX_SERROR_CLOSED;
+	case CODEX_SERROR_ZERO:
+		/* Only happens if received shutdown (presumably rc==0). */
+		tag = "ZERO";
 		break;
 
-	case SSL_ERROR_WANT_READ:
-	case SSL_ERROR_WANT_WRITE:
-	case SSL_ERROR_WANT_CONNECT:
-	case SSL_ERROR_WANT_ACCEPT:
-	case SSL_ERROR_WANT_X509_LOOKUP:
+	case CODEX_SERROR_READ:
+		tag = "READ";
 		break;
 
-	case SSL_ERROR_SYSCALL:
+	case CODEX_SERROR_WRITE:
+		tag = "WRITE";
+		break;
+
+	case CODEX_SERROR_CONNECT:
+		tag = "CONNECT";
+		break;
+
+	case CODEX_SERROR_ACCEPT:
+		tag = "ACCEPT";
+		break;
+
+	case CODEX_SERROR_LOOKUP:
+		tag = "LOOKUP";
+		break;
+
+	case CODEX_SERROR_SYSCALL:
 		queued = ERR_peek_error();
-		errno = save;
-		if ((queued != 0) || (errno != 0)) {
+		if (queued != 0) {
 			codex_perror(str);
-			action = CODEX_SERROR_UNRECOVERABLE;
+		} else if (save == 0) {
+			/* Do nothing. */
+		} else if (save == EINTR) {
+			/* Do nothing. */
+		} else {
+			errno = save;
+			diminuto_perror(str);
 		}
+		tag = "SYSCALL";
 		break;
 
-	case SSL_ERROR_SSL:
+	case CODEX_SERROR_SSL:
+		errno = save;
 		codex_perror(str);
-		action = CODEX_SERROR_UNRECOVERABLE;
+		tag = "SSL";
 		break;
 
 	default:
+		/* Might happen if libssl or libcrypto are updated. */
+		tag = "OTHER";
 		break;
 
 	}
 
-	if (action != 0) {
-		DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d err=%d action=%d\n", str, ssl, rc, error, action);
+	if (tag != (const char *)0) {
+		DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d tag=\"%s\"\n", str, ssl, rc, error, save, tag);
 	}
 
-	return action;
-}
+	errno = save;
 
-/*******************************************************************************
- * DEBUGGING
- ******************************************************************************/
-
-#if 0
-#	define CODEX_WTF ((void)fprintf(stderr, "CODEX_WTF: %s[%d]\n", __FILE__, __LINE__))
-#else
-#	define CODEX_WTF ((void)0)
-#endif
-
-static inline void codex_wtf(const char * file, int line, const SSL * ssl, int rc)
-{
-#if !0
-	int nerror = -1;
-	unsigned long lerror = -1;
-	int ierror = -1;
-
-	nerror = errno;
-	lerror = ERR_peek_error();
-	if (ssl != (SSL *)0) { ierror = SSL_get_error(ssl, rc); }
-
-	DIMINUTO_LOG_NOTICE("codex_wtf: file=\"%s\" line=%d ssl=%p rc=%d ERR_get_error=%ld SSL_get_error=%d errno=%d\n", file, line, ssl, rc, lerror, ierror, nerror);
-#endif
+	return error;
 }
 
 /*******************************************************************************
@@ -197,7 +219,7 @@ DH * codex_parameters_import(const char * dhf)
 		 * allocated at exit(2), maybe I just need to resign myself to this.
 		 */
 
-	} while (0);
+	} while (false);
 
 	if (bio != (BIO *)0) {
 		rc = BIO_free(bio);
@@ -260,7 +282,7 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 			X509_NAME_oneline(nam, name, sizeof(name));
 			name[sizeof(name) - 1] = '\0';
 		}
-		DIMINUTO_LOG_DEBUG("codex_verification_callback: subject[%d]=\"%s\"\n", depth, name);
+		DIMINUTO_LOG_INFORMATION("codex_verification_callback: subject[%d]=\"%s\"\n", depth, name);
 
 		name[0] = '\0';
 		nam = X509_get_issuer_name(crt);
@@ -268,7 +290,7 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 			X509_NAME_oneline(nam, name, sizeof(name));
 			name[sizeof(name) - 1] = '\0';
 		}
-		DIMINUTO_LOG_DEBUG("codex_verification_callback: issuer[%d]=\"%s\"\n", depth, name);
+		DIMINUTO_LOG_INFORMATION("codex_verification_callback: issuer[%d]=\"%s\"\n", depth, name);
 
 	}
 
@@ -664,7 +686,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			/*
 			 * Fully Qualified Domain Name (FQDN) matches.
 			 */
-			DIMINUTO_LOG_DEBUG("codex_connection_verify: FQDN matches\n");
+			DIMINUTO_LOG_INFORMATION("codex_connection_verify: FQDN=\"%s\"\n", expected);
 			result = CODEX_CONNECTION_VERIFY_FQDN;
 			break;
 		}
@@ -690,13 +712,13 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		/*
 		 * Common Name (CN) matches.
 		 */
-		DIMINUTO_LOG_DEBUG("codex_connection_verify: CN matches\n");
+		DIMINUTO_LOG_INFORMATION("codex_connection_verify: CN=\"%s\"\n", expected);
 		result = CODEX_CONNECTION_VERIFY_CN;
 
 		found = !0;
 		break;
 
-	} while (0);
+	} while (false);
 
 	/*
 	 * If either we weren't asked to check the peer FQDN or CN, or if we were
@@ -736,24 +758,21 @@ int codex_connection_close(codex_connection_t * ssl)
 {
 	int rc = 0;
 	int flags = 0;
-	int action = 0;
+	int error = 0;
+	uint8_t empty[0];
 
 	flags = SSL_get_shutdown(ssl);
 	if ((flags & SSL_SENT_SHUTDOWN) == 0) {
-		while (!0) {
+		while (true) {
 			rc = SSL_shutdown(ssl);
-			if (rc < 0) {
-				action = codex_serror("SSL_shutdown", ssl, rc);
-				if (action != CODEX_SERROR_UNRECOVERABLE) {
-					rc = 0;
-				}
-				break;
-			} else if (rc > 0) {
+			if (rc > 0) {
 				rc = 0;
 				break;
-			} else {
+			} else if (rc == 0) {
 				diminuto_yield();
-				continue;
+			} else {
+				(void)codex_serror("SSL_shutdown", ssl, rc);
+				break;
 			}
 		}
 	}
@@ -817,7 +836,7 @@ long codex_connection_renegotiations(codex_connection_t * ssl)
 
 		count = BIO_get_num_renegotiates(bio);
 
-	} while (0);
+	} while (false);
 
 	return count;
 }
@@ -847,7 +866,7 @@ long codex_connection_renegotiate_bytes(codex_connection_t * ssl, long bytes)
 
 		prior = BIO_set_ssl_renegotiate_bytes(bio, bytes);
 
-	} while (0);
+	} while (false);
 
 	return prior;
 }
@@ -877,7 +896,7 @@ long codex_connection_renegotiate_seconds(codex_connection_t * ssl, long seconds
 
 		prior = BIO_set_ssl_renegotiate_timeout(bio, seconds);
 
-	} while (0);
+	} while (false);
 
 	return prior;
 }
@@ -888,62 +907,111 @@ long codex_connection_renegotiate_seconds(codex_connection_t * ssl, long seconds
 
 int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 {
-	int rc = 0;
-	int act = 0;
+	int rc = -1;
+	int error = 0;
+	long queued = -1;
+	bool retry = false;
+	uint8_t empty[0];
 
-	while (!0) {
+	do {
 
 		rc = SSL_read(ssl, buffer, size);
-		if (rc > 0) {
-			break;
+		if (rc <= 0) {
+
+			error = codex_serror("SSL_read", ssl, rc);
+			switch (error) {
+			case CODEX_SERROR_NONE:
+				retry = true;
+				break;
+			case CODEX_SERROR_SSL:
+				rc = -1;
+				break;
+			case CODEX_SERROR_READ:
+				retry = true;
+				break;
+			case CODEX_SERROR_WRITE:
+				(void)SSL_write(ssl, empty, 0);
+				retry = true;
+				break;
+			case CODEX_SERROR_LOOKUP:
+				rc = -1; /* TODO */
+				break;
+			case CODEX_SERROR_SYSCALL:
+				rc = -1;
+				break;
+			case CODEX_SERROR_ZERO:
+				rc = 0;
+				break;
+			case CODEX_SERROR_CONNECT:
+				rc = -1; /* Should never happen. */
+				break;
+			case CODEX_SERROR_ACCEPT:
+				rc = -1; /* Should never happen. */
+				break;
+			}
+
+			if (retry) {
+				diminuto_yield();
+			}
+
 		}
 
-		codex_wtf(__FILE__, __LINE__, ssl, rc);
-
-		act = codex_serror("SSL_read", ssl, rc);
-		if (act == CODEX_SERROR_RECOVERABLE) {
-			diminuto_yield();
-			continue;
-		} else if (act == CODEX_SERROR_CLOSED) {
-			rc = 0;
-			break;
-		} else {
-			rc = -1;
-			break;
-		}
-
-	}
+	} while (retry);
 
 	return rc;
 }
 
 int codex_connection_write(codex_connection_t * ssl, const void * buffer, int size)
 {
-	int rc = 0;
-	int act = 0;
+	int rc = -1;
+	int error = 0;
+	bool retry = false;
+	uint8_t empty[0];
 
-	while (!0) {
+	do {
 
 		rc = SSL_write(ssl, buffer, size);
-		if (rc > 0) {
-			break;
+		if (rc <= 0) {
+
+			error = codex_serror("SSL_write", ssl, rc);
+			switch (error) {
+			case CODEX_SERROR_NONE:
+				retry = true;
+				break;
+			case CODEX_SERROR_SSL:
+				rc = -1;
+				break;
+			case CODEX_SERROR_READ:
+				(void)SSL_read(ssl, empty, 0);
+				retry = true;
+				break;
+			case CODEX_SERROR_WRITE:
+				retry = true;
+				break;
+			case CODEX_SERROR_LOOKUP:
+				rc = -1; /* TODO */
+				break;
+			case CODEX_SERROR_SYSCALL:
+				rc = -1;
+				break;
+			case CODEX_SERROR_ZERO:
+				rc = 0;
+				break;
+			case CODEX_SERROR_CONNECT:
+				rc = -1; /* Should never happen. */
+				break;
+			case CODEX_SERROR_ACCEPT:
+				rc = -1; /* Should never happen. */
+				break;
+			}
+
+			if (retry) {
+				diminuto_yield();
+			}
+
 		}
 
-		codex_wtf(__FILE__, __LINE__, ssl, rc);
-
-		act = codex_serror("SSL_read", ssl, rc);
-		if (act == CODEX_SERROR_RECOVERABLE) {
-			diminuto_yield();
-			continue;
-		} else if (act == CODEX_SERROR_CLOSED) {
-			rc = 0;
-			break;
-		} else {
-			rc = -1;
-			break;
-		}
-
-	}
+	} while (retry);
 
 	return rc;
 }
@@ -976,7 +1044,6 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 	SSL * ssl = (SSL *)0;
 	BIO * bio = (BIO *)0;
 	int rc = -1;
-	int act = 0;
 
 	do {
 
@@ -1000,26 +1067,19 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 
 		SSL_set_bio(ssl, bio, bio);
 
-		while (!0) {
-			rc = SSL_connect(ssl);
-			if (rc > 0) {
-				break;
-			}
-			act = codex_serror("SSL_connect", ssl, rc);
-			if (act != CODEX_SERROR_RECOVERABLE) {
-				break;
-			}
-		}
+		rc = SSL_connect(ssl);
 		if (rc > 0) {
 			break;
 		}
+
+		(void)codex_serror("SSL_connect", ssl, rc);
 
 		SSL_free(ssl);
 
 		ssl = (SSL *)0;
 		bio = (BIO *)0;
 
-	} while (0);
+	} while (false);
 
 	if (ssl != (SSL *)0) {
 		/* Do nothing. */
@@ -1075,7 +1135,7 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 
 		bio = (BIO *)0;
 
-	} while (0);
+	} while (false);
 
 	return bio;
 }
@@ -1094,7 +1154,7 @@ codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * bio)
 
 		bio = (BIO *)0;
 
-	} while (0);
+	} while (false);
 
 	return bio;
 }
@@ -1141,7 +1201,7 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 
 		SSL_set_bio(ssl, tmp, tmp);
 
-	} while (0);
+	} while (false);
 
 	if (ssl != (SSL *)0) {
 		/* Do nothing. */

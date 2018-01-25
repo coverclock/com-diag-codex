@@ -15,6 +15,9 @@
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_hangup.h"
 #include "com/diag/diminuto/diminuto_fletcher.h"
+#include "com/diag/diminuto/diminuto_timer.h"
+#include "com/diag/diminuto/diminuto_frequency.h"
+#include "com/diag/diminuto/diminuto_alarm.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex_unittest.h"
 #include <stdint.h>
@@ -30,6 +33,7 @@ int main(int argc, char ** argv)
 	const char * farend = "localhost:49152";
 	const char * expected = "server.prairiethorn.org";
 	bool enforce = true;
+	diminuto_ticks_t period = 0;
 	size_t bufsize = 256;
 	uint8_t * buffer = (uint8_t *)0;
 	int rc = -1;
@@ -53,6 +57,7 @@ int main(int argc, char ** argv)
 	size_t sourced = 0;
 	size_t sunk = 0;
 	long count = 0;
+	diminuto_sticks_t ticks = -1;
     int opt = '\0';
     extern char * optarg;
 
@@ -62,7 +67,7 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:Vf:e:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:Vf:e:p:v?")) >= 0) {
 
         switch (opt) {
 
@@ -82,12 +87,16 @@ int main(int argc, char ** argv)
         	farend = optarg;
         	break;
 
+        case 'p':
+        	period = strtol(optarg, &endptr, 0);
+        	break;
+
         case 'v':
         	enforce = true;
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -e EXPECTED ] [ -f FAREND ] [ -V | -v ]\n", program);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -V | -v ]\n", program);
             return 1;
             break;
 
@@ -95,13 +104,23 @@ int main(int argc, char ** argv)
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: f=\"%s\" e=\"%s\" v=%d B=%zu\n", program, farend, expected, enforce, bufsize);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN f=\"%s\" e=\"%s\" p=%llu v=%d B=%zu\n", program, farend, expected, period, enforce, bufsize);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);
 
 	rc = diminuto_hangup_install(!0);
 	ASSERT(rc == 0);
+
+	if (period > 0) {
+
+		rc = diminuto_alarm_install(!0);
+		ASSERT(rc == 0);
+
+ 		ticks = diminuto_timer_periodic(period * diminuto_frequency());
+		ASSERT(ticks >= 0);
+
+	}
 
 	diminuto_mux_init(&mux);
 
@@ -122,7 +141,7 @@ int main(int argc, char ** argv)
 	ASSERT(fd != STDIN_FILENO);
 	ASSERT(fd != STDOUT_FILENO);
 
-	DIMINUTO_LOG_DEBUG("%s: connection=%p fd=%d\n", program, ssl, fd);
+	DIMINUTO_LOG_DEBUG("%s: RUN connection=%p fd=%d\n", program, ssl, fd);
 
 	rc = codex_connection_verify(ssl, expected);
 	if (enforce && (rc != CODEX_CONNECTION_VERIFY_FQDN)) {
@@ -146,6 +165,10 @@ int main(int argc, char ** argv)
 	input = 0;
 	output = 0;
 	while ((!eof) || (output < input)) {
+
+		if (diminuto_alarm_check()) {
+			DIMINUTO_LOG_INFORMATION("%s: RUN eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x renegotiations=%ld\n", program, eof, input, output, f16sink, f16source, count);
+		}
 
 		if (diminuto_hangup_check()) {
 			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
@@ -213,12 +236,16 @@ int main(int argc, char ** argv)
 			FAILURE();
 
 		}
+
 	}
+
+	ticks = diminuto_timer_periodic(0);
+	ASSERT(ticks >= 0);
 
 	count = codex_connection_renegotiations(ssl);
 	EXPECT(count >= 0);
 
-	DIMINUTO_LOG_INFORMATION("%s: eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x renegotiations=%ld\n", program, eof, input, output, f16sink, f16source, count);
+	DIMINUTO_LOG_INFORMATION("%s: END eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x renegotiations=%ld\n", program, eof, input, output, f16sink, f16source, count);
 	EXPECT(eof);
 	EXPECT(input == output);
 	EXPECT(f16source == f16sink);
