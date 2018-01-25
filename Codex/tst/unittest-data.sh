@@ -16,3 +16,4 @@ CLIENT3=$!
 trap "kill -9 ${SERVER} ${CLIENT1} ${CLIENT2} ${CLIENT3} 2> /dev/null" HUP INT TERM EXIT
 wait ${CLIENT1} ${CLIENT2} ${CLIENT3}
 kill -TERM ${SERVER}
+wait ${SERVER}
