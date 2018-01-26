@@ -106,7 +106,7 @@ int main(int argc, char ** argv)
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN n=\"%s\" e=\"%s\" v=%d b=%ld s=%ld B=%zu fdcount=%d\n", program, nearend, expected, enforce, octets, seconds, bufsize, count);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu b=%ld e=\"%s\" n=\"%s\" s=%ld v=%d fdcount=%d\n", program, bufsize, octets, expected, nearend, seconds, enforce, count);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);
@@ -184,6 +184,7 @@ int main(int argc, char ** argv)
 
 			ssl = codex_server_connection_new(ctx, bio);
 			ASSERT(ssl != (codex_connection_t *)0);
+			ASSERT(codex_connection_is_server(ssl));
 
 			fd = codex_connection_descriptor(ssl);
 			ASSERT(fd >= 0);

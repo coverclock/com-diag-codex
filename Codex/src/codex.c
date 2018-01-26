@@ -806,6 +806,11 @@ codex_connection_t * codex_connection_free(codex_connection_t * ssl)
 	return ssl;
 }
 
+bool codex_connection_is_server(codex_connection_t * ssl)
+{
+	return !!SSL_is_server(ssl);
+}
+
 /*******************************************************************************
  * RENEGOTIATION (EXPERIMENTAL)
  ******************************************************************************/
@@ -814,13 +819,39 @@ int codex_connection_renegotiate(codex_connection_t * ssl)
 {
 	int rc = -1;
 
-	rc = SSL_renegotiate(ssl);
-	if (rc != 1) {
-		(void)codex_serror("SSL_renegotiate", ssl, rc);
-		rc = -1;
-	} else {
+	do {
+
+		rc = SSL_renegotiate(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_renegotiate", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		rc = SSL_do_handshake(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_do_handshake", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		if (!SSL_is_server(ssl)) {
+			rc = 0;
+			break;
+		}
+
+		ssl->state = SSL_ST_ACCEPT;
+
+		rc = SSL_do_handshake(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_do_handshake(2)", ssl, rc);
+			rc = -1;
+			break;
+		}
+
 		rc = 0;
-	}
+
+	} while (false);
 
 	return rc;
 }
@@ -1147,6 +1178,9 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 			break;
 		}
 
+		/*
+		 * This doesn't appear to work, but at least it's benign.
+		 */
 		(void)BIO_set_bind_mode(bio, BIO_BIND_REUSEADDR_IF_UNUSED);
 
 		rc = BIO_do_accept(bio);
@@ -1160,15 +1194,9 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 			codex_perror("BIO_free");
 		}
 
-		/*
-		 * Potential memory leak here in the unlikely event BIO_free() fails.
-		 */
-
 		bio = (BIO *)0;
 
 	} while (false);
-
-
 
 	return bio;
 }
@@ -1181,7 +1209,7 @@ codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * bio)
 
 		rc = BIO_free(bio);
 		if (rc != 1) {
-			codex_perror("BIO_free_all");
+			codex_perror("BIO_free");
 			break;
 		}
 

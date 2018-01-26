@@ -69,6 +69,14 @@ D. Gibbons, personal communication, 2018-01-17
 D. Gillmor, "Negotiated Finite Diffie-Hellman Ephemeral Parameters for
 Transport Layer Security (TLS)", RFC 7919, 2016-08
 
+Karthik et al., "SSL Renegotiation with Full Duplex Socket Communication",
+Stack Overflow, 2013-12-14,
+<https://stackoverflow.com/questions/18728355/ssl-renegotiation-with-full-duplex-socket-communication>
+
+V. Kruglikov et al., "Full-duplex SSL/TLS renegotiation failure", OpenSSL
+Ticket #2481, 2011-03-26,
+<https://rt.openssl.org/Ticket/Display.html?id=2481&user=guest&pass=guest>
+
 OpenSSL, documentation, <https://www.openssl.org/docs/>
 
 OpenSSL Wiki, "FIPS mode and TLS", <https://wiki.openssl.org/index.php/FIPS_mode_and_TLS>

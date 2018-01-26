@@ -219,6 +219,13 @@ extern int codex_connection_close(codex_connection_t * ssl);
  */
 extern codex_connection_t * codex_connection_free(codex_connection_t * ssl);
 
+/**
+ * Return true if the connection is a server, false if it is a client.
+ * @param ssl points to the connection.
+ * @return true if the connection is a server, false if it is a client.
+ */
+extern bool codex_connection_is_server(codex_connection_t * ssl);
+
 /*******************************************************************************
  * INPUT/OUTPUT
  ******************************************************************************/

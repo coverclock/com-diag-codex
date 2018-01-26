@@ -36,6 +36,8 @@ int main(int argc, char ** argv)
 	diminuto_ticks_t period = 0;
 	size_t bufsize = 256;
 	uint8_t * buffer = (uint8_t *)0;
+	long seconds = -1;
+	long octets = -1;
 	int rc = -1;
 	codex_context_t * ctx = (codex_context_t *)0;
 	diminuto_mux_t mux = { 0 };
@@ -58,6 +60,7 @@ int main(int argc, char ** argv)
 	size_t sunk = 0;
 	long count = 0;
 	diminuto_sticks_t ticks = -1;
+	long prior = -1;
     int opt = '\0';
     extern char * optarg;
 
@@ -67,7 +70,7 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:Vf:e:p:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:Vf:b:e:p:s:v?")) >= 0) {
 
         switch (opt) {
 
@@ -77,6 +80,10 @@ int main(int argc, char ** argv)
 
         case 'V':
         	enforce = false;
+        	break;
+
+        case 'b':
+        	octets = strtol(optarg, &endptr, 0);
         	break;
 
         case 'e':
@@ -91,12 +98,16 @@ int main(int argc, char ** argv)
         	period = strtol(optarg, &endptr, 0);
         	break;
 
+        case 's':
+        	seconds = strtol(optarg, &endptr, 0);
+        	break;
+
         case 'v':
         	enforce = true;
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -V | -v ]\n", program);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -b BYTES ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -s SECONDS ] [ -V | -v ]\n", program);
             return 1;
             break;
 
@@ -104,7 +115,7 @@ int main(int argc, char ** argv)
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN f=\"%s\" e=\"%s\" p=%llu v=%d B=%zu\n", program, farend, expected, period, enforce, bufsize);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu b=%ld f=\"%s\" e=\"%s\" p=%llu s=%ld v=%d\n", program, bufsize, bytes, farend, expected, period, seconds, enforce);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);
@@ -135,6 +146,7 @@ int main(int argc, char ** argv)
 
 	ssl = codex_client_connection_new(ctx, farend);
 	ASSERT(ssl != (SSL *)0);
+	ASSERT(!codex_connection_is_server(ssl));
 
 	fd = codex_connection_descriptor(ssl);
 	ASSERT(fd >= 0);
@@ -153,6 +165,16 @@ int main(int argc, char ** argv)
 		ASSERT(ssl == (SSL *)0);
 
 		exit(1);
+	}
+
+	if (seconds > 0) {
+		prior = codex_connection_renegotiate_seconds(ssl, seconds);
+		DIMINUTO_LOG_INFORMATION("%s: RUN connection=%p seconds=%ld was=%ld\n", program, ssl, seconds, prior);
+	}
+
+	if (octets > 0) {
+		prior = codex_connection_renegotiate_bytes(ssl, octets);
+		DIMINUTO_LOG_INFORMATION("%s: RUN connection=%p bytes=%ld was=%ld\n", program, ssl, bytes, prior);
 	}
 
 	rc = diminuto_mux_register_read(&mux, STDIN_FILENO);
