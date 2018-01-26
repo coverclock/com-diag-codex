@@ -113,7 +113,9 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 	int error = -1;
 	int save = -1;
 	long queued = -1;
-	const char * tag = (const char *)0;
+	const char * debug = (const char *)0;
+	const char * information = (const char *)0;
+	const char * notice = (const char *)0;
 
 	save = errno;
 
@@ -122,32 +124,32 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 
 	case CODEX_SERROR_NONE:
 		/* Only happens if (rc > 0). */
-		tag = "NONE";
+		debug = "NONE";
 		break;
 
 	case CODEX_SERROR_ZERO:
 		/* Only happens if received shutdown (presumably rc==0). */
-		tag = "ZERO";
+		debug = "ZERO";
 		break;
 
 	case CODEX_SERROR_READ:
-		tag = "READ";
+		information = "READ";
 		break;
 
 	case CODEX_SERROR_WRITE:
-		tag = "WRITE";
+		information = "WRITE";
 		break;
 
 	case CODEX_SERROR_CONNECT:
-		tag = "CONNECT";
+		information = "CONNECT";
 		break;
 
 	case CODEX_SERROR_ACCEPT:
-		tag = "ACCEPT";
+		information = "ACCEPT";
 		break;
 
 	case CODEX_SERROR_LOOKUP:
-		tag = "LOOKUP";
+		notice = "LOOKUP";
 		break;
 
 	case CODEX_SERROR_SYSCALL:
@@ -162,24 +164,37 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 			errno = save;
 			diminuto_perror(str);
 		}
-		tag = "SYSCALL";
+		debug = "SYSCALL";
 		break;
 
 	case CODEX_SERROR_SSL:
 		errno = save;
 		codex_perror(str);
-		tag = "SSL";
+		debug = "SSL";
 		break;
 
 	default:
 		/* Might happen if libssl or libcrypto are updated. */
-		tag = "OTHER";
+		notice = "OTHER";
 		break;
 
 	}
 
-	if (tag != (const char *)0) {
-		DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d tag=\"%s\"\n", str, ssl, rc, error, save, tag);
+	/*
+	 * Here:
+	 * DEBUG items are those that aren't important or are redundant to log.
+	 * INFORMATION items are those that that might be of interest sometimes.
+	 * NOTICE items are those which I'm actively debugging or curious about.
+	 */
+
+	if (notice != (const char *)0) {
+		DIMINUTO_LOG_NOTICE("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d debug=\"%s\"\n", str, ssl, rc, error, save, notice);
+	} else if (information != (const char *)0) {
+		DIMINUTO_LOG_INFORMATION("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d debug=\"%s\"\n", str, ssl, rc, error, save, information);
+	} else if (debug != (const char *)0) {
+		DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d debug=\"%s\"\n", str, ssl, rc, error, save, debug);
+	} else {
+		/* Do nothing. */
 	}
 
 	errno = save;
@@ -799,13 +814,12 @@ int codex_connection_renegotiate(codex_connection_t * ssl)
 {
 	int rc = -1;
 
-	if (SSL_renegotiate(ssl) == 1) {
-		while (SSL_renegotiate_pending(ssl)) {
-			if (SSL_do_handshake(ssl) != 1) {
-				codex_serror("SSL_do_handshake", ssl, 0);
-				break;
-			}
-		}
+	rc = SSL_renegotiate(ssl);
+	if (rc != 1) {
+		(void)codex_serror("SSL_renegotiate", ssl, rc);
+		rc = -1;
+	} else {
+		rc = 0;
 	}
 
 	return rc;
@@ -824,7 +838,7 @@ long codex_connection_renegotiations(codex_connection_t * ssl)
 	do {
 
 		/*
-		 * This API only deals with SSLs for which the read and the write
+		 * This API only supports SSLs for which the read and the write
 		 * BIOs are the same.
 		 */
 
@@ -854,7 +868,7 @@ long codex_connection_renegotiate_bytes(codex_connection_t * ssl, long bytes)
 		}
 
 		/*
-		 * This API only deals with SSLs for which the read and the write
+		 * This API only supports SSLs for which the read and the write
 		 * BIOs are the same.
 		 */
 
@@ -884,7 +898,7 @@ long codex_connection_renegotiate_seconds(codex_connection_t * ssl, long seconds
 		}
 
 		/*
-		 * This API only deals with SSLs for which the read and the write
+		 * This API only supports SSLs for which the read and the write
 		 * BIOs are the same.
 		 */
 
@@ -930,7 +944,7 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 				retry = true;
 				break;
 			case CODEX_SERROR_WRITE:
-				(void)SSL_write(ssl, empty, 0);
+				(void)SSL_write(ssl, empty, 0); /* Drive state machine. */
 				retry = true;
 				break;
 			case CODEX_SERROR_LOOKUP:
@@ -982,7 +996,7 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 				rc = -1;
 				break;
 			case CODEX_SERROR_READ:
-				(void)SSL_read(ssl, empty, 0);
+				(void)SSL_read(ssl, empty, 0); /* Drive state machine. */
 				retry = true;
 				break;
 			case CODEX_SERROR_WRITE:
@@ -1019,6 +1033,21 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 /*******************************************************************************
  * MULTIPLEXING
  ******************************************************************************/
+
+/*
+ * I've successfully multiplexed multiple SSL connections using select(2) via
+ * the Diminuto mux feature. But in SSL there is a *lot* going on under the
+ * hood. The byte stream the application reads and writes is an artifact of
+ * all the authentication and crypto going on in libssl and libcrypto. The
+ * Linux socket and multiplexing implementation in the kernel lies below all
+ * of this and knows *nothing* about it. So the fact that there's data to be
+ * read on the socket doesn't mean there's _application_ data to be read. A lot
+ * of application reads and writes may merely be driving the underlying protocol
+ * and associated state machines in the SSL implementation. Hence multiplexing
+ * isn't as useful as it might seem. A multi-threaded server approach, which
+ * uses blocking reads and writes, albeit less scalable, might ultimately be
+ * more useful.
+ */
 
 int codex_rendezvous_descriptor(codex_rendezvous_t * bio)
 {
@@ -1118,6 +1147,8 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 			break;
 		}
 
+		(void)BIO_set_bind_mode(bio, BIO_BIND_REUSEADDR_IF_UNUSED);
+
 		rc = BIO_do_accept(bio);
 		if (rc > 0) {
 			break;
@@ -1136,6 +1167,8 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 		bio = (BIO *)0;
 
 	} while (false);
+
+
 
 	return bio;
 }

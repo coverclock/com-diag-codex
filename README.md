@@ -44,7 +44,7 @@ gcc (Ubuntu 5.4.0-6ubuntu1~16.04.5) 5.4.0 20160609
 
 OpenSSL 1.0.2g  1 Mar 2016
 
-Diminuto 47.1.0 5f04a8ed33904358d1b0fb2b836654baca16b4d2
+Diminuto 48.0.0 35bd7e6cd0e5f80e3095223940c005ee0676f921
 
 ## References
 

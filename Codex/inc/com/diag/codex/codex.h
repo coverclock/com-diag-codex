@@ -262,50 +262,6 @@ extern int codex_rendezvous_descriptor(codex_rendezvous_t * bio);
 extern int codex_connection_descriptor(codex_connection_t * ssl);
 
 /*******************************************************************************
- * RENEGOTIATION (EXPERIMENTAL)
- ******************************************************************************/
-
-/**
- * Immediate force a peer to renegotiate a connection. This occurs concurrently
- * and (it is said) transparently with ongoing input/output.
- * @param ssl points to the connection (an SSL).
- * @return 0 for success, <0 otherwise.
- */
-extern int codex_connection_renegotiate(codex_connection_t * ssl);
-
-/**
- * Return true if the connection is awaiting a pending renegotiation.
- * @param ssl points to the connection (an SSL).
- * @return !0 if a renegotiation is pending, 0 otherwise.
- */
-extern int codex_connection_renegotiating(codex_connection_t * ssl);
-
-/**
- * Return the number of renegotiations performed on a connection.
- * @param ssl points to the connection (an SSL).
- * @return the number of renegotiations if successful, <0 otherwise.
- */
-extern long codex_connection_renegotiations(codex_connection_t * ssl);
-
-/**
- * Set an I/O limit in bytes after which a connection will automatically be
- * renegotiated.
- * @param ssl points to the connection (an SSL).
- * @param bytes is the limit in bytes.
- * @return the prior limit in bytes if successful, <0 otherwise.
- */
-extern long codex_connection_renegotiate_bytes(codex_connection_t * ssl, long bytes);
-
-/**
- * Set a time limit in seconds after which a connection will automatically be
- * renegotiated.
- * @param ssl points to the connection (an SSL).
- * @param seconds is the limit in seconds.
- * @return the prior limit in seconds if successful, <0 otherwise.
- */
-extern long codex_connection_renegotiate_seconds(codex_connection_t * ssl, long seconds);
-
-/*******************************************************************************
  * CLIENT
  ******************************************************************************/
 

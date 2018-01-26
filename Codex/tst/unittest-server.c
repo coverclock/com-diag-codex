@@ -12,6 +12,7 @@
 #include "com/diag/diminuto/diminuto_log.h"
 #include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/diminuto/diminuto_terminator.h"
+#include "com/diag/diminuto/diminuto_hangup.h"
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_delay.h"
@@ -42,6 +43,7 @@ int main(int argc, char ** argv)
 	void ** here = (void **)0;
 	diminuto_mux_t mux = { 0 };
 	int fd = -1;
+	int rendezvous = -1;
 	codex_connection_t * ssl = (codex_connection_t *)0;
 	int bytes = -1;
 	int reads = -1;
@@ -115,6 +117,9 @@ int main(int argc, char ** argv)
 	rc = diminuto_terminator_install(0);
 	ASSERT(rc >= 0);
 
+	rc = diminuto_hangup_install(0);
+	ASSERT(rc >= 0);
+
 	diminuto_mux_init(&mux);
 
 	rc = codex_initialize();
@@ -129,22 +134,38 @@ int main(int argc, char ** argv)
 	bio = codex_server_rendezvous_new(nearend);
 	ASSERT(bio != (codex_rendezvous_t *)0);
 
-	fd = codex_rendezvous_descriptor(bio);
-	ASSERT(fd >= 0);
+	rendezvous = codex_rendezvous_descriptor(bio);
+	ASSERT(rendezvous >= 0);
 
-	DIMINUTO_LOG_DEBUG("%s: RUN rendezvous=%p fd=%d\n", program, bio, fd);
+	DIMINUTO_LOG_DEBUG("%s: RUN rendezvous=%p fd=%d\n", program, bio, rendezvous);
 
-	(void)diminuto_ipc_set_reuseaddress(fd, !0);
-
-	here = diminuto_fd_map_ref(map, fd);
+	here = diminuto_fd_map_ref(map, rendezvous);
 	ASSERT(here != (void **)0);
 	ASSERT(*here == (void *)0);
 	*here = (void *)bio;
 
-	rc = diminuto_mux_register_accept(&mux, fd);
+	rc = diminuto_mux_register_accept(&mux, rendezvous);
 	ASSERT(rc >= 0);
 
 	while (!diminuto_terminator_check()) {
+
+		if (diminuto_hangup_check()) {
+			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
+			for (fd = 0; fd < count; ++fd) {
+				if (fd == rendezvous) { continue; }
+				here = diminuto_fd_map_ref(map, fd);
+				ASSERT(here != (void **)0);
+				if (*here == (void *)0) { continue; }
+				temp = (uintptr_t)*here;
+				if ((temp & 0x1) != 0) { continue; }
+				temp &= ~(uintptr_t)0x1;
+				ASSERT((codex_rendezvous_t *)temp != bio);
+				ssl = (codex_connection_t *)temp;
+				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING connection=%p fd=%d\n", program, ssl, fd);
+				rc = codex_connection_renegotiate(ssl);
+				ASSERT(rc == 0);
+			}
+		}
 
 		rc = diminuto_mux_wait(&mux, -1);
 		if ((rc == 0) || ((rc < 0) && (errno == EINTR))) {
@@ -156,6 +177,7 @@ int main(int argc, char ** argv)
 		fd = diminuto_mux_ready_accept(&mux);
 		if (fd >= 0) {
 
+			ASSERT(fd == rendezvous);
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
 			ASSERT((codex_rendezvous_t *)*here == bio);
@@ -267,6 +289,7 @@ int main(int argc, char ** argv)
 
 	fd = codex_rendezvous_descriptor(bio);
 	ASSERT(fd >= 0);
+	ASSERT(fd == rendezvous);
 
 	rc = diminuto_mux_unregister_accept(&mux, fd);
 	ASSERT(rc >= 0);
