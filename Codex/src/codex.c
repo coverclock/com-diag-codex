@@ -812,141 +812,6 @@ bool codex_connection_is_server(codex_connection_t * ssl)
 }
 
 /*******************************************************************************
- * RENEGOTIATION (EXPERIMENTAL)
- ******************************************************************************/
-
-int codex_connection_renegotiate(codex_connection_t * ssl)
-{
-	int rc = -1;
-
-	do {
-
-		rc = SSL_renegotiate(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_renegotiate", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		rc = SSL_do_handshake(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_do_handshake", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		if (!SSL_is_server(ssl)) {
-			rc = 0;
-			break;
-		}
-
-		ssl->state = SSL_ST_ACCEPT;
-
-		rc = SSL_do_handshake(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_do_handshake(2)", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		rc = 0;
-
-	} while (false);
-
-	return rc;
-}
-
-int codex_connection_renegotiating(codex_connection_t * ssl)
-{
-	return SSL_renegotiate_pending(ssl);
-}
-
-long codex_connection_renegotiations(codex_connection_t * ssl)
-{
-	long count = -1;
-	BIO * bio = (BIO *)0;
-
-	do {
-
-		/*
-		 * This API only supports SSLs for which the read and the write
-		 * BIOs are the same.
-		 */
-
-		bio = SSL_get_rbio(ssl);
-		if (bio == (BIO *)0) {
-			DIMINUTO_LOG_ERROR("SSL_get_rbio: NULL");
-			break;
-		}
-
-		count = BIO_get_num_renegotiates(bio);
-
-	} while (false);
-
-	return count;
-}
-
-long codex_connection_renegotiate_bytes(codex_connection_t * ssl, long bytes)
-{
-	long prior = -1;
-	BIO * bio = (BIO *)0;
-
-	do {
-
-		if (bytes < codex_renegotiate_bytes) {
-			DIMINUTO_LOG_WARNING("codex_connection_renegotiate_bytes: (%ld<%ld)\n", bytes, codex_renegotiate_bytes);
-			bytes = codex_renegotiate_bytes;
-		}
-
-		/*
-		 * This API only supports SSLs for which the read and the write
-		 * BIOs are the same.
-		 */
-
-		bio = SSL_get_rbio(ssl);
-		if (bio == (BIO *)0) {
-			DIMINUTO_LOG_ERROR("SSL_get_rbio: NULL");
-			break;
-		}
-
-		prior = BIO_set_ssl_renegotiate_bytes(bio, bytes);
-
-	} while (false);
-
-	return prior;
-}
-
-long codex_connection_renegotiate_seconds(codex_connection_t * ssl, long seconds)
-{
-	long prior = -1;
-	BIO * bio = (BIO *)0;
-
-	do {
-
-		if (seconds < codex_renegotiate_seconds) {
-			DIMINUTO_LOG_WARNING("codex_connection_renegotiate_seconds: (%ld<%ld)\n", seconds, codex_renegotiate_seconds);
-			seconds = codex_renegotiate_seconds;
-		}
-
-		/*
-		 * This API only supports SSLs for which the read and the write
-		 * BIOs are the same.
-		 */
-
-		bio = SSL_get_rbio(ssl);
-		if (bio == (BIO *)0) {
-			DIMINUTO_LOG_ERROR("SSL_get_rbio: NULL");
-			break;
-		}
-
-		prior = BIO_set_ssl_renegotiate_timeout(bio, seconds);
-
-	} while (false);
-
-	return prior;
-}
-
-/*******************************************************************************
  * INPUT/OUTPUT
  ******************************************************************************/
 
@@ -1276,4 +1141,79 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 	}
 
 	return ssl;
+}
+
+/*******************************************************************************
+ * RENEGOTIATION (EXPERIMENTAL)
+ ******************************************************************************/
+
+int codex_connection_renegotiate(codex_connection_t * ssl)
+{
+	int rc = -1;
+
+	do {
+
+		rc = SSL_renegotiate(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_renegotiate", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		rc = SSL_do_handshake(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_do_handshake", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		if (!SSL_is_server(ssl)) {
+			rc = 0;
+			break;
+		}
+
+		ssl->state = SSL_ST_ACCEPT;
+
+		rc = SSL_do_handshake(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_do_handshake(2)", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		rc = 0;
+
+	} while (false);
+
+	return rc;
+}
+
+int codex_connection_renegotiating(codex_connection_t * ssl)
+{
+	return SSL_renegotiate_pending(ssl);
+}
+
+long codex_connection_renegotiations(codex_connection_t * ssl)
+{
+	long count = -1;
+	BIO * bio = (BIO *)0;
+
+	do {
+
+		/*
+		 * This API only supports SSLs for which the read and the write
+		 * BIOs are the same.
+		 */
+
+		bio = SSL_get_rbio(ssl);
+		if (bio == (BIO *)0) {
+			DIMINUTO_LOG_ERROR("SSL_get_rbio: NULL");
+			break;
+		}
+
+		count = BIO_get_num_renegotiates(bio);
+
+	} while (false);
+
+	return count;
 }

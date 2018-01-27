@@ -328,4 +328,30 @@ extern codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * bi
  */
 extern codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_rendezvous_t * bio);
 
+/*******************************************************************************
+ * RENEGOTIATION (EXPERIMENTAL)
+ ******************************************************************************/
+
+/**
+ * Immediately force a peer to renegotiate a connection. This occurs concurrently
+ * and (it is said) transparently with ongoing input/output.
+ * @param ssl points to the connection (an SSL).
+ * @return 0 for success, <0 otherwise.
+ */
+extern int codex_connection_renegotiate(codex_connection_t * ssl);
+
+/**
+ * Return true if the connection is awaiting a pending renegotiation.
+ * @param ssl points to the connection (an SSL).
+ * @return !0 if a renegotiation is pending, 0 otherwise.
+ */
+extern int codex_connection_renegotiating(codex_connection_t * ssl);
+
+/**
+ * Return the number of renegotiations performed on a connection.
+ * @param ssl points to the connection (an SSL).
+ * @return the number of renegotiations if successful, <0 otherwise.
+ */
+extern long codex_connection_renegotiations(codex_connection_t * ssl);
+
 #endif

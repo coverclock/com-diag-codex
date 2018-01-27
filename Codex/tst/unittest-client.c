@@ -36,8 +36,8 @@ int main(int argc, char ** argv)
 	diminuto_ticks_t period = 0;
 	size_t bufsize = 256;
 	uint8_t * buffer = (uint8_t *)0;
-	long seconds = -1;
-	long octets = -1;
+	long seconds = -1; /* Unimplemented. */
+	long octets = -1; /* Unimplemented. */
 	int rc = -1;
 	codex_context_t * ctx = (codex_context_t *)0;
 	diminuto_mux_t mux = { 0 };
@@ -167,16 +167,6 @@ int main(int argc, char ** argv)
 		exit(1);
 	}
 
-	if (seconds > 0) {
-		prior = codex_connection_renegotiate_seconds(ssl, seconds);
-		DIMINUTO_LOG_INFORMATION("%s: RUN connection=%p seconds=%ld was=%ld\n", program, ssl, seconds, prior);
-	}
-
-	if (octets > 0) {
-		prior = codex_connection_renegotiate_bytes(ssl, octets);
-		DIMINUTO_LOG_INFORMATION("%s: RUN connection=%p bytes=%ld was=%ld\n", program, ssl, bytes, prior);
-	}
-
 	rc = diminuto_mux_register_read(&mux, STDIN_FILENO);
 	ASSERT(rc >= 0);
 
@@ -194,8 +184,7 @@ int main(int argc, char ** argv)
 
 		if (diminuto_hangup_check()) {
 			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
-			rc = codex_connection_renegotiate(ssl);
-			ASSERT(rc == 0);
+			/* Unimplemented. */
 		}
 
 		rc = diminuto_mux_wait(&mux, -1);

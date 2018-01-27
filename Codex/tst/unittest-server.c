@@ -31,8 +31,8 @@ int main(int argc, char ** argv)
 	const char * nearend = "49152";
 	const char * expected = "client.prairiethorn.org";
 	bool enforce = true;
-	long seconds = -1;
-	long octets = -1;
+	long seconds = -1; /* Unimplemented. */
+	long octets = -1; /* Unimplemented. */
 	size_t bufsize = 256;
 	uint8_t * buffer = (uint8_t *)0;
 	int rc = -1;
@@ -151,20 +151,7 @@ int main(int argc, char ** argv)
 
 		if (diminuto_hangup_check()) {
 			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
-			for (fd = 0; fd < count; ++fd) {
-				if (fd == rendezvous) { continue; }
-				here = diminuto_fd_map_ref(map, fd);
-				ASSERT(here != (void **)0);
-				if (*here == (void *)0) { continue; }
-				temp = (uintptr_t)*here;
-				if ((temp & 0x1) != 0) { continue; }
-				temp &= ~(uintptr_t)0x1;
-				ASSERT((codex_rendezvous_t *)temp != bio);
-				ssl = (codex_connection_t *)temp;
-				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING connection=%p fd=%d\n", program, ssl, fd);
-				rc = codex_connection_renegotiate(ssl);
-				ASSERT(rc == 0);
-			}
+			/* Unimplemented. */
 		}
 
 		rc = diminuto_mux_wait(&mux, -1);
@@ -237,16 +224,6 @@ int main(int argc, char ** argv)
 					/* Do nothing. */
 				} else {
 					bytes = 0;
-				}
-
-				if (seconds > 0) {
-					prior = codex_connection_renegotiate_seconds(ssl, seconds);
-					DIMINUTO_LOG_INFORMATION("%s: RUN connection=%p seconds=%ld was=%ld\n", program, ssl, seconds, prior);
-				}
-
-				if (octets > 0) {
-					prior = codex_connection_renegotiate_bytes(ssl, octets);
-					DIMINUTO_LOG_INFORMATION("%s: RUN connection=%p bytes=%ld was=%ld\n", program, ssl, bytes, prior);
 				}
 
 			}
