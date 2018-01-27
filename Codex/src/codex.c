@@ -828,6 +828,7 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 		rc = SSL_read(ssl, buffer, size);
 		if (rc <= 0) {
 
+			retry = false;
 			error = codex_serror("SSL_read", ssl, rc);
 			switch (error) {
 			case CODEX_SERROR_NONE:
@@ -858,6 +859,9 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 			case CODEX_SERROR_ACCEPT:
 				rc = -1; /* Should never happen. */
 				break;
+			default:
+				rc = -1; /* Might happen if OpenSSL is updated. */
+				break;
 			}
 
 			if (retry) {
@@ -883,6 +887,7 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 		rc = SSL_write(ssl, buffer, size);
 		if (rc <= 0) {
 
+			retry = false;
 			error = codex_serror("SSL_write", ssl, rc);
 			switch (error) {
 			case CODEX_SERROR_NONE:
@@ -912,6 +917,9 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 				break;
 			case CODEX_SERROR_ACCEPT:
 				rc = -1; /* Should never happen. */
+				break;
+			default:
+				rc = -1; /* Might happen if OpenSSL is updated. */
 				break;
 			}
 
