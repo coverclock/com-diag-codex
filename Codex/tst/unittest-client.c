@@ -18,6 +18,7 @@
 #include "com/diag/diminuto/diminuto_timer.h"
 #include "com/diag/diminuto/diminuto_frequency.h"
 #include "com/diag/diminuto/diminuto_alarm.h"
+#include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex_unittest.h"
 #include <stdint.h>
@@ -205,25 +206,21 @@ int main(int argc, char ** argv)
 				break;
 			}
 
-			for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
-				bytes = write(STDOUT_FILENO, buffer + writes, reads - writes);
-				DIMINUTO_LOG_DEBUG("%s: fd=%d written=%d\n", program, STDOUT_FILENO, bytes);
-				if (bytes <= 0) {
-					if (bytes < 0) { diminuto_perror("write"); }
-					break;
-				}
+			bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffer, bytes, bytes);
+			DIMINUTO_LOG_DEBUG("%s: fd=%d written=%d\n", program, STDOUT_FILENO, bytes);
+			if (bytes <= 0) {
+				break;
 			}
 
-			f16source = diminuto_fletcher_16(buffer, writes, &f16sourceA, &f16sourceB);
+			f16source = diminuto_fletcher_16(buffer, bytes, &f16sourceA, &f16sourceB);
 
-			output += writes;
+			output += bytes;
 
 		} else if (fd == STDIN_FILENO) {
 
-			bytes = read(fd, buffer, bufsize);
+			bytes = diminuto_fd_read(STDIN_FILENO, buffer, bufsize);
 			DIMINUTO_LOG_DEBUG("%s: fd=%d read=%d\n", program, fd, bytes);
 			if (bytes <= 0) {
-				if (bytes < 0) { diminuto_perror("read"); }
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
 				eof = true;
@@ -237,10 +234,13 @@ int main(int argc, char ** argv)
 					break;
 				}
 			}
+			if (bytes <= 0) {
+				break;
+			}
 
 			f16sink = diminuto_fletcher_16(buffer, reads, &f16sinkA, &f16sinkB);
 
-			input += reads;
+			input += writes;
 
 		} else {
 

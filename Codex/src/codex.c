@@ -831,7 +831,7 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 			error = codex_serror("SSL_read", ssl, rc);
 			switch (error) {
 			case CODEX_SERROR_NONE:
-				retry = true;
+				retry = (size > 0);
 				break;
 			case CODEX_SERROR_SSL:
 				rc = -1;
@@ -840,8 +840,8 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 				retry = true;
 				break;
 			case CODEX_SERROR_WRITE:
-				(void)SSL_write(ssl, empty, 0); /* Drive state machine. */
-				retry = true;
+				/* Recursively drive state machine. */
+				retry = (codex_connection_write(ssl, empty, 0) == 0);
 				break;
 			case CODEX_SERROR_LOOKUP:
 				rc = -1; /* TODO */
@@ -886,14 +886,14 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 			error = codex_serror("SSL_write", ssl, rc);
 			switch (error) {
 			case CODEX_SERROR_NONE:
-				retry = true;
+				retry = (size > 0);
 				break;
 			case CODEX_SERROR_SSL:
 				rc = -1;
 				break;
 			case CODEX_SERROR_READ:
-				(void)SSL_read(ssl, empty, 0); /* Drive state machine. */
-				retry = true;
+				/* Recursively drive state machine. */
+				retry = (codex_connection_read(ssl, empty, 0) == 0);
 				break;
 			case CODEX_SERROR_WRITE:
 				retry = true;
