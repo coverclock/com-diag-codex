@@ -19,9 +19,7 @@
 #include "com/diag/diminuto/diminuto_ipc.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex_unittest.h"
-#include <stdint.h>
 #include <errno.h>
-#include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 

@@ -15,6 +15,7 @@
  * HEADERS
  ******************************************************************************/
 
+#include <stdint.h>
 #include <stdbool.h>
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
@@ -38,6 +39,8 @@ typedef BIO codex_rendezvous_t;
  */
 typedef SSL codex_connection_t;
 
+typedef uint32_t codex_header_t;
+
 /**
  * These are the values the integer returned by codex_serror() may assume.
  * They are just enumerations of the defined numbers that SSL_error() returns.
@@ -52,6 +55,7 @@ typedef enum CodexSerror {
 	CODEX_SERROR_ZERO		= SSL_ERROR_ZERO_RETURN,
 	CODEX_SERROR_CONNECT	= SSL_ERROR_WANT_CONNECT,
 	CODEX_SERROR_ACCEPT		= SSL_ERROR_WANT_ACCEPT,
+	CODEX_SERROR_OTHER		= ~((int)1 << ((sizeof(int) * 8) - 1)),
 } codex_serror_t;
 
 /**
@@ -64,6 +68,16 @@ typedef enum CodexConnectionVerify {
 	CODEX_CONNECTION_VERIFY_CN		=  1,	/* Verification passed matching CN. */
 	CODEX_CONNECTION_VERIFY_FQDN	=  2,	/* Verification passed matching FQDN. */
 } codex_connection_verify_t;
+
+typedef enum CodexState {
+	CODEX_STATE_START,
+	CODEX_STATE_HEADER,
+	CODEX_STATE_PAYLOAD,
+	CODEX_STATE_COMPLETE,
+	CODEX_STATE_ERROR,
+	CODEX_STATE_RENEGOTIATE,
+	CODEX_STATE_CLOSED,
+} codex_state_t;
 
 /*******************************************************************************
  * CONSTANTS
@@ -136,9 +150,9 @@ extern void codex_perror(const char * str);
  * @param str points to the prefix string printed before each message.
  * @param ssl points to the connection.
  * @param rc is the return code returned by the failing function.
- * @return 0 for closed, >0 for recoverable, <0 for unrecoverable.
+ * @return an enumerated value indicating what action to take.
  */
-extern int codex_serror(const char * str, const codex_connection_t * ssl, int rc);
+extern codex_serror_t codex_serror(const char * str, const codex_connection_t * ssl, int rc);
 
 /*******************************************************************************
  * INITIALIZATION
@@ -194,9 +208,9 @@ extern codex_context_t * codex_context_free(codex_context_t * ctx);
  * examine the OpenSSL verification status.
  * @param ssl points to the connection.
  * @param expected names the expected host FQDN or CN or NULL if none.
- * @return <0 if unverified, 2 if FQDN matched, 1 if CN matched, 0 otherwise.
+ * @return an enumeration indicating the result of the verification.
  */
-extern int codex_connection_verify(codex_connection_t * ssl, const char * expected);
+extern codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, const char * expected);
 
 /**
  * Return true if the connection has been closed by the far end.
@@ -327,6 +341,14 @@ extern codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * bi
  * @return a new connection if successful, or NULL otherwise.
  */
 extern codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_rendezvous_t * bio);
+
+/*******************************************************************************
+ * MACHINES
+ ******************************************************************************/
+
+extern codex_state_t codex_reader(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
+
+extern codex_state_t codex_writer(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, const void * buffer, int size, const uint8_t ** here, int * length);
 
 /*******************************************************************************
  * RENEGOTIATION (EXPERIMENTAL)

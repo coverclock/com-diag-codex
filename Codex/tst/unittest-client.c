@@ -21,11 +21,9 @@
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex_unittest.h"
-#include <stdint.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
-#include <stdbool.h>
 #include <stdlib.h>
 
 int main(int argc, char ** argv)

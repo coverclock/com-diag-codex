@@ -7,6 +7,8 @@
  * Chip Overclock (coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
  *
+ * Codex Core a.k.a. Layer 1.
+ *
  * See the README.md for a list of references.
  */
 
@@ -108,18 +110,21 @@ void codex_perror(const char * str)
 	}
 }
 
-int codex_serror(const char * str, const SSL * ssl, int rc)
+codex_serror_t codex_serror(const char * str, const SSL * ssl, int rc)
 {
+	codex_serror_t result = CODEX_SERROR_OTHER;
 	int error = -1;
 	int save = -1;
 	long queued = -1;
 	const char * debug = (const char *)0;
 	const char * information = (const char *)0;
 	const char * notice = (const char *)0;
+	const char * warning = (const char *)0;
 
 	save = errno;
 
 	error = SSL_get_error(ssl, rc);
+	result = (codex_serror_t)error;
 	switch (error) {
 
 	case CODEX_SERROR_NONE:
@@ -175,7 +180,8 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 
 	default:
 		/* Might happen if libssl or libcrypto are updated. */
-		notice = "OTHER";
+		result = CODEX_SERROR_OTHER;
+		warning = "OTHER";
 		break;
 
 	}
@@ -185,21 +191,24 @@ int codex_serror(const char * str, const SSL * ssl, int rc)
 	 * DEBUG items are those that aren't important or are redundant to log.
 	 * INFORMATION items are those that that might be of interest sometimes.
 	 * NOTICE items are those which I'm actively debugging or curious about.
+	 * WARNING items are where the OpenSSL API has done something unexpected.
 	 */
 
-	if (notice != (const char *)0) {
-		DIMINUTO_LOG_NOTICE("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d debug=\"%s\"\n", str, ssl, rc, error, save, notice);
+	if (warning != (const char *)0) {
+		DIMINUTO_LOG_WARNING("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d warning=\"%s\" result=%d\n", str, ssl, rc, error, save, warning, result);
+	} else if (notice != (const char *)0) {
+		DIMINUTO_LOG_NOTICE("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d notice=\"%s\" result=%d\n", str, ssl, rc, error, save, notice, result);
 	} else if (information != (const char *)0) {
-		DIMINUTO_LOG_INFORMATION("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d debug=\"%s\"\n", str, ssl, rc, error, save, information);
+		DIMINUTO_LOG_INFORMATION("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d information=\"%s\" result=%d\n", str, ssl, rc, error, save, information, result);
 	} else if (debug != (const char *)0) {
-		DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d debug=\"%s\"\n", str, ssl, rc, error, save, debug);
+		DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d debug=\"%s\" result=%d\n", str, ssl, rc, error, save, debug, result);
 	} else {
 		/* Do nothing. */
 	}
 
 	errno = save;
 
-	return error;
+	return result;
 }
 
 /*******************************************************************************
@@ -493,7 +502,7 @@ codex_context_t * codex_context_free(codex_context_t * ctx)
  * crypto/x509v3/v3_prn.c from https://github.com/openssl/openssl.git. I
  * have tried to exercise all the nominal paths, but no guarantees.
  */
-int codex_connection_verify(codex_connection_t * ssl, const char * expected)
+codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, const char * expected)
 {
 	codex_connection_verify_t result = CODEX_CONNECTION_VERIFY_PASSED;
 	long error = X509_V_ERR_APPLICATION_VERIFICATION;
@@ -859,6 +868,7 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 			case CODEX_SERROR_ACCEPT:
 				rc = -1; /* Should never happen. */
 				break;
+			case CODEX_SERROR_OTHER:
 			default:
 				rc = -1; /* Might happen if OpenSSL is updated. */
 				break;
@@ -918,6 +928,7 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 			case CODEX_SERROR_ACCEPT:
 				rc = -1; /* Should never happen. */
 				break;
+			case CODEX_SERROR_OTHER:
 			default:
 				rc = -1; /* Might happen if OpenSSL is updated. */
 				break;
@@ -1149,79 +1160,4 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 	}
 
 	return ssl;
-}
-
-/*******************************************************************************
- * RENEGOTIATION (EXPERIMENTAL)
- ******************************************************************************/
-
-int codex_connection_renegotiate(codex_connection_t * ssl)
-{
-	int rc = -1;
-
-	do {
-
-		rc = SSL_renegotiate(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_renegotiate", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		rc = SSL_do_handshake(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_do_handshake", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		if (!SSL_is_server(ssl)) {
-			rc = 0;
-			break;
-		}
-
-		ssl->state = SSL_ST_ACCEPT;
-
-		rc = SSL_do_handshake(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_do_handshake(2)", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		rc = 0;
-
-	} while (false);
-
-	return rc;
-}
-
-int codex_connection_renegotiating(codex_connection_t * ssl)
-{
-	return SSL_renegotiate_pending(ssl);
-}
-
-long codex_connection_renegotiations(codex_connection_t * ssl)
-{
-	long count = -1;
-	BIO * bio = (BIO *)0;
-
-	do {
-
-		/*
-		 * This API only supports SSLs for which the read and the write
-		 * BIOs are the same.
-		 */
-
-		bio = SSL_get_rbio(ssl);
-		if (bio == (BIO *)0) {
-			DIMINUTO_LOG_ERROR("SSL_get_rbio: NULL");
-			break;
-		}
-
-		count = BIO_get_num_renegotiates(bio);
-
-	} while (false);
-
-	return count;
 }
