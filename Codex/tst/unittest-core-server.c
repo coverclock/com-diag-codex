@@ -238,9 +238,7 @@ int main(int argc, char ** argv)
 
 			} else {
 
-				renegotiations = codex_connection_renegotiations(ssl);
-
-				DIMINUTO_LOG_INFORMATION("%s: FINISH connection=%p renegotiations=%ld\n", program, ssl, renegotiations);
+				DIMINUTO_LOG_INFORMATION("%s: FINISH connection=%p\n", program, ssl);
 
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
@@ -259,7 +257,7 @@ int main(int argc, char ** argv)
 
 	}
 
-	DIMINUTO_LOG_INFORMATION("%s: END renegotiations=%ld\n", program, ssl, renegotiations);
+	DIMINUTO_LOG_INFORMATION("%s: END\n", program, ssl);
 
 	diminuto_mux_fini(&mux);
 

@@ -178,7 +178,7 @@ int main(int argc, char ** argv)
 	while ((!eof) || (output < input)) {
 
 		if (diminuto_alarm_check()) {
-			DIMINUTO_LOG_INFORMATION("%s: RUN eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x renegotiations=%ld\n", program, eof, input, output, f16sink, f16source, count);
+			DIMINUTO_LOG_INFORMATION("%s: RUN eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, input, output, f16sink, f16source);
 		}
 
 		if (diminuto_hangup_check()) {
@@ -251,10 +251,7 @@ int main(int argc, char ** argv)
 	ticks = diminuto_timer_periodic(0);
 	ASSERT(ticks >= 0);
 
-	count = codex_connection_renegotiations(ssl);
-	EXPECT(count >= 0);
-
-	DIMINUTO_LOG_INFORMATION("%s: END eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x renegotiations=%ld\n", program, eof, input, output, f16sink, f16source, count);
+	DIMINUTO_LOG_INFORMATION("%s: END eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, input, output, f16sink, f16source);
 	EXPECT(eof);
 	EXPECT(input == output);
 	EXPECT(f16source == f16sink);

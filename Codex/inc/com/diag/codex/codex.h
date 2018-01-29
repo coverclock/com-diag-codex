@@ -21,6 +21,10 @@
 #include <openssl/bio.h>
 
 /*******************************************************************************
+ * C O R E
+ ******************************************************************************/
+
+/*******************************************************************************
  * TYPES
  ******************************************************************************/
 
@@ -38,8 +42,6 @@ typedef BIO codex_rendezvous_t;
  * Type of object that describes an individualOpenSSL socket connection.
  */
 typedef SSL codex_connection_t;
-
-typedef uint32_t codex_header_t;
 
 /**
  * These are the values the integer returned by codex_serror() may assume.
@@ -68,16 +70,6 @@ typedef enum CodexConnectionVerify {
 	CODEX_CONNECTION_VERIFY_CN		=  1,	/* Verification passed matching CN. */
 	CODEX_CONNECTION_VERIFY_FQDN	=  2,	/* Verification passed matching FQDN. */
 } codex_connection_verify_t;
-
-typedef enum CodexState {
-	CODEX_STATE_START,
-	CODEX_STATE_HEADER,
-	CODEX_STATE_PAYLOAD,
-	CODEX_STATE_COMPLETE,
-	CODEX_STATE_ERROR,
-	CODEX_STATE_RENEGOTIATE,
-	CODEX_STATE_CLOSED,
-} codex_state_t;
 
 /*******************************************************************************
  * CONSTANTS
@@ -238,7 +230,7 @@ extern codex_connection_t * codex_connection_free(codex_connection_t * ssl);
  * @param ssl points to the connection.
  * @return true if the connection is a server, false if it is a client.
  */
-extern bool codex_connection_is_server(codex_connection_t * ssl);
+extern bool codex_connection_is_server(const codex_connection_t * ssl);
 
 /*******************************************************************************
  * INPUT/OUTPUT
@@ -343,14 +335,6 @@ extern codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * bi
 extern codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_rendezvous_t * bio);
 
 /*******************************************************************************
- * MACHINES
- ******************************************************************************/
-
-extern codex_state_t codex_reader(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
-
-extern codex_state_t codex_writer(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, const void * buffer, int size, const uint8_t ** here, int * length);
-
-/*******************************************************************************
  * RENEGOTIATION (EXPERIMENTAL)
  ******************************************************************************/
 
@@ -365,15 +349,36 @@ extern int codex_connection_renegotiate(codex_connection_t * ssl);
 /**
  * Return true if the connection is awaiting a pending renegotiation.
  * @param ssl points to the connection (an SSL).
- * @return !0 if a renegotiation is pending, 0 otherwise.
+ * @return true if a renegotiation is pending, false otherwise.
  */
-extern int codex_connection_renegotiating(codex_connection_t * ssl);
+extern bool codex_connection_renegotiating(const codex_connection_t * ssl);
 
-/**
- * Return the number of renegotiations performed on a connection.
- * @param ssl points to the connection (an SSL).
- * @return the number of renegotiations if successful, <0 otherwise.
- */
-extern long codex_connection_renegotiations(codex_connection_t * ssl);
+/*******************************************************************************
+ * M A C H I N E S
+ ******************************************************************************/
+
+/*******************************************************************************
+ * TYPES
+ ******************************************************************************/
+
+typedef uint32_t codex_header_t;
+
+typedef enum CodexState {
+	CODEX_STATE_START,
+	CODEX_STATE_HEADER,
+	CODEX_STATE_PAYLOAD,
+	CODEX_STATE_COMPLETE,
+	CODEX_STATE_ERROR,
+	CODEX_STATE_CONTROL,
+	CODEX_STATE_CLOSED,
+} codex_state_t;
+
+/*******************************************************************************
+ * MACHINES
+ ******************************************************************************/
+
+extern codex_state_t codex_reader(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
+
+extern codex_state_t codex_writer(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, const void * buffer, int size, const uint8_t ** here, int * length);
 
 #endif

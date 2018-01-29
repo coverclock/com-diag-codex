@@ -30,81 +30,6 @@
 #include "codex.h"
 
 /*******************************************************************************
- * RENEGOTIATION
- ******************************************************************************/
-
-int codex_connection_renegotiate(codex_connection_t * ssl)
-{
-	int rc = -1;
-
-	do {
-
-		rc = SSL_renegotiate(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_renegotiate", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		rc = SSL_do_handshake(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_do_handshake", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		if (!SSL_is_server(ssl)) {
-			rc = 0;
-			break;
-		}
-
-		ssl->state = SSL_ST_ACCEPT;
-
-		rc = SSL_do_handshake(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_do_handshake(2)", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		rc = 0;
-
-	} while (false);
-
-	return rc;
-}
-
-int codex_connection_renegotiating(codex_connection_t * ssl)
-{
-	return SSL_renegotiate_pending(ssl);
-}
-
-long codex_connection_renegotiations(codex_connection_t * ssl)
-{
-	long count = -1;
-	BIO * bio = (BIO *)0;
-
-	do {
-
-		/*
-		 * This API only supports SSLs for which the read and the write
-		 * BIOs are the same.
-		 */
-
-		bio = SSL_get_rbio(ssl);
-		if (bio == (BIO *)0) {
-			DIMINUTO_LOG_ERROR("SSL_get_rbio: NULL");
-			break;
-		}
-
-		count = BIO_get_num_renegotiates(bio);
-
-	} while (false);
-
-	return count;
-}
-
-/*******************************************************************************
  * MACHINES
  ******************************************************************************/
 
@@ -136,12 +61,14 @@ codex_state_t codex_reader(codex_state_t state, codex_connection_t * ssl, codex_
 			*length -= bytes;
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
+			} else if (*header > size) {
+				state = CODEX_STATE_ERROR;
 			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
 				*length = *header;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
-				state = CODEX_STATE_RENEGOTIATE;
+				state = CODEX_STATE_CONTROL;
 			}
 		}
 		break;
@@ -159,12 +86,14 @@ codex_state_t codex_reader(codex_state_t state, codex_connection_t * ssl, codex_
 			*length -= bytes;
 			if (*length > 0) {
 				/* Do nothing. */
+			} else if (*header > size) {
+				state = CODEX_STATE_ERROR;
 			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
 				*length = *header;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
-				state = CODEX_STATE_RENEGOTIATE;
+				state = CODEX_STATE_CONTROL;
 			}
 		}
 		break;
@@ -188,10 +117,13 @@ codex_state_t codex_reader(codex_state_t state, codex_connection_t * ssl, codex_
 		}
 		break;
 
-	case CODEX_STATE_RENEGOTIATE:
+	case CODEX_STATE_CONTROL:
 		break;
 
 	case CODEX_STATE_ERROR:
+		break;
+
+	case CODEX_STATE_CLOSED:
 		break;
 
 	}
@@ -224,10 +156,10 @@ codex_state_t codex_writer(codex_state_t state, codex_connection_t * ssl, codex_
 				state = CODEX_STATE_HEADER;
 			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
-				*length = *header;
+				*length = size;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
-				state = CODEX_STATE_RENEGOTIATE;
+				state = CODEX_STATE_CONTROL;
 			}
 		}
 		break;
@@ -247,10 +179,10 @@ codex_state_t codex_writer(codex_state_t state, codex_connection_t * ssl, codex_
 				/* Do nothing. */
 			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
-				*length = *header;
+				*length = size;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
-				state = CODEX_STATE_RENEGOTIATE;
+				state = CODEX_STATE_CONTROL;
 			}
 		}
 		break;
@@ -274,10 +206,13 @@ codex_state_t codex_writer(codex_state_t state, codex_connection_t * ssl, codex_
 		}
 		break;
 
-	case CODEX_STATE_RENEGOTIATE:
+	case CODEX_STATE_CONTROL:
 		break;
 
 	case CODEX_STATE_ERROR:
+		break;
+
+	case CODEX_STATE_CLOSED:
 		break;
 
 	}

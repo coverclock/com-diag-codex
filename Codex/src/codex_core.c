@@ -815,7 +815,7 @@ codex_connection_t * codex_connection_free(codex_connection_t * ssl)
 	return ssl;
 }
 
-bool codex_connection_is_server(codex_connection_t * ssl)
+bool codex_connection_is_server(const codex_connection_t * ssl)
 {
 	return !!SSL_is_server(ssl);
 }
@@ -1161,3 +1161,57 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 
 	return ssl;
 }
+
+/*******************************************************************************
+ * RENEGOTIATION
+ ******************************************************************************/
+
+int codex_connection_renegotiate(codex_connection_t * ssl)
+{
+	int rc = -1;
+
+	do {
+
+		rc = SSL_renegotiate(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_renegotiate", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		rc = SSL_do_handshake(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_do_handshake", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		if (!SSL_is_server(ssl)) {
+			rc = 0;
+			break;
+		}
+
+		ssl->state = SSL_ST_ACCEPT;
+
+		rc = SSL_do_handshake(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_do_handshake(2)", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		rc = 0;
+
+	} while (false);
+
+	return rc;
+}
+
+bool codex_connection_renegotiating(const codex_connection_t * ssl)
+{
+	/*
+	 * Parameter of SSL_renegotiatate_pending() can and should be const.
+	 */
+	return SSL_renegotiate_pending((codex_connection_t *)ssl);
+}
+
