@@ -817,7 +817,10 @@ codex_connection_t * codex_connection_free(codex_connection_t * ssl)
 
 bool codex_connection_is_server(const codex_connection_t * ssl)
 {
-	return !!SSL_is_server(ssl);
+	/*
+	 * Parameter to SSL_is_server() can and should be const.
+	 */
+	return !!SSL_is_server((codex_connection_t *)ssl);
 }
 
 /*******************************************************************************
@@ -874,10 +877,12 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 				break;
 			}
 
-			if (retry) {
-				diminuto_yield();
-			}
+		}
 
+		DIMINUTO_LOG_DEBUG("codex_connection_read: ssl=%p buffer=%p size=%d rc=%d\n", ssl, buffer, size, rc, retry);
+
+		if (retry) {
+			diminuto_yield();
 		}
 
 	} while (retry);
@@ -934,10 +939,12 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 				break;
 			}
 
-			if (retry) {
-				diminuto_yield();
-			}
+		}
 
+		DIMINUTO_LOG_DEBUG("codex_connection_write: ssl=%p buffer=%p size=%d rc=%d\n", ssl, buffer, size, rc, retry);
+
+		if (retry) {
+			diminuto_yield();
 		}
 
 	} while (retry);

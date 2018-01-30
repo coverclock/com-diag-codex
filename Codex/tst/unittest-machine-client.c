@@ -23,28 +23,35 @@
 #include "../src/codex_unittest.h"
 #include <unistd.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <errno.h>
 #include <stdlib.h>
 
 int main(int argc, char ** argv)
 {
-	const char * program = "unittest-core-client";
+	const char * program = "unittest-machine-client";
 	const char * farend = "localhost:49152";
 	const char * expected = "server.prairiethorn.org";
 	bool enforce = true;
 	diminuto_ticks_t period = 0;
 	size_t bufsize = 256;
-	uint8_t * buffer = (uint8_t *)0;
+	static const int READER = 0;
+	static const int WRITER = 1;
+	codex_state_t states[2] = { CODEX_STATE_START, CODEX_STATE_COMPLETE };
+	void * buffers[2] = { (void *)0, (void *)0 };
+	codex_header_t headers[2] = { 0, 0 };
+	uint8_t * heres[2] = { (uint8_t *)0, (uint8_t *)0 };
+	int lengths[2] = { 0, 0 };
+	codex_connection_t * ssl = (codex_connection_t *)0;
+	codex_state_t state = CODEX_STATE_FINAL;
+	void * temp = (void *)0;
 	long seconds = -1; /* Unimplemented. */
 	long octets = -1; /* Unimplemented. */
 	int rc = -1;
 	codex_context_t * ctx = (codex_context_t *)0;
 	diminuto_mux_t mux = { 0 };
 	int fd = -1;
-	codex_connection_t * ssl = (codex_connection_t *)0;
 	int bytes = -1;
-	int reads = -1;
-	int writes = -1;
 	bool eof = false;
 	size_t input = 0;
 	size_t output = 0;
@@ -59,7 +66,6 @@ int main(int argc, char ** argv)
 	size_t sunk = 0;
 	long count = 0;
 	diminuto_sticks_t ticks = -1;
-	long prior = -1;
     int opt = '\0';
     extern char * optarg;
 
@@ -116,9 +122,6 @@ int main(int argc, char ** argv)
 
 	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu b=%ld f=\"%s\" e=\"%s\" p=%llu s=%ld v=%d\n", program, bufsize, bytes, farend, expected, period, seconds, enforce);
 
-	buffer = (uint8_t *)malloc(bufsize);
-	ASSERT(buffer != (uint8_t *)0);
-
 	rc = diminuto_hangup_install(!0);
 	ASSERT(rc == 0);
 
@@ -134,6 +137,11 @@ int main(int argc, char ** argv)
 
 	diminuto_mux_init(&mux);
 
+	buffers[READER] = malloc(bufsize);
+	ASSERT(buffers[READER] != (uint8_t *)0);
+	buffers[WRITER] = malloc(bufsize);
+	ASSERT(buffers[WRITER] != (uint8_t *)0);
+
 	rc = codex_initialize();
 	ASSERT(rc == 0);
 
@@ -147,15 +155,14 @@ int main(int argc, char ** argv)
 	ASSERT(ssl != (SSL *)0);
 	ASSERT(!codex_connection_is_server(ssl));
 
-	fd = codex_connection_descriptor(ssl);
-	ASSERT(fd >= 0);
-	ASSERT(fd != STDIN_FILENO);
-	ASSERT(fd != STDOUT_FILENO);
-
-	DIMINUTO_LOG_DEBUG("%s: RUN connection=%p fd=%d\n", program, ssl, fd);
-
 	rc = codex_connection_verify(ssl, expected);
-	if (enforce && (rc != CODEX_CONNECTION_VERIFY_FQDN)) {
+	if(!enforce) {
+		/* Do nothing. */
+	} else if (rc == CODEX_CONNECTION_VERIFY_CN) {
+		/* Do nothing. */
+	} else if (rc == CODEX_CONNECTION_VERIFY_FQDN) {
+		/* Do nothing. */
+	} else {
 
 		rc = codex_connection_close(ssl);
 		ASSERT(rc >= 0);
@@ -166,10 +173,18 @@ int main(int argc, char ** argv)
 		exit(1);
 	}
 
+	fd = codex_connection_descriptor(ssl);
+	ASSERT(fd >= 0);
+	ASSERT(fd != STDIN_FILENO);
+	ASSERT(fd != STDOUT_FILENO);
+
 	rc = diminuto_mux_register_read(&mux, STDIN_FILENO);
 	ASSERT(rc >= 0);
 
 	rc = diminuto_mux_register_read(&mux, fd);
+	ASSERT(rc >= 0);
+
+	rc = diminuto_mux_register_write(&mux, fd);
 	ASSERT(rc >= 0);
 
 	eof = false;
@@ -178,7 +193,7 @@ int main(int argc, char ** argv)
 	while ((!eof) || (output < input)) {
 
 		if (diminuto_alarm_check()) {
-			DIMINUTO_LOG_INFORMATION("%s: RUN eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, input, output, f16sink, f16source);
+			DIMINUTO_LOG_INFORMATION("%s: SIGALRM eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, input, output, f16sink, f16source);
 		}
 
 		if (diminuto_hangup_check()) {
@@ -193,56 +208,90 @@ int main(int argc, char ** argv)
 		}
 		ASSERT(rc > 0);
 
+
+		fd = diminuto_mux_ready_write(&mux);
+		if (fd != codex_connection_descriptor(ssl)) {
+			/* Do nothing. */
+		} else if (states[WRITER] == CODEX_STATE_COMPLETE) {
+			/* Do nothing. */
+		} else if (states[WRITER] == CODEX_STATE_CONTROL) {
+			/* Do nothing. */
+		} else if (states[WRITER] == CODEX_STATE_FINAL) {
+			/* Do nothing. */
+		} else {
+
+			state = codex_machine_writer(states[WRITER], ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
+
+			if (state != CODEX_STATE_COMPLETE) {
+				/* Do nothing. */
+			} else if (states[WRITER] == CODEX_STATE_COMPLETE) {
+				/* Do nothing. */
+			} else {
+
+				DIMINUTO_LOG_DEBUG("%s: fd=%d write=%d\n", program, fd, headers[WRITER]);
+
+				f16sink = diminuto_fletcher_16(buffers[WRITER], headers[WRITER], &f16sinkA, &f16sinkB);
+
+				input += headers[WRITER];
+
+			}
+
+			states[WRITER] = state;
+
+			if (state == CODEX_STATE_FINAL) {
+				break;
+			}
+
+		}
+
 		fd = diminuto_mux_ready_read(&mux);
 		if (fd == codex_connection_descriptor(ssl)) {
 
-			bytes = codex_connection_read(ssl, buffer, bufsize);
-			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, bytes);
-			if (bytes <= 0) {
-				rc = diminuto_mux_unregister_read(&mux, fd);
-				ASSERT(rc >= 0);
+			state = codex_machine_reader(states[READER], ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
+
+			if (state != CODEX_STATE_COMPLETE) {
+				/* Do nothing. */
+			} else if (states[READER] == CODEX_STATE_COMPLETE) {
+				/* Do nothing. */
+			} else {
+
+				DIMINUTO_LOG_DEBUG("%s: fd=%d read=%d\n", program, fd, headers[READER]);
+
+				bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
+				if (bytes <= 0) {
+					break;
+				}
+
+				f16source = diminuto_fletcher_16(buffers[READER], headers[READER], &f16sourceA, &f16sourceB);
+
+				output += headers[READER];
+
+				state = CODEX_STATE_START;
+
+			}
+
+			states[READER] = state;
+
+			if (state == CODEX_STATE_FINAL) {
 				break;
 			}
 
-			bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffer, bytes, bytes);
-			DIMINUTO_LOG_DEBUG("%s: fd=%d written=%d\n", program, STDOUT_FILENO, bytes);
+		} else if (fd != STDIN_FILENO) {
+			/* Do nothing. */
+		} else if (states[WRITER] != CODEX_STATE_COMPLETE) {
+			/* Do nothing. */
+		} else {
+
+			bytes = diminuto_fd_read(STDIN_FILENO, buffers[WRITER], bufsize);
 			if (bytes <= 0) {
-				break;
-			}
-
-			f16source = diminuto_fletcher_16(buffer, bytes, &f16sourceA, &f16sourceB);
-
-			output += bytes;
-
-		} else if (fd == STDIN_FILENO) {
-
-			bytes = diminuto_fd_read(STDIN_FILENO, buffer, bufsize);
-			DIMINUTO_LOG_DEBUG("%s: fd=%d read=%d\n", program, fd, bytes);
-			if (bytes <= 0) {
-				rc = diminuto_mux_unregister_read(&mux, fd);
+				rc = diminuto_mux_unregister_read(&mux, STDIN_FILENO);
 				ASSERT(rc >= 0);
 				eof = true;
 				continue;
 			}
 
-			for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
-				bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
-				DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", program, ssl, bytes);
-				if (bytes <= 0) {
-					break;
-				}
-			}
-			if (bytes <= 0) {
-				break;
-			}
-
-			f16sink = diminuto_fletcher_16(buffer, reads, &f16sinkA, &f16sinkB);
-
-			input += writes;
-
-		} else {
-
-			FAILURE();
+			states[WRITER] = CODEX_STATE_START;
+			headers[WRITER] = bytes;
 
 		}
 
@@ -267,7 +316,8 @@ int main(int argc, char ** argv)
 	ctx = codex_context_free(ctx);
 	EXPECT(ctx == (codex_context_t *)0);
 
-	free(buffer);
+	free(buffers[READER]);
+	free(buffers[WRITER]);
 
 	EXIT();
 }

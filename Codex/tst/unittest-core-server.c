@@ -25,7 +25,7 @@
 
 int main(int argc, char ** argv)
 {
-	const char * program = "unittest-server";
+	const char * program = "unittest-core-server";
 	const char * nearend = "49152";
 	const char * expected = "client.prairiethorn.org";
 	bool enforce = true;
@@ -50,7 +50,6 @@ int main(int argc, char ** argv)
 	bool tripwire = false;
 	char * endptr = (char *)0;
 	long prior = -1;
-	long renegotiations = 0;
     int opt = '\0';
     extern char * optarg;
 

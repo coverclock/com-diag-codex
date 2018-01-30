@@ -361,24 +361,23 @@ extern bool codex_connection_renegotiating(const codex_connection_t * ssl);
  * TYPES
  ******************************************************************************/
 
-typedef uint32_t codex_header_t;
+typedef int32_t codex_header_t;
 
 typedef enum CodexState {
-	CODEX_STATE_START,
-	CODEX_STATE_HEADER,
-	CODEX_STATE_PAYLOAD,
-	CODEX_STATE_COMPLETE,
-	CODEX_STATE_ERROR,
-	CODEX_STATE_CONTROL,
-	CODEX_STATE_CLOSED,
+	CODEX_STATE_START		= 'S',
+	CODEX_STATE_HEADER		= 'H',
+	CODEX_STATE_PAYLOAD		= 'P',
+	CODEX_STATE_COMPLETE	= 'C',
+	CODEX_STATE_CONTROL		= 'R',
+	CODEX_STATE_FINAL		= 'F',
 } codex_state_t;
 
 /*******************************************************************************
  * MACHINES
  ******************************************************************************/
 
-extern codex_state_t codex_reader(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
+extern codex_state_t codex_machine_reader(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
 
-extern codex_state_t codex_writer(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, const void * buffer, int size, const uint8_t ** here, int * length);
+extern codex_state_t codex_machine_writer(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
 
 #endif
