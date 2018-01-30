@@ -37,7 +37,7 @@ int main(int argc, char ** argv)
 	size_t bufsize = 256;
 	static const int READER = 0;
 	static const int WRITER = 1;
-	codex_state_t states[2] = { CODEX_STATE_START, CODEX_STATE_COMPLETE };
+	codex_state_t states[2] = { CODEX_STATE_RESTART, CODEX_STATE_COMPLETE };
 	void * buffers[2] = { (void *)0, (void *)0 };
 	codex_header_t headers[2] = { 0, 0 };
 	uint8_t * heres[2] = { (uint8_t *)0, (uint8_t *)0 };
@@ -155,24 +155,6 @@ int main(int argc, char ** argv)
 	ASSERT(ssl != (SSL *)0);
 	ASSERT(!codex_connection_is_server(ssl));
 
-	rc = codex_connection_verify(ssl, expected);
-	if(!enforce) {
-		/* Do nothing. */
-	} else if (rc == CODEX_CONNECTION_VERIFY_CN) {
-		/* Do nothing. */
-	} else if (rc == CODEX_CONNECTION_VERIFY_FQDN) {
-		/* Do nothing. */
-	} else {
-
-		rc = codex_connection_close(ssl);
-		ASSERT(rc >= 0);
-
-		ssl = codex_connection_free(ssl);
-		ASSERT(ssl == (SSL *)0);
-
-		exit(1);
-	}
-
 	fd = codex_connection_descriptor(ssl);
 	ASSERT(fd >= 0);
 	ASSERT(fd != STDIN_FILENO);
@@ -208,91 +190,85 @@ int main(int argc, char ** argv)
 		}
 		ASSERT(rc > 0);
 
-
 		fd = diminuto_mux_ready_write(&mux);
-		if (fd != codex_connection_descriptor(ssl)) {
-			/* Do nothing. */
-		} else if (states[WRITER] == CODEX_STATE_COMPLETE) {
-			/* Do nothing. */
-		} else if (states[WRITER] == CODEX_STATE_CONTROL) {
-			/* Do nothing. */
-		} else if (states[WRITER] == CODEX_STATE_FINAL) {
-			/* Do nothing. */
+		if (fd == codex_connection_descriptor(ssl)) {
+
+			if (states[WRITER] != CODEX_STATE_COMPLETE) {
+
+				state = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
+
+				if (state == CODEX_STATE_FINAL) {
+					break;
+				} else if (state == states[WRITER]) {
+					/* Do nothing. */
+				} else if (state != CODEX_STATE_COMPLETE) {
+					/* Do nothing. */
+				} else {
+					DIMINUTO_LOG_DEBUG("%s: WRITE fd=%d bytes=%d\n", program, fd, headers[WRITER]);
+					if (headers[WRITER] <= 0) {
+						FATAL();
+					}
+					f16sink = diminuto_fletcher_16(buffers[WRITER], headers[WRITER], &f16sinkA, &f16sinkB);
+					input += headers[WRITER];
+				}
+
+				states[WRITER] = state;
+
+			}
+
 		} else {
-
-			state = codex_machine_writer(states[WRITER], ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
-
-			if (state != CODEX_STATE_COMPLETE) {
-				/* Do nothing. */
-			} else if (states[WRITER] == CODEX_STATE_COMPLETE) {
-				/* Do nothing. */
-			} else {
-
-				DIMINUTO_LOG_DEBUG("%s: fd=%d write=%d\n", program, fd, headers[WRITER]);
-
-				f16sink = diminuto_fletcher_16(buffers[WRITER], headers[WRITER], &f16sinkA, &f16sinkB);
-
-				input += headers[WRITER];
-
-			}
-
-			states[WRITER] = state;
-
-			if (state == CODEX_STATE_FINAL) {
-				break;
-			}
-
+			/* Do nothing. */
 		}
 
 		fd = diminuto_mux_ready_read(&mux);
 		if (fd == codex_connection_descriptor(ssl)) {
 
-			state = codex_machine_reader(states[READER], ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
+			state = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
 
-			if (state != CODEX_STATE_COMPLETE) {
-				/* Do nothing. */
-			} else if (states[READER] == CODEX_STATE_COMPLETE) {
+			if (state == CODEX_STATE_FINAL) {
+				break;
+			} else if (state != CODEX_STATE_COMPLETE) {
 				/* Do nothing. */
 			} else {
 
-				DIMINUTO_LOG_DEBUG("%s: fd=%d read=%d\n", program, fd, headers[READER]);
+				DIMINUTO_LOG_DEBUG("%s: READ fd=%d bytes=%d\n", program, fd, headers[READER]);
+				if (headers[READER] <= 0) {
+					FATAL();
+				}
 
 				bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
 				if (bytes <= 0) {
 					break;
 				}
-
 				f16source = diminuto_fletcher_16(buffers[READER], headers[READER], &f16sourceA, &f16sourceB);
-
 				output += headers[READER];
 
-				state = CODEX_STATE_START;
+				state = CODEX_STATE_RESTART;
 
 			}
 
 			states[READER] = state;
 
-			if (state == CODEX_STATE_FINAL) {
-				break;
+		} else if (fd == STDIN_FILENO) {
+
+			if (states[WRITER] == CODEX_STATE_COMPLETE) {
+
+				bytes = diminuto_fd_read(STDIN_FILENO, buffers[WRITER], bufsize);
+				if (bytes <= 0) {
+					DIMINUTO_LOG_INFORMATION("%s: EOF fd=%d\n", program, STDIN_FILENO);
+					rc = diminuto_mux_unregister_read(&mux, STDIN_FILENO);
+					ASSERT(rc >= 0);
+					eof = true;
+					continue;
+				}
+
+				states[WRITER] = (input == 0) ? CODEX_STATE_START : CODEX_STATE_RESTART;
+				headers[WRITER] = bytes;
+
 			}
 
-		} else if (fd != STDIN_FILENO) {
-			/* Do nothing. */
-		} else if (states[WRITER] != CODEX_STATE_COMPLETE) {
-			/* Do nothing. */
 		} else {
-
-			bytes = diminuto_fd_read(STDIN_FILENO, buffers[WRITER], bufsize);
-			if (bytes <= 0) {
-				rc = diminuto_mux_unregister_read(&mux, STDIN_FILENO);
-				ASSERT(rc >= 0);
-				eof = true;
-				continue;
-			}
-
-			states[WRITER] = CODEX_STATE_START;
-			headers[WRITER] = bytes;
-
+			/* Do nothing. */
 		}
 
 	}

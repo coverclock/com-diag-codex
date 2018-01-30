@@ -7,7 +7,7 @@
  * Chip Overclock (coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
  *
- * Codex Machine a.k.a. Layer 2.
+ * MACHINE
  *
  * See the README.md for a list of references.
  */
@@ -31,21 +31,28 @@
  * MACHINES
  ******************************************************************************/
 
-/*
- * The function call, codex_reader() or codex_writer(), is in effect the
- * stimulus passed into the state machines: the select(2) indicates we can
- * read or we can write.
- */
-
-codex_state_t codex_machine_reader(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length)
+codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length)
 {
-	codex_state_t prior = CODEX_STATE_START;
+	codex_state_t prior = state;
 	int bytes = -1;
 
-	prior = state;
 	switch (state) {
 
 	case CODEX_STATE_START:
+
+		if (codex_connection_is_server(ssl)) {
+			/* Do nothing. */
+		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
+			/* Do nothing. */
+		} else {
+			state = CODEX_STATE_FINAL;
+			break;
+		}
+
+		/* no break */
+
+	case CODEX_STATE_RESTART:
+
 		*header = 0;
 		*here = (uint8_t *)header;
 		*length = sizeof(*header);
@@ -68,12 +75,27 @@ codex_state_t codex_machine_reader(codex_state_t state, codex_connection_t * ssl
 				*length = *header;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
-				state = CODEX_STATE_CONTROL;
+				state = CODEX_STATE_COMPLETE;
 			}
 		}
+
+		if (!codex_connection_is_server(ssl)) {
+			/* Do nothing. */
+		} else if (prior != CODEX_STATE_START) {
+			/* Do nothing. */
+		} else if (state == CODEX_STATE_FINAL) {
+			/* Do nothing. */
+		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
+			/* Do nothing. */
+		} else {
+			state = CODEX_STATE_FINAL;
+			break;
+		}
+
 		break;
 
 	case CODEX_STATE_HEADER:
+
 		bytes = codex_connection_read(ssl, *here, *length);
 		if (bytes < 0) {
 			state = CODEX_STATE_FINAL;
@@ -93,12 +115,14 @@ codex_state_t codex_machine_reader(codex_state_t state, codex_connection_t * ssl
 				*length = *header;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
-				state = CODEX_STATE_CONTROL;
+				state = CODEX_STATE_COMPLETE;
 			}
 		}
+
 		break;
 
 	case CODEX_STATE_PAYLOAD:
+
 		bytes = codex_connection_read(ssl, *here, *length);
 		if (bytes < 0) {
 			state = CODEX_STATE_FINAL;
@@ -115,33 +139,50 @@ codex_state_t codex_machine_reader(codex_state_t state, codex_connection_t * ssl
 				state = CODEX_STATE_COMPLETE;
 			}
 		}
+
 		break;
 
 	case CODEX_STATE_COMPLETE:
+
 		break;
 
-	case CODEX_STATE_CONTROL:
+	case CODEX_STATE_IDLE:
+
 		break;
 
 	case CODEX_STATE_FINAL:
+
 		break;
 
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_reader: prior=%c ssl=%p bytes=%d header=%d buffer=%p size=%d here=%p length=%d state=%c\n", prior, ssl, bytes, *header, buffer, size, *here, *length, state);
+	DIMINUTO_LOG_DEBUG("codex_machine_reader: prior=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d state=%c\n", prior, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, state);
 
 	return state;
 }
 
-codex_state_t codex_machine_writer(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length)
+codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length)
 {
-	codex_state_t prior = CODEX_STATE_START;
+	codex_state_t prior = state;
 	int bytes = -1;
 
-	prior = state;
 	switch (state) {
 
 	case CODEX_STATE_START:
+
+		if (codex_connection_is_server(ssl)) {
+			/* Do nothing. */
+		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
+			/* Do nothing. */
+		} else {
+			state = CODEX_STATE_FINAL;
+			break;
+		}
+
+		/* no break */
+
+	case CODEX_STATE_RESTART:
+
 		*header = size;
 		*here = (uint8_t *)header;
 		*length = sizeof(*header);
@@ -162,12 +203,27 @@ codex_state_t codex_machine_writer(codex_state_t state, codex_connection_t * ssl
 				*length = size;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
-				state = CODEX_STATE_CONTROL;
+				state = CODEX_STATE_COMPLETE;
 			}
 		}
+
+		if (!codex_connection_is_server(ssl)) {
+			/* Do nothing. */
+		} else if (prior != CODEX_STATE_START) {
+			/* Do nothing. */
+		} else if (state == CODEX_STATE_FINAL) {
+			/* Do nothing. */
+		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
+			/* Do nothing. */
+		} else {
+			state = CODEX_STATE_FINAL;
+			break;
+		}
+
 		break;
 
 	case CODEX_STATE_HEADER:
+
 		bytes = codex_connection_write(ssl, *here, *length);
 		if (bytes < 0) {
 			state = CODEX_STATE_FINAL;
@@ -185,12 +241,14 @@ codex_state_t codex_machine_writer(codex_state_t state, codex_connection_t * ssl
 				*length = size;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
-				state = CODEX_STATE_CONTROL;
+				state = CODEX_STATE_COMPLETE;
 			}
 		}
+
 		break;
 
 	case CODEX_STATE_PAYLOAD:
+
 		bytes = codex_connection_write(ssl, *here, *length);
 		if (bytes < 0) {
 			state = CODEX_STATE_FINAL;
@@ -207,20 +265,24 @@ codex_state_t codex_machine_writer(codex_state_t state, codex_connection_t * ssl
 				state = CODEX_STATE_COMPLETE;
 			}
 		}
+
 		break;
 
 	case CODEX_STATE_COMPLETE:
+
 		break;
 
-	case CODEX_STATE_CONTROL:
+	case CODEX_STATE_IDLE:
+
 		break;
 
 	case CODEX_STATE_FINAL:
+
 		break;
 
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_writer: prior=%c ssl=%p bytes=%d header=%d buffer=%p size=%d here=%p length=%d state=%c\n", prior, ssl, bytes, *header, buffer, size, *here, *length, state);
+	DIMINUTO_LOG_DEBUG("codex_machine_writer: prior=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d state=%c\n", prior, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, state);
 
 	return state;
 }

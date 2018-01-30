@@ -7,7 +7,7 @@
  * Chip Overclock (coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
  *
- * Codex Core a.k.a. Layer 1.
+ * CORE
  *
  * See the README.md for a list of references.
  */

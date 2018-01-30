@@ -24,6 +24,13 @@
  * C O R E
  ******************************************************************************/
 
+/*
+ * Your entire OpenSSL application may only need the Core functionality. Core
+ * doesn't provide any support for renegotiation other than the bare functions
+ * in the API. But if you handle that in your own code, it might not matter.
+ * Core provides authenticated peers and encrypted byte streams.
+ */
+
 /*******************************************************************************
  * TYPES
  ******************************************************************************/
@@ -357,6 +364,11 @@ extern bool codex_connection_renegotiating(const codex_connection_t * ssl);
  * M A C H I N E S
  ******************************************************************************/
 
+/*
+ * Machines provides some infrastructure to handle segmentation, control
+ * messaging, and session boundaries, in the application.
+ */
+
 /*******************************************************************************
  * TYPES
  ******************************************************************************/
@@ -364,20 +376,21 @@ extern bool codex_connection_renegotiating(const codex_connection_t * ssl);
 typedef int32_t codex_header_t;
 
 typedef enum CodexState {
-	CODEX_STATE_START		= 'S',
-	CODEX_STATE_HEADER		= 'H',
-	CODEX_STATE_PAYLOAD		= 'P',
-	CODEX_STATE_COMPLETE	= 'C',
-	CODEX_STATE_CONTROL		= 'R',
-	CODEX_STATE_FINAL		= 'F',
+	CODEX_STATE_START		= 'S',	/* Verify identity and start segment. */
+	CODEX_STATE_RESTART		= 'R',	/* Start segment. */
+	CODEX_STATE_HEADER		= 'H',	/* Continue reading header. */
+	CODEX_STATE_PAYLOAD		= 'P',	/* Read payload. */
+	CODEX_STATE_COMPLETE	= 'C',	/* Segment complete. */
+	CODEX_STATE_IDLE		= 'I',	/* Do nothing. */
+	CODEX_STATE_FINAL		= 'F',	/* Far end closed connection. */
 } codex_state_t;
 
 /*******************************************************************************
  * MACHINES
  ******************************************************************************/
 
-extern codex_state_t codex_machine_reader(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
+extern codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
 
-extern codex_state_t codex_machine_writer(codex_state_t state, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
+extern codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
 
 #endif

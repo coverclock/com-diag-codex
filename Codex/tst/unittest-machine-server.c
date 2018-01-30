@@ -60,7 +60,7 @@ int main(int argc, char ** argv)
 	void * temp = (void *)0;
 	char * endptr = (char *)0;
 	client_t * client = 0;
-	codex_state_t state = CODEX_STATE_FINAL;
+	codex_state_t state = CODEX_STATE_IDLE;
     int opt = '\0';
     extern char * optarg;
 
@@ -189,7 +189,7 @@ int main(int argc, char ** argv)
 			client->source.buffer = malloc(bufsize);
 			ASSERT(client->source.buffer != (void *)0);
 
-			client->sink.state = CODEX_STATE_START;
+			client->sink.state = CODEX_STATE_IDLE;
 			client->sink.buffer = malloc(bufsize);
 			ASSERT(client->sink.buffer != (void *)0);
 
@@ -223,32 +223,9 @@ int main(int argc, char ** argv)
 			ASSERT(*here != (void *)0);
 			client = (client_t *)*here;
 
-			state = codex_machine_reader(client->source.state, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length));
+			state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length));
 
-			if (client->source.state != CODEX_STATE_START) {
-				/* Do nothing. */
-			} else if (state == CODEX_STATE_START) {
-				/* Do nothing. */
-			} else {
-
-				rc = codex_connection_verify(client->ssl, expected);
-				if (!enforce) {
-					/* Do nothing. */
-				} else if (rc == CODEX_CONNECTION_VERIFY_CN) {
-					/* Do nothing. */
-				} else if (rc == CODEX_CONNECTION_VERIFY_FQDN) {
-					/* Do nothing. */
-				} else {
-					state = CODEX_STATE_FINAL;
-				}
-
-			}
-
-			if (client->source.state == CODEX_STATE_FINAL) {
-				/* Do nothing. */
-			} else if (state != CODEX_STATE_FINAL) {
-				/* Do nothing. */
-			} else {
+			if (state == CODEX_STATE_FINAL) {
 
 				DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p\n", program, client);
 
@@ -277,30 +254,31 @@ int main(int argc, char ** argv)
 
 			}
 
-			if (client->source.state == CODEX_STATE_COMPLETE) {
+			if (state == client->source.state) {
 				/* Do nothing. */
 			} else if (state != CODEX_STATE_COMPLETE) {
 				/* Do nothing. */
 			} else {
-
 				DIMINUTO_LOG_DEBUG("%s: READ client=%p bytes=%d\n", program, client, client->source.header);
-
+				if (client->source.header <= 0) {
+					FATAL();
+				}
 			}
+
 
 			client->source.state = state;
 
-			if (client->sink.state != CODEX_STATE_COMPLETE) {
+			if (client->sink.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */
-			} else if (state != CODEX_STATE_COMPLETE) {
+			} else if (client->source.state != CODEX_STATE_COMPLETE) {
 				/* Do nothing. */
 			} else {
-
-				temp = client->source.buffer;
-				client->source.buffer = client->sink.buffer;
-				client->sink.buffer = temp;
-				client->source.state = CODEX_STATE_START;
-				client->sink.state = CODEX_STATE_START;
-
+				temp = client->sink.buffer;
+				client->sink.buffer = client->source.buffer;
+				client->sink.header = client->source.header;
+				client->source.buffer = temp;
+				client->sink.state = CODEX_STATE_RESTART;
+				client->source.state = CODEX_STATE_RESTART;
 			}
 
 		}
@@ -317,13 +295,13 @@ int main(int argc, char ** argv)
 			ASSERT(*here != (void *)0);
 			client = (client_t *)*here;
 
-			state = codex_machine_writer(client->sink.state, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length));
+			if (client->sink.state == CODEX_STATE_IDLE) {
+				continue;
+			}
 
-			if (client->sink.state == CODEX_STATE_FINAL) {
-				/* Do nothing. */
-			} else if (state != CODEX_STATE_FINAL) {
-				/* Do nothing. */
-			} else {
+			state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length));
+
+			if (state == CODEX_STATE_FINAL) {
 
 				DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p\n", program, client);
 
@@ -353,30 +331,31 @@ int main(int argc, char ** argv)
 
 			}
 
-			if (client->sink.state == CODEX_STATE_COMPLETE) {
+			if (state == client->sink.state) {
 				/* Do nothing. */
 			} else if (state != CODEX_STATE_COMPLETE) {
 				/* Do nothing. */
 			} else {
-
-				DIMINUTO_LOG_DEBUG("%s: WRITE client=%p bytes=%d\n", program, client, client->source.header);
-
+				DIMINUTO_LOG_DEBUG("%s: WRITE client=%p bytes=%d\n", program, client, client->sink.header);
+				if (client->sink.header <= 0) {
+					FATAL();
+				}
+				state = CODEX_STATE_IDLE;
 			}
 
 			client->source.state = state;
 
-			if (client->source.state != CODEX_STATE_COMPLETE) {
+			if (client->sink.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */
-			} else if (state != CODEX_STATE_COMPLETE) {
+			} else if (client->source.state != CODEX_STATE_COMPLETE) {
 				/* Do nothing. */
 			} else {
-
 				temp = client->sink.buffer;
 				client->sink.buffer = client->source.buffer;
+				client->sink.header = client->source.header;
 				client->source.buffer = temp;
-				client->sink.state = CODEX_STATE_START;
-				client->source.state = CODEX_STATE_START;
-
+				client->sink.state = CODEX_STATE_RESTART;
+				client->source.state = CODEX_STATE_RESTART;
 			}
 
 		}
