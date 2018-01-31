@@ -373,14 +373,29 @@ extern bool codex_connection_renegotiating(const codex_connection_t * ssl);
  * TYPES
  ******************************************************************************/
 
+/**
+ * This defines the type of the header word that precedes every payload block.
+ * If the value of the header word is not greater than zero, the header
+ * indicates a control function instead of a payload block.
+ */
 typedef int32_t codex_header_t;
 
+/**
+ * This defines the states the reader and writer state machines may assume.
+ * Initial states for a new connection may be START, but since the input and
+ * output direction of a single connection have separate states, they may be
+ * initialized to different values. The state for a connection that has a
+ * payload available for the application is COMPLETE, for a connection that
+ * has closed is FINAL, and for a connection whose segment has been consumed
+ * and is ready for another is set by the application to RESTART. IDLE is a
+ * do-nothing state.
+ */
 typedef enum CodexState {
-	CODEX_STATE_START		= 'S',	/* Verify identity and start segment. */
-	CODEX_STATE_RESTART		= 'R',	/* Start segment. */
+	CODEX_STATE_START		= 'S',	/* Verify identity and read header. */
+	CODEX_STATE_RESTART		= 'R',	/* Read header. */
 	CODEX_STATE_HEADER		= 'H',	/* Continue reading header. */
 	CODEX_STATE_PAYLOAD		= 'P',	/* Read payload. */
-	CODEX_STATE_COMPLETE	= 'C',	/* Segment complete. */
+	CODEX_STATE_COMPLETE	= 'C',	/* Payload available for application. */
 	CODEX_STATE_IDLE		= 'I',	/* Do nothing. */
 	CODEX_STATE_FINAL		= 'F',	/* Far end closed connection. */
 } codex_state_t;
@@ -389,8 +404,36 @@ typedef enum CodexState {
  * MACHINES
  ******************************************************************************/
 
+/**
+ * Implement a state machine for reading segmented data from an SSL, handling
+ * verification and closing automatically. Except for ssl and size, all of the
+ * parameters for the reader must be independent of those of the writer.
+ * @param state is the current state whose initial value depends on the application.
+ * @param expected is the expected FQDN or CN for verification.
+ * @param ssl points to the SSL.
+ * @param header points to the connection header word (may be uninitialized).
+ * @param buffer points to the connection payload buffer.
+ * @param size is the size of the payload buffer in bytes.
+ * @param here points to the connection data pointer (may be uninitialized).
+ * @param length points to the connection data length (may be initializated).
+ * @return the new state.
+ */
 extern codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
 
+/**
+ * Implement a state machine for writing segmented data to an SSL, handling
+ * verification and closing automatically. Except for ssl and size, all of the
+ * parameters for the reader must be independent of those of the writer.
+ * @param state is the current state whose initial value depends on the application.
+ * @param expected is the expected FQDN or CN for verification.
+ * @param ssl points to the SSL.
+ * @param header points to the connection header word (may be uninitialized).
+ * @param buffer points to the connection payload buffer.
+ * @param size is the size of the payload buffer in bytes.
+ * @param here points to the connection data pointer (may be uninitialized).
+ * @param length points to the connection data length (may be initializated).
+ * @return the new state.
+ */
 extern codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
 
 #endif

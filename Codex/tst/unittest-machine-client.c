@@ -19,6 +19,7 @@
 #include "com/diag/diminuto/diminuto_frequency.h"
 #include "com/diag/diminuto/diminuto_alarm.h"
 #include "com/diag/diminuto/diminuto_fd.h"
+#include "com/diag/diminuto/diminuto_pipe.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex_unittest.h"
 #include <unistd.h>
@@ -135,6 +136,9 @@ int main(int argc, char ** argv)
 
 	}
 
+	rc = diminuto_pipe_install(!0);
+	ASSERT(rc == 0);
+
 	diminuto_mux_init(&mux);
 
 	buffers[READER] = malloc(bufsize);
@@ -180,6 +184,11 @@ int main(int argc, char ** argv)
 
 		if (diminuto_hangup_check()) {
 			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
+			/* Unimplemented. */
+		}
+
+		if (diminuto_pipe_check()) {
+			DIMINUTO_LOG_INFORMATION("%s: SIGPIPE\n", program);
 			/* Unimplemented. */
 		}
 
