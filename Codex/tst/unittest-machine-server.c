@@ -196,18 +196,18 @@ int main(int argc, char ** argv)
 			fd = codex_connection_descriptor(client->ssl);
 			ASSERT(fd >= 0);
 
-			DIMINUTO_LOG_INFORMATION("%s: START client=%p fd=%d\n", program, client, fd);
+			rc = diminuto_mux_register_read(&mux, fd);
+			ASSERT(rc >= 0);
+
+			rc = diminuto_mux_register_write(&mux, fd);
+			ASSERT(rc >= 0);
 
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
 			ASSERT(*here == (void *)0);
 			*here = (void *)client;
 
-			rc = diminuto_mux_register_read(&mux, fd);
-			ASSERT(rc >= 0);
-
-			rc = diminuto_mux_register_write(&mux, fd);
-			ASSERT(rc >= 0);
+			DIMINUTO_LOG_INFORMATION("%s: START client=%p fd=%d\n", program, client, fd);
 
 		}
 
@@ -223,11 +223,17 @@ int main(int argc, char ** argv)
 			ASSERT(*here != (void *)0);
 			client = (client_t *)*here;
 
+			if (client->source.state == CODEX_STATE_IDLE) {
+				continue;
+			}
+
+			ASSERT(client->source.buffer != (void *)0);
+			ASSERT(client->size > 0);
 			state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length));
 
 			if (state == CODEX_STATE_FINAL) {
 
-				DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p\n", program, client);
+				DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
 
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
@@ -240,13 +246,14 @@ int main(int argc, char ** argv)
 				ASSERT(*here != (void *)0);
 				client = (client_t *)*here;
 
-				rc = codex_connection_close(client->ssl);
-				ASSERT(rc >= 0);
 				client->ssl = codex_connection_free(client->ssl);
 				ASSERT(client->ssl == (codex_connection_t *)0);
+
 				free(client->source.buffer);
 				free(client->sink.buffer);
 				free(client);
+
+				client = (client_t *)0;
 
 				*here = (void *)0;
 
@@ -260,25 +267,25 @@ int main(int argc, char ** argv)
 				/* Do nothing. */
 			} else {
 				DIMINUTO_LOG_DEBUG("%s: READ client=%p bytes=%d\n", program, client, client->source.header);
-				if (client->source.header <= 0) {
-					FATAL();
-				}
+				ASSERT(client->source.header > 0);
+				state = CODEX_STATE_IDLE;
 			}
-
 
 			client->source.state = state;
 
 			if (client->sink.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */
-			} else if (client->source.state != CODEX_STATE_COMPLETE) {
+			} else if (client->source.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */
 			} else {
 				temp = client->sink.buffer;
 				client->sink.buffer = client->source.buffer;
 				client->sink.header = client->source.header;
+				ASSERT(client->sink.header > 0);
 				client->source.buffer = temp;
-				client->sink.state = CODEX_STATE_RESTART;
+				ASSERT(client->size > 0);
 				client->source.state = CODEX_STATE_RESTART;
+				client->sink.state = CODEX_STATE_RESTART;
 			}
 
 		}
@@ -299,11 +306,13 @@ int main(int argc, char ** argv)
 				continue;
 			}
 
+			ASSERT(client->sink.buffer != (void *)0);
+			ASSERT(client->sink.header > 0);
 			state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length));
 
 			if (state == CODEX_STATE_FINAL) {
 
-				DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p\n", program, client);
+				DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
 
 				rc = diminuto_mux_unregister_read(&mux, fd);
 				ASSERT(rc >= 0);
@@ -316,14 +325,14 @@ int main(int argc, char ** argv)
 				ASSERT(*here != (void *)0);
 				client = (client_t *)*here;
 
-				rc = codex_connection_close(client->ssl);
-				ASSERT(rc >= 0);
 				client->ssl = codex_connection_free(client->ssl);
 				ASSERT(client->ssl == (codex_connection_t *)0);
 
 				free(client->source.buffer);
 				free(client->sink.buffer);
 				free(client);
+
+				client = (client_t *)0;
 
 				*here = (void *)0;
 
@@ -337,25 +346,25 @@ int main(int argc, char ** argv)
 				/* Do nothing. */
 			} else {
 				DIMINUTO_LOG_DEBUG("%s: WRITE client=%p bytes=%d\n", program, client, client->sink.header);
-				if (client->sink.header <= 0) {
-					FATAL();
-				}
+				ASSERT(client->sink.header > 0);
 				state = CODEX_STATE_IDLE;
 			}
 
-			client->source.state = state;
+			client->sink.state = state;
 
 			if (client->sink.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */
-			} else if (client->source.state != CODEX_STATE_COMPLETE) {
+			} else if (client->source.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */
 			} else {
 				temp = client->sink.buffer;
 				client->sink.buffer = client->source.buffer;
 				client->sink.header = client->source.header;
+				ASSERT(client->sink.header > 0);
 				client->source.buffer = temp;
-				client->sink.state = CODEX_STATE_RESTART;
+				ASSERT(client->size > 0);
 				client->source.state = CODEX_STATE_RESTART;
+				client->sink.state = CODEX_STATE_RESTART;
 			}
 
 		}
@@ -388,14 +397,23 @@ int main(int argc, char ** argv)
 		if (*here == (void *)0) { continue; }
 		client = (client_t *)*here;
 
-		rc = codex_connection_close(client->ssl);
-		ASSERT(rc >= 0);
+		if (client->source.state == CODEX_STATE_FINAL) {
+			/* Do nothing. */
+		} else if (client->sink.state == CODEX_STATE_FINAL) {
+			/* Do nothing. */
+		} else {
+			rc = codex_connection_close(client->ssl);
+			ASSERT(rc >= 0);
+		}
+
 		client->ssl = codex_connection_free(client->ssl);
 		ASSERT(client->ssl == (codex_connection_t *)0);
 
 		free(client->source.buffer);
 		free(client->sink.buffer);
 		free(client);
+
+		client = (client_t *)0;
 
 		*here = (void *)0;
 

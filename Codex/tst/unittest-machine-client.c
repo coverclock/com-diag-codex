@@ -160,13 +160,13 @@ int main(int argc, char ** argv)
 	ASSERT(fd != STDIN_FILENO);
 	ASSERT(fd != STDOUT_FILENO);
 
-	rc = diminuto_mux_register_read(&mux, STDIN_FILENO);
-	ASSERT(rc >= 0);
-
 	rc = diminuto_mux_register_read(&mux, fd);
 	ASSERT(rc >= 0);
 
 	rc = diminuto_mux_register_write(&mux, fd);
+	ASSERT(rc >= 0);
+
+	rc = diminuto_mux_register_read(&mux, STDIN_FILENO);
 	ASSERT(rc >= 0);
 
 	eof = false;
@@ -204,6 +204,7 @@ int main(int argc, char ** argv)
 				} else if (state != CODEX_STATE_COMPLETE) {
 					/* Do nothing. */
 				} else {
+
 					DIMINUTO_LOG_DEBUG("%s: WRITE fd=%d bytes=%d\n", program, fd, headers[WRITER]);
 					if (headers[WRITER] <= 0) {
 						FATAL();
@@ -235,7 +236,6 @@ int main(int argc, char ** argv)
 				if (headers[READER] <= 0) {
 					FATAL();
 				}
-
 				bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
 				if (bytes <= 0) {
 					break;
@@ -282,9 +282,6 @@ int main(int argc, char ** argv)
 	EXPECT(f16source == f16sink);
 
 	diminuto_mux_fini(&mux);
-
-	rc = codex_connection_close(ssl);
-	EXPECT(rc >= 0);
 
 	ssl = codex_connection_free(ssl);
 	EXPECT(ssl == (codex_connection_t *)0);

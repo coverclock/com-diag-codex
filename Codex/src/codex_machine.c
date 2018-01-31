@@ -36,6 +36,8 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 	codex_state_t prior = state;
 	int bytes = -1;
 
+	DIMINUTO_LOG_DEBUG("codex_machine_reader: BEGIN state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
+
 	switch (state) {
 
 	case CODEX_STATE_START:
@@ -62,6 +64,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
+			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -69,6 +72,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
 			} else if (*header > size) {
+				DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", *header, size);
 				state = CODEX_STATE_FINAL;
 			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
@@ -102,6 +106,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
+			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -109,6 +114,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 			if (*length > 0) {
 				/* Do nothing. */
 			} else if (*header > size) {
+				DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", *header, size);
 				state = CODEX_STATE_FINAL;
 			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
@@ -129,6 +135,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
+			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -143,20 +150,25 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		break;
 
 	case CODEX_STATE_COMPLETE:
-
 		break;
 
 	case CODEX_STATE_IDLE:
-
 		break;
 
 	case CODEX_STATE_FINAL:
-
 		break;
 
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_reader: prior=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d state=%c\n", prior, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, state);
+	if (prior == state) {
+		/* Do nothing. */
+	} else if (state != CODEX_STATE_FINAL) {
+		/* Do nothing. */
+	} else {
+		(void)codex_connection_close(ssl);
+	}
+
+	DIMINUTO_LOG_DEBUG("codex_machine_reader: END state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
 	return state;
 }
@@ -165,6 +177,8 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 {
 	codex_state_t prior = state;
 	int bytes = -1;
+
+	DIMINUTO_LOG_DEBUG("codex_machine_writer: BEGIN state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
 	switch (state) {
 
@@ -192,6 +206,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
+			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -200,7 +215,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 				state = CODEX_STATE_HEADER;
 			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
-				*length = size;
+				*length = *header;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
 				state = CODEX_STATE_COMPLETE;
@@ -230,6 +245,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
+			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -238,7 +254,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 				/* Do nothing. */
 			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
-				*length = size;
+				*length = *header;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
 				state = CODEX_STATE_COMPLETE;
@@ -255,6 +271,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
+			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -269,20 +286,25 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		break;
 
 	case CODEX_STATE_COMPLETE:
-
 		break;
 
 	case CODEX_STATE_IDLE:
-
 		break;
 
 	case CODEX_STATE_FINAL:
-
 		break;
 
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_writer: prior=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d state=%c\n", prior, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, state);
+	if (prior == state) {
+		/* Do nothing. */
+	} else if (state != CODEX_STATE_FINAL) {
+		/* Do nothing. */
+	} else {
+		(void)codex_connection_close(ssl);
+	}
+
+	DIMINUTO_LOG_DEBUG("codex_machine_writer: END state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
 	return state;
 }
