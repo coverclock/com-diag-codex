@@ -58,6 +58,11 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		*header = 0;
 		*here = (uint8_t *)header;
 		*length = sizeof(*header);
+
+		/* no break */
+
+	case CODEX_STATE_HEADER:
+
 		bytes = codex_connection_read(ssl, *here, *length);
 		if (bytes < 0) {
 			state = CODEX_STATE_FINAL;
@@ -78,6 +83,8 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 				*here = (uint8_t *)buffer;
 				*length = *header;
 				state = CODEX_STATE_PAYLOAD;
+			} else if (*header == 0) {
+				state = CODEX_STATE_RESTART;
 			} else {
 				state = CODEX_STATE_COMPLETE;
 			}
@@ -93,36 +100,6 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 			/* Do nothing. */
 		} else {
 			state = CODEX_STATE_FINAL;
-			break;
-		}
-
-		break;
-
-	case CODEX_STATE_HEADER:
-
-		bytes = codex_connection_read(ssl, *here, *length);
-		if (bytes < 0) {
-			state = CODEX_STATE_FINAL;
-		} else if (bytes == 0) {
-			state = CODEX_STATE_FINAL;
-		} else if (bytes > *length) {
-			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
-			state = CODEX_STATE_FINAL;
-		} else {
-			*here += bytes;
-			*length -= bytes;
-			if (*length > 0) {
-				/* Do nothing. */
-			} else if (*header > size) {
-				DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", *header, size);
-				state = CODEX_STATE_FINAL;
-			} else if (*header > 0) {
-				*here = (uint8_t *)buffer;
-				*length = *header;
-				state = CODEX_STATE_PAYLOAD;
-			} else {
-				state = CODEX_STATE_COMPLETE;
-			}
 		}
 
 		break;
@@ -200,6 +177,11 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		*header = size;
 		*here = (uint8_t *)header;
 		*length = sizeof(*header);
+
+		/* no break */
+
+	case CODEX_STATE_HEADER:
+
 		bytes = codex_connection_write(ssl, *here, *length);
 		if (bytes < 0) {
 			state = CODEX_STATE_FINAL;
@@ -232,33 +214,6 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 			/* Do nothing. */
 		} else {
 			state = CODEX_STATE_FINAL;
-			break;
-		}
-
-		break;
-
-	case CODEX_STATE_HEADER:
-
-		bytes = codex_connection_write(ssl, *here, *length);
-		if (bytes < 0) {
-			state = CODEX_STATE_FINAL;
-		} else if (bytes == 0) {
-			state = CODEX_STATE_FINAL;
-		} else if (bytes > *length) {
-			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
-			state = CODEX_STATE_FINAL;
-		} else {
-			*here += bytes;
-			*length -= bytes;
-			if (*length > 0) {
-				/* Do nothing. */
-			} else if (*header > 0) {
-				*here = (uint8_t *)buffer;
-				*length = *header;
-				state = CODEX_STATE_PAYLOAD;
-			} else {
-				state = CODEX_STATE_COMPLETE;
-			}
 		}
 
 		break;
