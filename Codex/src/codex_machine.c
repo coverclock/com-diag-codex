@@ -28,6 +28,59 @@
 #include "codex.h"
 
 /*******************************************************************************
+ * RENEGOTIATION
+ ******************************************************************************/
+
+int codex_connection_renegotiate(codex_connection_t * ssl)
+{
+	int rc = -1;
+
+	do {
+
+		rc = SSL_renegotiate(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_renegotiate", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		rc = SSL_do_handshake(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_do_handshake", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		if (!SSL_is_server(ssl)) {
+			rc = 0;
+			break;
+		}
+
+		ssl->state = SSL_ST_ACCEPT;
+
+		rc = SSL_do_handshake(ssl);
+		if (rc != 1) {
+			(void)codex_serror("SSL_do_handshake(2)", ssl, rc);
+			rc = -1;
+			break;
+		}
+
+		rc = 0;
+
+	} while (false);
+
+	return rc;
+}
+
+bool codex_connection_renegotiating(const codex_connection_t * ssl)
+{
+	/*
+	 * Parameter of SSL_renegotiatate_pending() can and should be const.
+	 */
+	return SSL_renegotiate_pending((codex_connection_t *)ssl);
+}
+
+/*******************************************************************************
  * MACHINES
  ******************************************************************************/
 

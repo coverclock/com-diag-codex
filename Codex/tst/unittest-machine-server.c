@@ -150,6 +150,14 @@ int main(int argc, char ** argv)
 
 		if (diminuto_hangup_check()) {
 			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
+			for (fd = 0; fd < count; ++fd) {
+				here = diminuto_fd_map_ref(map, fd);
+				ASSERT(here != (void **)0);
+				if (*here != (void *)0) {
+					client = (client_t *)*here;
+					client->renegotiate = true;
+				}
+			}
 		}
 
 		rc = diminuto_mux_wait(&mux, -1);
@@ -259,9 +267,11 @@ int main(int argc, char ** argv)
 			} else if (state != CODEX_STATE_COMPLETE) {
 				/* Do nothing. */
 			} else {
+
 				DIMINUTO_LOG_DEBUG("%s: READ client=%p bytes=%d\n", program, client, client->source.header);
-				ASSERT(client->source.header > 0);
+
 				state = CODEX_STATE_IDLE;
+
 			}
 
 			client->source.state = state;
@@ -270,15 +280,30 @@ int main(int argc, char ** argv)
 				/* Do nothing. */
 			} else if (client->source.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */
-			} else {
+			} else if (!client->renegotiate) {
+
 				temp = client->sink.buffer;
 				client->sink.buffer = client->source.buffer;
 				client->sink.header = client->source.header;
-				ASSERT(client->sink.header > 0);
 				client->source.buffer = temp;
-				ASSERT(client->size > 0);
+
 				client->source.state = CODEX_STATE_RESTART;
 				client->sink.state = CODEX_STATE_RESTART;
+
+			} else {
+
+				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATE client=%p\n", program, client);
+
+				client->renegotiate = false;
+
+				temp = client->sink.buffer;
+				client->sink.buffer = client->source.buffer;
+				client->sink.header = client->source.header;
+				client->source.buffer = temp;
+
+				client->source.state = CODEX_STATE_START;
+				client->sink.state = CODEX_STATE_RESTART;
+
 			}
 
 		}
@@ -338,9 +363,11 @@ int main(int argc, char ** argv)
 			} else if (state != CODEX_STATE_COMPLETE) {
 				/* Do nothing. */
 			} else {
+
 				DIMINUTO_LOG_DEBUG("%s: WRITE client=%p bytes=%d\n", program, client, client->sink.header);
-				ASSERT(client->sink.header > 0);
+
 				state = CODEX_STATE_IDLE;
+
 			}
 
 			client->sink.state = state;
@@ -349,15 +376,31 @@ int main(int argc, char ** argv)
 				/* Do nothing. */
 			} else if (client->source.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */
-			} else {
+			} else if (!client->renegotiate) {
+
 				temp = client->sink.buffer;
 				client->sink.buffer = client->source.buffer;
 				client->sink.header = client->source.header;
-				ASSERT(client->sink.header > 0);
 				client->source.buffer = temp;
-				ASSERT(client->size > 0);
+
 				client->source.state = CODEX_STATE_RESTART;
 				client->sink.state = CODEX_STATE_RESTART;
+
+			} else {
+
+				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATE client=%p\n", program, client);
+
+				client->renegotiate = false;
+
+				temp = client->sink.buffer;
+				client->sink.buffer = client->source.buffer;
+				client->sink.header = client->source.header;
+				client->source.buffer = temp;
+
+				client->source.state = CODEX_STATE_START;
+				client->sink.state = CODEX_STATE_RESTART;
+
+
 			}
 
 		}
