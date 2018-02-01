@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
 
 int main(int argc, char ** argv)
 {
@@ -301,6 +302,23 @@ int main(int argc, char ** argv)
 		} else {
 
 			DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING\n", program);
+
+			if (codex_connection_renegotiating(ssl) || (codex_connection_renegotiate(ssl) == 0)) {
+				while (codex_connection_renegotiating(ssl)) {
+					codex_header_t header = 0;
+					uint8_t * here = (uint8_t *)&header;
+					int length = sizeof(header);
+					header = htonl(header); // Yeah, being paranoid. */
+					do {
+						bytes = codex_connection_write(ssl, here, length);
+						if (bytes <= 0) {
+							break;
+						}
+						here += bytes;
+						length -= bytes;
+					} while (length > 0);
+				}
+			}
 
 			renegotiate = false;
 

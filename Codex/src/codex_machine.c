@@ -22,6 +22,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <stdio.h>
+#include <arpa/inet.h>
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_log.h"
 #include "com/diag/diminuto/diminuto_delay.h"
@@ -88,6 +89,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 {
 	codex_state_t prior = state;
 	int bytes = -1;
+	long word = -1;
 
 	DIMINUTO_LOG_DEBUG("codex_machine_reader: BEGIN state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
@@ -108,7 +110,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 
 	case CODEX_STATE_RESTART:
 
-		*header = 0;
+		*header = htonl(word = 0); /* Yeah, I know I'm being paranoid. */
 		*here = (uint8_t *)header;
 		*length = sizeof(*header);
 
@@ -127,18 +129,21 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		} else {
 			*here += bytes;
 			*length -= bytes;
+			word = ntohl(word = *header);
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
-			} else if (*header > size) {
-				DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", *header, size);
+			} else if (word > size) {
+				DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", word, size);
 				state = CODEX_STATE_FINAL;
-			} else if (*header > 0) {
+			} else if (word > 0) {
 				*here = (uint8_t *)buffer;
-				*length = *header;
+				*length = word;
+				*header = word;
 				state = CODEX_STATE_PAYLOAD;
-			} else if (*header == 0) {
+			} else if (word == 0) {
 				state = CODEX_STATE_RESTART;
 			} else {
+				*header = word;
 				state = CODEX_STATE_COMPLETE;
 			}
 		}
@@ -207,6 +212,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 {
 	codex_state_t prior = state;
 	int bytes = -1;
+	long word = -1;
 
 	DIMINUTO_LOG_DEBUG("codex_machine_writer: BEGIN state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
@@ -227,7 +233,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 
 	case CODEX_STATE_RESTART:
 
-		*header = size;
+		*header = htonl(word = size);
 		*here = (uint8_t *)header;
 		*length = sizeof(*header);
 
@@ -246,13 +252,16 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		} else {
 			*here += bytes;
 			*length -= bytes;
+			word = ntohl(word = *header);
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
-			} else if (*header > 0) {
+			} else if (word > 0) {
 				*here = (uint8_t *)buffer;
-				*length = *header;
+				*length = word;
+				*header = word;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
+				*header = word;
 				state = CODEX_STATE_COMPLETE;
 			}
 		}
