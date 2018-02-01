@@ -118,7 +118,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 			*here += bytes;
 			*length -= bytes;
 			if (*length > 0) {
-				/* Do nothing. */
+				state = CODEX_STATE_PAYLOAD;
 			} else {
 				state = CODEX_STATE_COMPLETE;
 			}
@@ -232,7 +232,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 			*here += bytes;
 			*length -= bytes;
 			if (*length > 0) {
-				/* Do nothing. */
+				state = CODEX_STATE_PAYLOAD;
 			} else {
 				state = CODEX_STATE_COMPLETE;
 			}
