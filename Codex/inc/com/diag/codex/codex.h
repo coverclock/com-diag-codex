@@ -21,17 +21,6 @@
 #include <openssl/bio.h>
 
 /*******************************************************************************
- * C O R E
- ******************************************************************************/
-
-/*
- * Your entire OpenSSL application may only need the Core functionality. Core
- * doesn't provide any support for renegotiation other than the bare functions
- * in the API. But if you handle that in your own code, it might not matter.
- * Core provides authenticated peers and encrypted byte streams.
- */
-
-/*******************************************************************************
  * TYPES
  ******************************************************************************/
 
@@ -77,6 +66,40 @@ typedef enum CodexConnectionVerify {
 	CODEX_CONNECTION_VERIFY_CN		=  1,	/* Verification passed matching CN. */
 	CODEX_CONNECTION_VERIFY_FQDN	=  2,	/* Verification passed matching FQDN. */
 } codex_connection_verify_t;
+
+/**
+ * This defines the type of the header word that precedes every payload block.
+ * If the value of the header word is not greater than zero, the header
+ * indicates a control function instead of a payload block.
+ */
+typedef int32_t codex_header_t;
+
+/**
+ * This defines the states the reader and writer state machines may assume.
+ * Initial states for a new connection may be START, but since the input and
+ * output direction of a single connection have separate states, they may be
+ * initialized to different values. The state for a connection that has a
+ * payload available for the application is COMPLETE, for a connection that
+ * has closed is FINAL, and for a connection whose segment has been consumed
+ * and is ready for another is set by the application to RESTART. IDLE is a
+ * do-nothing state.
+ */
+typedef enum CodexState {
+	CODEX_STATE_START		= 'S',	/* Verify identity and read header. */
+	CODEX_STATE_RESTART		= 'R',	/* Read header. */
+	CODEX_STATE_HEADER		= 'H',	/* Continue reading header. */
+	CODEX_STATE_PAYLOAD		= 'P',	/* Read payload. */
+	CODEX_STATE_COMPLETE	= 'C',	/* Payload available for application. */
+	CODEX_STATE_IDLE		= 'I',	/* Do nothing. */
+	CODEX_STATE_FINAL		= 'F',	/* Far end closed connection. */
+} codex_state_t;
+
+typedef enum CodexRenegotiation {
+	CODEX_RENEGOTIATION_NONE		= 'N',
+	CODEX_RENEGOTIATION_REQUESTED	= 'R',
+	CODEX_RENEGOTIATION_PENDING		= 'P',
+	CODEX_RENEGOTIATION_ACTIVE		= 'A',
+} codex_renegotiation_t;
 
 /*******************************************************************************
  * CONSTANTS
@@ -342,7 +365,7 @@ extern codex_rendezvous_t * codex_server_rendezvous_free(codex_rendezvous_t * bi
 extern codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_rendezvous_t * bio);
 
 /*******************************************************************************
- * RENEGOTIATION (EXPERIMENTAL)
+ * RENEGOTIATION
  ******************************************************************************/
 
 /**
@@ -361,46 +384,6 @@ extern int codex_connection_renegotiate(codex_connection_t * ssl);
 extern bool codex_connection_renegotiating(const codex_connection_t * ssl);
 
 /*******************************************************************************
- * M A C H I N E S
- ******************************************************************************/
-
-/*
- * Machines provides some infrastructure to handle segmentation, control
- * messaging, and session boundaries, in the application.
- */
-
-/*******************************************************************************
- * TYPES
- ******************************************************************************/
-
-/**
- * This defines the type of the header word that precedes every payload block.
- * If the value of the header word is not greater than zero, the header
- * indicates a control function instead of a payload block.
- */
-typedef int32_t codex_header_t;
-
-/**
- * This defines the states the reader and writer state machines may assume.
- * Initial states for a new connection may be START, but since the input and
- * output direction of a single connection have separate states, they may be
- * initialized to different values. The state for a connection that has a
- * payload available for the application is COMPLETE, for a connection that
- * has closed is FINAL, and for a connection whose segment has been consumed
- * and is ready for another is set by the application to RESTART. IDLE is a
- * do-nothing state.
- */
-typedef enum CodexState {
-	CODEX_STATE_START		= 'S',	/* Verify identity and read header. */
-	CODEX_STATE_RESTART		= 'R',	/* Read header. */
-	CODEX_STATE_HEADER		= 'H',	/* Continue reading header. */
-	CODEX_STATE_PAYLOAD		= 'P',	/* Read payload. */
-	CODEX_STATE_COMPLETE	= 'C',	/* Payload available for application. */
-	CODEX_STATE_IDLE		= 'I',	/* Do nothing. */
-	CODEX_STATE_FINAL		= 'F',	/* Far end closed connection. */
-} codex_state_t;
-
-/*******************************************************************************
  * MACHINES
  ******************************************************************************/
 
@@ -411,11 +394,11 @@ typedef enum CodexState {
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
- * @param header points to the connection header word (may be uninitialized).
- * @param buffer points to the connection payload buffer.
+ * @param header points to where the header will be stored.
+ * @param buffer points to where the payload will be stored.
  * @param size is the size of the payload buffer in bytes.
- * @param here points to the connection data pointer (may be uninitialized).
- * @param length points to the connection data length (may be initializated).
+ * @param here points to where the current buffer pointer will be stored.
+ * @param length points to where the remaining buffer length will be stored.
  * @return the new state.
  */
 extern codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
@@ -427,11 +410,11 @@ extern codex_state_t codex_machine_reader(codex_state_t state, const char * expe
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
- * @param header points to the connection header word (may be uninitialized).
- * @param buffer points to the connection payload buffer.
+ * @param header points to where the header will be stored.
+ * @param buffer points to where the payload will be stored.
  * @param size is the size of the payload buffer in bytes.
- * @param here points to the connection data pointer (may be uninitialized).
- * @param length points to the connection data length (may be initializated).
+ * @param here points to where the current buffer pointer will be stored.
+ * @param length points to where the remaining buffer length will be stored.
  * @return the new state.
  */
 extern codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);

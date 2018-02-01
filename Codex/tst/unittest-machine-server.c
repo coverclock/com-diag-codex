@@ -154,7 +154,6 @@ int main(int argc, char ** argv)
 
 		if (diminuto_hangup_check()) {
 			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
-			/* Unimplemented. */
 		}
 
 		rc = diminuto_mux_wait(&mux, -1);
@@ -368,6 +367,8 @@ int main(int argc, char ** argv)
 			}
 
 		}
+
+		diminuto_yield();
 
 	}
 

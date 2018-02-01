@@ -52,7 +52,7 @@ int main(int argc, char ** argv)
 	codex_context_t * ctx = (codex_context_t *)0;
 	diminuto_mux_t mux = { 0 };
 	int fd = -1;
-	int bytes = -1;
+	ssize_t bytes = -1;
 	bool eof = false;
 	size_t input = 0;
 	size_t output = 0;
@@ -67,6 +67,7 @@ int main(int argc, char ** argv)
 	size_t sunk = 0;
 	long count = 0;
 	diminuto_sticks_t ticks = -1;
+	bool renegotiate = false;
     int opt = '\0';
     extern char * optarg;
 
@@ -184,7 +185,7 @@ int main(int argc, char ** argv)
 
 		if (diminuto_hangup_check()) {
 			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
-			/* Unimplemented. */
+			renegotiate = true;
 		}
 
 		if (diminuto_pipe_check()) {
@@ -202,7 +203,11 @@ int main(int argc, char ** argv)
 		fd = diminuto_mux_ready_write(&mux);
 		if (fd == codex_connection_descriptor(ssl)) {
 
-			if (states[WRITER] != CODEX_STATE_COMPLETE) {
+			if (states[WRITER] == CODEX_STATE_COMPLETE) {
+				/* Do nothing. */
+			} else if (states[WRITER] == CODEX_STATE_IDLE) {
+				/* Do nothing. */
+			} else {
 
 				state = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
 
@@ -215,11 +220,7 @@ int main(int argc, char ** argv)
 				} else {
 
 					DIMINUTO_LOG_DEBUG("%s: WRITE fd=%d bytes=%d\n", program, fd, headers[WRITER]);
-					if (headers[WRITER] <= 0) {
-						FATAL();
-					}
-					f16sink = diminuto_fletcher_16(buffers[WRITER], headers[WRITER], &f16sinkA, &f16sinkB);
-					input += headers[WRITER];
+
 				}
 
 				states[WRITER] = state;
@@ -233,30 +234,37 @@ int main(int argc, char ** argv)
 		fd = diminuto_mux_ready_read(&mux);
 		if (fd == codex_connection_descriptor(ssl)) {
 
-			state = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
-
-			if (state == CODEX_STATE_FINAL) {
-				break;
-			} else if (state != CODEX_STATE_COMPLETE) {
+			if (states[READER] == CODEX_STATE_COMPLETE) {
+				/* Cannot happen. */
+			} else if (states[READER] == CODEX_STATE_IDLE) {
 				/* Do nothing. */
 			} else {
 
-				DIMINUTO_LOG_DEBUG("%s: READ fd=%d bytes=%d\n", program, fd, headers[READER]);
-				if (headers[READER] <= 0) {
-					FATAL();
-				}
-				bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
-				if (bytes <= 0) {
-					break;
-				}
-				f16source = diminuto_fletcher_16(buffers[READER], headers[READER], &f16sourceA, &f16sourceB);
-				output += headers[READER];
+				state = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
 
-				state = CODEX_STATE_RESTART;
+				if (state == CODEX_STATE_FINAL) {
+					break;
+				} else if (state != CODEX_STATE_COMPLETE) {
+					/* Do nothing. */
+				} else {
+
+					DIMINUTO_LOG_DEBUG("%s: READ fd=%d bytes=%d\n", program, fd, headers[READER]);
+
+					f16sink = diminuto_fletcher_16(buffers[READER], headers[READER], &f16sinkA, &f16sinkB);
+					output += headers[READER];
+
+					bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
+					if (bytes <= 0) {
+						break;
+					}
+
+					state = renegotiate? CODEX_STATE_IDLE : CODEX_STATE_RESTART;
+
+				}
+
+				states[READER] = state;
 
 			}
-
-			states[READER] = state;
 
 		} else if (fd == STDIN_FILENO) {
 
@@ -271,14 +279,37 @@ int main(int argc, char ** argv)
 					continue;
 				}
 
-				states[WRITER] = (input == 0) ? CODEX_STATE_START : CODEX_STATE_RESTART;
 				headers[WRITER] = bytes;
+
+				f16source = diminuto_fletcher_16(buffers[WRITER], headers[WRITER], &f16sourceA, &f16sourceB);
+				input += headers[WRITER];
+
+				states[WRITER] = renegotiate ? CODEX_STATE_IDLE : (input == 0) ? CODEX_STATE_START : CODEX_STATE_RESTART;
 
 			}
 
 		} else {
 			/* Do nothing. */
 		}
+
+		if (!renegotiate) {
+			/* Do nothing. */
+		} else if (states[READER] != CODEX_STATE_IDLE) {
+			/* Do nothing. */
+		} else if (states[WRITER] != CODEX_STATE_IDLE) {
+			/* Do nothing. */
+		} else {
+
+			DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING\n", program);
+
+			renegotiate = false;
+
+			states[READER] = CODEX_STATE_RESTART;
+			states[WRITER] = CODEX_STATE_START;
+
+		}
+
+		diminuto_yield();
 
 	}
 
