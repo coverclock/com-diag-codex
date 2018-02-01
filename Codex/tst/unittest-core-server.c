@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 int main(int argc, char ** argv)
 {
@@ -136,11 +137,6 @@ int main(int argc, char ** argv)
 
 	DIMINUTO_LOG_DEBUG("%s: RUN rendezvous=%p fd=%d\n", program, bio, rendezvous);
 
-	here = diminuto_fd_map_ref(map, rendezvous);
-	ASSERT(here != (void **)0);
-	ASSERT(*here == (void *)0);
-	*here = (void *)bio;
-
 	rc = diminuto_mux_register_accept(&mux, rendezvous);
 	ASSERT(rc >= 0);
 
@@ -158,13 +154,14 @@ int main(int argc, char ** argv)
 		}
 		ASSERT(rc > 0);
 
-		fd = diminuto_mux_ready_accept(&mux);
-		if (fd >= 0) {
+		while (true) {
+
+			fd = diminuto_mux_ready_accept(&mux);
+			if (fd < 0) {
+				break;
+			}
 
 			ASSERT(fd == rendezvous);
-			here = diminuto_fd_map_ref(map, fd);
-			ASSERT(here != (void **)0);
-			ASSERT((codex_rendezvous_t *)*here == bio);
 
 			ssl = codex_server_connection_new(ctx, bio);
 			ASSERT(ssl != (codex_connection_t *)0);
@@ -195,8 +192,12 @@ int main(int argc, char ** argv)
 
 		}
 
-		fd = diminuto_mux_ready_read(&mux);
-		if (fd >= 0) {
+		while (true) {
+
+			fd = diminuto_mux_ready_read(&mux);
+			if (fd < 0) {
+				break;
+			}
 
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
@@ -210,7 +211,7 @@ int main(int argc, char ** argv)
 			ssl = (codex_connection_t *)temp;
 
 			bytes = codex_connection_read(ssl, buffer, bufsize);
-			DIMINUTO_LOG_DEBUG("%s: RUN connection=%p read=%d\n", program, ssl, bytes);
+			DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, ssl, bytes);
 
 			if (tripwire) {
 
@@ -229,7 +230,7 @@ int main(int argc, char ** argv)
 
 				for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
 					bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
-					DIMINUTO_LOG_DEBUG("%s: RUN connection=%p written=%d\n", program, ssl, bytes);
+					DIMINUTO_LOG_DEBUG("%s: WRITE connection=%p bytes=%d\n", program, ssl, bytes);
 					if (bytes <= 0) {
 						break;
 					}
@@ -254,6 +255,8 @@ int main(int argc, char ** argv)
 
 		}
 
+		diminuto_yield();
+
 	}
 
 	DIMINUTO_LOG_INFORMATION("%s: END\n", program, ssl);
@@ -266,11 +269,6 @@ int main(int argc, char ** argv)
 
 	rc = diminuto_mux_unregister_accept(&mux, fd);
 	ASSERT(rc >= 0);
-
-	here = diminuto_fd_map_ref(map, fd);
-	ASSERT(here != (void **)0);
-	ASSERT(*here == bio);
-	*here = (void *)0;
 
 	bio = codex_server_rendezvous_free(bio);
 	ASSERT(bio == (codex_rendezvous_t *)0);

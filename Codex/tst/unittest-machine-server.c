@@ -34,6 +34,7 @@ typedef struct Stream {
 typedef struct Client {
 	codex_connection_t * ssl;
 	int size;
+	bool renegotiate;
 	stream_t source;
 	stream_t sink;
 } client_t;
@@ -142,11 +143,6 @@ int main(int argc, char ** argv)
 	rendezvous = codex_rendezvous_descriptor(bio);
 	ASSERT(rendezvous >= 0);
 
-	here = diminuto_fd_map_ref(map, rendezvous);
-	ASSERT(here != (void **)0);
-	ASSERT(*here == (void *)0);
-	*here = (void *)bio;
-
 	rc = diminuto_mux_register_accept(&mux, rendezvous);
 	ASSERT(rc >= 0);
 
@@ -169,11 +165,7 @@ int main(int argc, char ** argv)
 			if (fd < 0) {
 				break;
 			}
-
-			here = diminuto_fd_map_ref(map, fd);
-			ASSERT(here != (void **)0);
-			ASSERT(*here != (void *)0);
-			bio = (codex_rendezvous_t *)*here;
+			ASSERT(fd == rendezvous);
 
 			client = (client_t *)malloc(sizeof(client_t));
 			ASSERT(client != (client_t *)0);
@@ -183,6 +175,8 @@ int main(int argc, char ** argv)
 			ASSERT(client->ssl != (codex_connection_t *)0);
 			ASSERT(codex_connection_is_server(client->ssl));
 			client->size = bufsize;
+
+			client->renegotiate = false;
 
 			client->source.state = CODEX_STATE_START;
 			client->source.buffer = malloc(bufsize);
@@ -382,11 +376,6 @@ int main(int argc, char ** argv)
 
 	rc = diminuto_mux_unregister_accept(&mux, fd);
 	ASSERT(rc >= 0);
-
-	here = diminuto_fd_map_ref(map, fd);
-	ASSERT(here != (void **)0);
-	ASSERT(*here == bio);
-	*here = (void *)0;
 
 	bio = codex_server_rendezvous_free(bio);
 	ASSERT(bio == (codex_rendezvous_t *)0);

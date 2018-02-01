@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 int main(int argc, char ** argv)
 {
@@ -178,7 +179,7 @@ int main(int argc, char ** argv)
 	while ((!eof) || (output < input)) {
 
 		if (diminuto_alarm_check()) {
-			DIMINUTO_LOG_INFORMATION("%s: RUN eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, input, output, f16sink, f16source);
+			DIMINUTO_LOG_INFORMATION("%s: SIGALRM eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, input, output, f16sink, f16source);
 		}
 
 		if (diminuto_hangup_check()) {
@@ -193,58 +194,65 @@ int main(int argc, char ** argv)
 		}
 		ASSERT(rc > 0);
 
-		fd = diminuto_mux_ready_read(&mux);
-		if (fd == codex_connection_descriptor(ssl)) {
+		while (true) {
 
-			bytes = codex_connection_read(ssl, buffer, bufsize);
-			DIMINUTO_LOG_DEBUG("%s: connection=%p read=%d\n", program, ssl, bytes);
-			if (bytes <= 0) {
-				rc = diminuto_mux_unregister_read(&mux, fd);
-				ASSERT(rc >= 0);
+			fd = diminuto_mux_ready_read(&mux);
+			if (fd < 0) {
+
 				break;
-			}
 
-			bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffer, bytes, bytes);
-			DIMINUTO_LOG_DEBUG("%s: fd=%d written=%d\n", program, STDOUT_FILENO, bytes);
-			if (bytes <= 0) {
-				break;
-			}
+			} else if (fd == codex_connection_descriptor(ssl)) {
 
-			f16source = diminuto_fletcher_16(buffer, bytes, &f16sourceA, &f16sourceB);
+				bytes = codex_connection_read(ssl, buffer, bufsize);
+				DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, ssl, bytes);
+				if (bytes <= 0) {
+					rc = diminuto_mux_unregister_read(&mux, fd);
+					ASSERT(rc >= 0);
+					break;
+				}
 
-			output += bytes;
-
-		} else if (fd == STDIN_FILENO) {
-
-			bytes = diminuto_fd_read(STDIN_FILENO, buffer, bufsize);
-			DIMINUTO_LOG_DEBUG("%s: fd=%d read=%d\n", program, fd, bytes);
-			if (bytes <= 0) {
-				rc = diminuto_mux_unregister_read(&mux, fd);
-				ASSERT(rc >= 0);
-				eof = true;
-				continue;
-			}
-
-			for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
-				bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
-				DIMINUTO_LOG_DEBUG("%s: connection=%p written=%d\n", program, ssl, bytes);
+				bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffer, bytes, bytes);
 				if (bytes <= 0) {
 					break;
 				}
+
+				f16sink = diminuto_fletcher_16(buffer, bytes, &f16sinkA, &f16sinkB);
+				output += bytes;
+
+			} else if (fd == STDIN_FILENO) {
+
+				bytes = diminuto_fd_read(STDIN_FILENO, buffer, bufsize);
+				if (bytes <= 0) {
+					DIMINUTO_LOG_INFORMATION("%s: EOF fd=%d\n", program, fd);
+					rc = diminuto_mux_unregister_read(&mux, fd);
+					ASSERT(rc >= 0);
+					eof = true;
+					continue;
+				}
+
+				f16source = diminuto_fletcher_16(buffer, bytes, &f16sourceA, &f16sourceB);
+				input += bytes;
+
+				for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
+					bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
+					DIMINUTO_LOG_DEBUG("%s: WRITE connection=%p bytes=%d\n", program, ssl, bytes);
+					if (bytes <= 0) {
+						break;
+					}
+				}
+				if (bytes <= 0) {
+					break;
+				}
+
+			} else {
+
+				FATAL();
+
 			}
-			if (bytes <= 0) {
-				break;
-			}
-
-			f16sink = diminuto_fletcher_16(buffer, reads, &f16sinkA, &f16sinkB);
-
-			input += writes;
-
-		} else {
-
-			FAILURE();
 
 		}
+
+		diminuto_yield();
 
 	}
 
