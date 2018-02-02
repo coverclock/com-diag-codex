@@ -292,7 +292,9 @@ int main(int argc, char ** argv)
 
 			} else {
 
-				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATE client=%p\n", program, client);
+				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING client=%p\n", program, client);
+
+				/* TODO */
 
 				client->renegotiate = false;
 
@@ -388,7 +390,9 @@ int main(int argc, char ** argv)
 
 			} else {
 
-				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATE client=%p\n", program, client);
+				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING client=%p\n", program, client);
+
+				/* TODO */
 
 				client->renegotiate = false;
 

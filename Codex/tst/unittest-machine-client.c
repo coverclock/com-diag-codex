@@ -39,7 +39,7 @@ int main(int argc, char ** argv)
 	size_t bufsize = 256;
 	static const int READER = 0;
 	static const int WRITER = 1;
-	codex_state_t states[2] = { CODEX_STATE_RESTART, CODEX_STATE_COMPLETE };
+	codex_state_t states[2] = { CODEX_STATE_START, CODEX_STATE_COMPLETE };
 	void * buffers[2] = { (void *)0, (void *)0 };
 	codex_header_t headers[2] = { 0, 0 };
 	uint8_t * heres[2] = { (uint8_t *)0, (uint8_t *)0 };
@@ -303,22 +303,7 @@ int main(int argc, char ** argv)
 
 			DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING\n", program);
 
-			if (codex_connection_renegotiating(ssl) || (codex_connection_renegotiate(ssl) == 0)) {
-				while (codex_connection_renegotiating(ssl)) {
-					codex_header_t header = 0;
-					uint8_t * here = (uint8_t *)&header;
-					int length = sizeof(header);
-					header = htonl(header); // Yeah, being paranoid. */
-					do {
-						bytes = codex_connection_write(ssl, here, length);
-						if (bytes <= 0) {
-							break;
-						}
-						here += bytes;
-						length -= bytes;
-					} while (length > 0);
-				}
-			}
+			/* TODO */
 
 			renegotiate = false;
 

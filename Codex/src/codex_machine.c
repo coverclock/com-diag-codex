@@ -7,8 +7,6 @@
  * Chip Overclock (coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
  *
- * MACHINE
- *
  * See the README.md for a list of references.
  */
 
@@ -29,59 +27,6 @@
 #include "codex.h"
 
 /*******************************************************************************
- * RENEGOTIATION
- ******************************************************************************/
-
-int codex_connection_renegotiate(codex_connection_t * ssl)
-{
-	int rc = -1;
-
-	do {
-
-		rc = SSL_renegotiate(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_renegotiate", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		rc = SSL_do_handshake(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_do_handshake", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		if (!SSL_is_server(ssl)) {
-			rc = 0;
-			break;
-		}
-
-		ssl->state = SSL_ST_ACCEPT;
-
-		rc = SSL_do_handshake(ssl);
-		if (rc != 1) {
-			(void)codex_serror("SSL_do_handshake(2)", ssl, rc);
-			rc = -1;
-			break;
-		}
-
-		rc = 0;
-
-	} while (false);
-
-	return rc;
-}
-
-bool codex_connection_renegotiating(const codex_connection_t * ssl)
-{
-	/*
-	 * Parameter of SSL_renegotiatate_pending() can and should be const.
-	 */
-	return SSL_renegotiate_pending((codex_connection_t *)ssl);
-}
-
-/*******************************************************************************
  * MACHINES
  ******************************************************************************/
 
@@ -90,6 +35,10 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 	codex_state_t prior = state;
 	int bytes = -1;
 	long word = -1;
+
+	if (SSL_renegotiate_pending(ssl)) {
+		DIMINUTO_LOG_DEBUG("codex_machine_reader: RENEGOTIATING\n");
+	}
 
 	DIMINUTO_LOG_DEBUG("codex_machine_reader: BEGIN state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
@@ -124,7 +73,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
+			DIMINUTO_LOG_WARNING("codex_machine_reader: UNEXPECTED (%d > %d)\n", bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -133,7 +82,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
 			} else if (word > size) {
-				DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", word, size);
+				DIMINUTO_LOG_WARNING("codex_machine_reader: INCOMPATIBLE (%d > %d)\n", word, size);
 				state = CODEX_STATE_FINAL;
 			} else if (word > 0) {
 				*here = (uint8_t *)buffer;
@@ -170,7 +119,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
+			DIMINUTO_LOG_WARNING("codex_machine_reader: UNEXPECTED (%d > %d)\n", bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -214,6 +163,11 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 	int bytes = -1;
 	long word = -1;
 
+	if (SSL_renegotiate_pending(ssl)) {
+		DIMINUTO_LOG_DEBUG("codex_machine_writer: RENEGOTIATING\n");
+		return state;
+	}
+
 	DIMINUTO_LOG_DEBUG("codex_machine_writer: BEGIN state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
 	switch (state) {
@@ -247,7 +201,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
+			DIMINUTO_LOG_WARNING("codex_machine_reader: UNEXPECTED (%d > %d)\n", bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -288,7 +242,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_WARNING("codex_machine_reader: FAILED (%d > %d)\n", bytes, *length);
+			DIMINUTO_LOG_WARNING("codex_machine_reader: UNEXPECTED (%d > %d)\n", bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;

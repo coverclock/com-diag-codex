@@ -7,8 +7,6 @@
  * Chip Overclock (coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
  *
- * CORE
- *
  * See the README.md for a list of references.
  */
 
@@ -662,7 +660,7 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 						continue;
 					}
 
-					DIMINUTO_LOG_DEBUG("codex_connection_verify: FQDN \"%s\"=\"%s\"\n", val->name, val->value);
+					DIMINUTO_LOG_DEBUG("codex_connection_verify: vector \"%s\"=\"%s\"\n", val->name, val->value);
 
 					if (strcmp(val->name, COM_DIAG_CODEX_CONFNAME_DNS) != 0) {
 						CODEX_WTF;
@@ -674,6 +672,12 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 						continue;
 					}
 
+					/*
+					 * Fully Qualified Domain Name (FQDN) matches.
+					 */
+
+					DIMINUTO_LOG_INFORMATION("codex_connection_verify: FQDN=\"%s\"==\"%s\"\n", val->value, expected);
+					result = CODEX_CONNECTION_VERIFY_FQDN;
 					found = !0;
 					break;
 				}
@@ -695,7 +699,7 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 				 * But I'm interested in what it's value might be.
 				 */
 
-				DIMINUTO_LOG_DEBUG("codex_connection_verify: FQDN \"%s\"\n", value);
+				DIMINUTO_LOG_DEBUG("codex_connection_verify: string \"%s\"\n", value);
 				continue;
 
 			} else {
@@ -707,11 +711,6 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 		}
 
 		if (found) {
-			/*
-			 * Fully Qualified Domain Name (FQDN) matches.
-			 */
-			DIMINUTO_LOG_INFORMATION("codex_connection_verify: FQDN=\"%s\"\n", expected);
-			result = CODEX_CONNECTION_VERIFY_FQDN;
 			break;
 		}
 
@@ -727,7 +726,7 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 		}
 		buffer[sizeof(buffer) - 1] = '\0';
 
-		DIMINUTO_LOG_DEBUG("codex_connection_verify: CN \"%s\"=\"%s\"\n", SN_commonName, buffer);
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: name \"%s\"=\"%s\"\n", SN_commonName, buffer);
 
 		if (strcasecmp(buffer, expected) != 0) {
 			break;
@@ -736,9 +735,9 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 		/*
 		 * Common Name (CN) matches.
 		 */
-		DIMINUTO_LOG_INFORMATION("codex_connection_verify: CN=\"%s\"\n", expected);
-		result = CODEX_CONNECTION_VERIFY_CN;
 
+		DIMINUTO_LOG_INFORMATION("codex_connection_verify: CN=\"%s\"==\"%s\"\n", buffer, expected);
+		result = CODEX_CONNECTION_VERIFY_CN;
 		found = !0;
 		break;
 
