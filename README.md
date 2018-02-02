@@ -69,6 +69,9 @@ D. Gibbons, personal communication, 2018-01-17
 D. Gillmor, "Negotiated Finite Diffie-Hellman Ephemeral Parameters for
 Transport Layer Security (TLS)", RFC 7919, 2016-08
 
+HP, "SSL Programming Tutorial", HP OpenVMS Systems Documentation,
+<http://h41379.www4.hpe.com/doc/83final/ba554_90007/ch04s03.html>
+
 Karthik et al., "SSL Renegotiation with Full Duplex Socket Communication",
 Stack Overflow, 2013-12-14,
 <https://stackoverflow.com/questions/18728355/ssl-renegotiation-with-full-duplex-socket-communication>
@@ -83,6 +86,10 @@ OpenSSL Wiki, "FIPS mode and TLS", <https://wiki.openssl.org/index.php/FIPS_mode
 
 I. Ristic, _OpenSSL Cookbook_, Feisty Duck,
 <https://www.feistyduck.com/books/openssl-cookbook/>
+
+L. Rumcajs, "How to perform a rehandshake (renegotiation) with OpenSSL API",
+Stack Overflow, 2015-12-04,
+<https://stackoverflow.com/questions/28944294/how-to-perform-a-rehandshake-renegotiation-with-openssl-api>
 
 J. Viega, M. Messier, P. Chandra, _Network Security with OpenSSL_, O'Reilly, 2002
 
