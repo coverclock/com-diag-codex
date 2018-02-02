@@ -844,16 +844,16 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 				error = codex_serror("SSL_read", ssl, rc);
 				switch (error) {
 				case CODEX_SERROR_NONE:
-					if (!retry) { retry = true; }
+					retry = true; /* Maybe an EINTR? */
 					break;
 				case CODEX_SERROR_SSL:
 					rc = -1;
 					break;
 				case CODEX_SERROR_READ:
-					if (!retry) { retry = true; }
+					if (retry) { rc = -1; } else { retry = true; }
 					break;
 				case CODEX_SERROR_WRITE:
-					rc = -1; /* TODO */
+					if (retry) { rc = -1; } else { retry = true; }
 					break;
 				case CODEX_SERROR_LOOKUP:
 					rc = -1; /* TODO */
@@ -907,16 +907,16 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 				error = codex_serror("SSL_write", ssl, rc);
 				switch (error) {
 				case CODEX_SERROR_NONE:
-					retry = true;
+					retry = true; /* Maybe an EINTR? */
 					break;
 				case CODEX_SERROR_SSL:
 					rc = -1;
 					break;
 				case CODEX_SERROR_READ:
-					rc = -1; /* TODO */
+					if (retry) { rc = -1; } else { retry = true; }
 					break;
 				case CODEX_SERROR_WRITE:
-					if (!retry) { retry = true; }
+					if (retry) { rc = -1; } else { retry = true; }
 					break;
 				case CODEX_SERROR_LOOKUP:
 					rc = -1; /* TODO */
