@@ -34,7 +34,6 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 {
 	codex_state_t prior = state;
 	int bytes = -1;
-	long word = -1;
 
 	if (SSL_renegotiate_pending(ssl)) {
 		DIMINUTO_LOG_DEBUG("codex_machine_reader: RENEGOTIATING\n");
@@ -60,7 +59,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 
 	case CODEX_STATE_RESTART:
 
-		*header = htonl(word = 0); /* Yeah, I know I'm being paranoid. */
+		*header = 0;
 		*here = (uint8_t *)header;
 		*length = sizeof(*header);
 
@@ -79,21 +78,19 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		} else {
 			*here += bytes;
 			*length -= bytes;
-			word = ntohl(word = *header);
+			*header = ntohl(*header);
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
-			} else if (word > size) {
-				DIMINUTO_LOG_WARNING("codex_machine_reader: INCOMPATIBLE (%d > %d)\n", word, size);
+			} else if (*header > size) {
+				DIMINUTO_LOG_WARNING("codex_machine_reader: INCOMPATIBLE (%d > %d)\n", *header, size);
 				state = CODEX_STATE_FINAL;
-			} else if (word > 0) {
+			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
-				*length = word;
-				*header = word;
+				*length = *header;
 				state = CODEX_STATE_PAYLOAD;
-			} else if (word == 0) {
+			} else if (*header == 0) {
 				state = CODEX_STATE_RESTART;
 			} else {
-				*header = word;
 				state = CODEX_STATE_COMPLETE;
 			}
 		}
@@ -163,7 +160,6 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 {
 	codex_state_t prior = state;
 	int bytes = -1;
-	long word = -1;
 
 	if (SSL_renegotiate_pending(ssl)) {
 		DIMINUTO_LOG_DEBUG("codex_machine_writer: RENEGOTIATING\n");
@@ -190,7 +186,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 
 	case CODEX_STATE_RESTART:
 
-		*header = htonl(word = size);
+		*header = htonl(size);
 		*here = (uint8_t *)header;
 		*length = sizeof(*header);
 
@@ -209,16 +205,14 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		} else {
 			*here += bytes;
 			*length -= bytes;
-			word = ntohl(word = *header);
+			*header = ntohl(*header);
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
-			} else if (word > 0) {
+			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
-				*length = word;
-				*header = word;
+				*length = *header;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
-				*header = word;
 				state = CODEX_STATE_COMPLETE;
 			}
 		}

@@ -68,7 +68,7 @@ int main(int argc, char ** argv)
 	size_t sunk = 0;
 	long count = 0;
 	diminuto_sticks_t ticks = -1;
-	bool renegotiate = false;
+	codex_indication_t renegotiate = CODEX_INDICATION_NONE;
     int opt = '\0';
     extern char * optarg;
 
@@ -186,7 +186,7 @@ int main(int argc, char ** argv)
 
 		if (diminuto_hangup_check()) {
 			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
-			renegotiate = true;
+			renegotiate = CODEX_INDICATION_NEAREND;
 		}
 
 		if (diminuto_pipe_check()) {
@@ -247,6 +247,15 @@ int main(int argc, char ** argv)
 					break;
 				} else if (state != CODEX_STATE_COMPLETE) {
 					/* Do nothing. */
+				} else if (headers[READER] == CODEX_INDICATION_FAREND) {
+
+					DIMINUTO_LOG_INFORMATION("%s: INDICATION fd=%d indication=%d\n", program, fd, headers[READER]);
+
+					renegotiate = CODEX_INDICATION_FAREND;
+
+					state = CODEX_STATE_IDLE;
+
+
 				} else {
 
 					DIMINUTO_LOG_DEBUG("%s: READ fd=%d bytes=%d\n", program, fd, headers[READER]);
@@ -303,12 +312,27 @@ int main(int argc, char ** argv)
 
 			DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING\n", program);
 
-			/* TODO */
+			if (renegotiate == CODEX_INDICATION_NEAREND) {
+				codex_header_t header = CODEX_INDICATION_FAREND;
+				uint8_t * here = (uint8_t *)&header;
+				int length = sizeof(header);
+				header = htonl(header);
+				while (length > 0) {
+					rc = codex_connection_write(ssl, here, length);
+					if (rc <= 0) {
+						FATAL();
+					}
+					here += rc;
+					length -= rc;
+				}
+			}
 
-			renegotiate = false;
+			/* TODO */
 
 			states[READER] = CODEX_STATE_RESTART;
 			states[WRITER] = CODEX_STATE_START;
+
+			renegotiate = CODEX_INDICATION_NONE;
 
 		}
 

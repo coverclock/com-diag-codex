@@ -59,7 +59,7 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 
 		rc = SSL_do_handshake(ssl);
 		if (rc != 1) {
-			(void)codex_serror("SSL_do_handshake(2)", ssl, rc);
+			(void)codex_serror("SSL_do_handshake", ssl, rc);
 			rc = -1;
 			break;
 		}

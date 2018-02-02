@@ -22,6 +22,7 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
 
 typedef struct Stream {
 	codex_state_t state;
@@ -34,7 +35,7 @@ typedef struct Stream {
 typedef struct Client {
 	codex_connection_t * ssl;
 	int size;
-	bool renegotiate;
+	codex_indication_t renegotiate;
 	stream_t source;
 	stream_t sink;
 } client_t;
@@ -155,7 +156,7 @@ int main(int argc, char ** argv)
 				ASSERT(here != (void **)0);
 				if (*here != (void *)0) {
 					client = (client_t *)*here;
-					client->renegotiate = true;
+					client->renegotiate = CODEX_INDICATION_NEAREND;
 				}
 			}
 		}
@@ -184,7 +185,7 @@ int main(int argc, char ** argv)
 			ASSERT(codex_connection_is_server(client->ssl));
 			client->size = bufsize;
 
-			client->renegotiate = false;
+			client->renegotiate = CODEX_INDICATION_NONE;
 
 			client->source.state = CODEX_STATE_START;
 			client->source.buffer = malloc(bufsize);
@@ -228,8 +229,6 @@ int main(int argc, char ** argv)
 				continue;
 			}
 
-			ASSERT(client->source.buffer != (void *)0);
-			ASSERT(client->size > 0);
 			state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length));
 
 			if (state == CODEX_STATE_FINAL) {
@@ -266,6 +265,14 @@ int main(int argc, char ** argv)
 				/* Do nothing. */
 			} else if (state != CODEX_STATE_COMPLETE) {
 				/* Do nothing. */
+			} else if (client->source.header == CODEX_INDICATION_FAREND) {
+
+				DIMINUTO_LOG_INFORMATION("%s: INDICATION client=%p indication=%d\n", program, client, client->source.header);
+
+				client->renegotiate = CODEX_INDICATION_FAREND;
+
+				state = CODEX_STATE_IDLE;
+
 			} else {
 
 				DIMINUTO_LOG_DEBUG("%s: READ client=%p bytes=%d\n", program, client, client->source.header);
@@ -294,17 +301,41 @@ int main(int argc, char ** argv)
 
 				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING client=%p\n", program, client);
 
+				if (client->renegotiate == CODEX_INDICATION_NEAREND) {
+					codex_header_t header = CODEX_INDICATION_FAREND;
+					uint8_t * here = (uint8_t *)&header;
+					int length = sizeof(header);
+					header = htonl(header);
+					while (length > 0) {
+						rc = codex_connection_write(client->ssl, here, length);
+						if (rc <= 0) {
+							FATAL();
+						}
+						here += rc;
+						length -= rc;
+					}
+				}
+
 				/* TODO */
 
-				client->renegotiate = false;
+				if (client->renegotiate == CODEX_INDICATION_NEAREND) {
 
-				temp = client->sink.buffer;
-				client->sink.buffer = client->source.buffer;
-				client->sink.header = client->source.header;
-				client->source.buffer = temp;
+					temp = client->sink.buffer;
+					client->sink.buffer = client->source.buffer;
+					client->sink.header = client->source.header;
+					client->source.buffer = temp;
 
-				client->source.state = CODEX_STATE_START;
-				client->sink.state = CODEX_STATE_RESTART;
+					client->source.state = CODEX_STATE_RESTART;
+					client->sink.state = CODEX_STATE_START;
+
+				} else {
+
+					client->source.state = CODEX_STATE_START;
+					client->sink.state = CODEX_STATE_IDLE; /* No change. */
+
+				}
+
+				client->renegotiate = CODEX_INDICATION_NONE;
 
 			}
 
@@ -326,8 +357,6 @@ int main(int argc, char ** argv)
 				continue;
 			}
 
-			ASSERT(client->sink.buffer != (void *)0);
-			ASSERT(client->sink.header > 0);
 			state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length));
 
 			if (state == CODEX_STATE_FINAL) {
@@ -392,18 +421,41 @@ int main(int argc, char ** argv)
 
 				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING client=%p\n", program, client);
 
+				if (client->renegotiate == CODEX_INDICATION_NEAREND) {
+					codex_header_t header = CODEX_INDICATION_FAREND;
+					uint8_t * here = (uint8_t *)&header;
+					int length = sizeof(header);
+					header = htonl(header);
+					while (length > 0) {
+						rc = codex_connection_write(client->ssl, here, length);
+						if (rc <= 0) {
+							FATAL();
+						}
+						here += rc;
+						length -= rc;
+					}
+				}
+
 				/* TODO */
 
-				client->renegotiate = false;
+				if (client->renegotiate == CODEX_INDICATION_NEAREND) {
 
-				temp = client->sink.buffer;
-				client->sink.buffer = client->source.buffer;
-				client->sink.header = client->source.header;
-				client->source.buffer = temp;
+					temp = client->sink.buffer;
+					client->sink.buffer = client->source.buffer;
+					client->sink.header = client->source.header;
+					client->source.buffer = temp;
 
-				client->source.state = CODEX_STATE_START;
-				client->sink.state = CODEX_STATE_RESTART;
+					client->source.state = CODEX_STATE_RESTART;
+					client->sink.state = CODEX_STATE_START;
 
+				} else {
+
+					client->source.state = CODEX_STATE_START;
+					client->sink.state = CODEX_STATE_IDLE; /* No change. */
+
+				}
+
+				client->renegotiate = CODEX_INDICATION_NONE;
 
 			}
 
