@@ -68,9 +68,13 @@ typedef enum CodexConnectionVerify {
 } codex_connection_verify_t;
 
 /**
- * This defines the type of the header word that precedes every payload block.
- * If the value of the header word is not greater than zero, the header
- * indicates a control function instead of a payload block.
+ * This defines the type of the header word that precedes every payload block
+ * when using the reader and writer state machines. If the value of the header
+ * word is not greater than or equal to zero, the header indicates a control
+ * function instead of a payload block, and the header will be returned to the
+ * application with nothing in the payload buffer and the operation will be
+ * considered to be COMPLETE. Zero length payload blocks are silently ignored
+ * by the reader state machine.
  */
 typedef int32_t codex_header_t;
 
@@ -93,13 +97,6 @@ typedef enum CodexState {
 	CODEX_STATE_IDLE		= 'I',	/* Do nothing. */
 	CODEX_STATE_FINAL		= 'F',	/* Far end closed connection. */
 } codex_state_t;
-
-typedef enum CodexRenegotiation {
-	CODEX_RENEGOTIATION_NONE		= 'N',
-	CODEX_RENEGOTIATION_REQUESTED	= 'R',
-	CODEX_RENEGOTIATION_PENDING		= 'P',
-	CODEX_RENEGOTIATION_ACTIVE		= 'A',
-} codex_renegotiation_t;
 
 /*******************************************************************************
  * CONSTANTS
@@ -206,12 +203,12 @@ extern int codex_parameters(const char * dhf);
  * @param cap names the certificate path or NULL if none.
  * @param crt names the certificate to use.
  * @param key names the private key to use.
- * @param flags defines the peer verification options.
+ * @param mode defines the peer verification mode.
  * @param depth defines the maximum certificate depth (9 works well).
  * @param options defines the SSL protocol options.
  * @return a pointer to the new context if successful, NULL otherwise.
  */
-extern codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * key, int flags, int depth, int options);
+extern codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * key, int mode, int depth, int options);
 
 /**
  * Free an existing OpenSSL context.
