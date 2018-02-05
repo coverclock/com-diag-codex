@@ -68,7 +68,8 @@ int main(int argc, char ** argv)
 	size_t sunk = 0;
 	long count = 0;
 	diminuto_sticks_t ticks = -1;
-	codex_indication_t renegotiate = CODEX_INDICATION_NONE;
+	codex_indication_t indication = CODEX_INDICATION_NONE;
+	bool pending = false;
     int opt = '\0';
     extern char * optarg;
 
@@ -186,7 +187,7 @@ int main(int argc, char ** argv)
 
 		if (diminuto_hangup_check()) {
 			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
-			renegotiate = CODEX_INDICATION_NEAREND;
+			indication = CODEX_INDICATION_NEAREND;
 		}
 
 		if (diminuto_pipe_check()) {
@@ -251,7 +252,7 @@ int main(int argc, char ** argv)
 
 					DIMINUTO_LOG_INFORMATION("%s: INDICATION fd=%d indication=%d\n", program, fd, headers[READER]);
 
-					renegotiate = CODEX_INDICATION_FAREND;
+					indication = CODEX_INDICATION_FAREND;
 
 					state = CODEX_STATE_IDLE;
 
@@ -268,7 +269,12 @@ int main(int argc, char ** argv)
 						break;
 					}
 
-					state = renegotiate? CODEX_STATE_IDLE : CODEX_STATE_RESTART;
+					state = indication? CODEX_STATE_IDLE : CODEX_STATE_RESTART;
+
+					if (pending)  {
+						states[WRITER] = CODEX_STATE_START;
+						pending = false;
+					}
 
 				}
 
@@ -294,7 +300,7 @@ int main(int argc, char ** argv)
 				f16source = diminuto_fletcher_16(buffers[WRITER], headers[WRITER], &f16sourceA, &f16sourceB);
 				input += headers[WRITER];
 
-				states[WRITER] = renegotiate ? CODEX_STATE_IDLE : (input == 0) ? CODEX_STATE_START : CODEX_STATE_RESTART;
+				states[WRITER] = indication ? CODEX_STATE_IDLE : (input == 0) ? CODEX_STATE_START : CODEX_STATE_RESTART;
 
 			}
 
@@ -302,7 +308,7 @@ int main(int argc, char ** argv)
 			/* Do nothing. */
 		}
 
-		if (!renegotiate) {
+		if (!indication) {
 			/* Do nothing. */
 		} else if (states[READER] != CODEX_STATE_IDLE) {
 			/* Do nothing. */
@@ -310,29 +316,40 @@ int main(int argc, char ** argv)
 			/* Do nothing. */
 		} else {
 
-			DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING\n", program);
+			DIMINUTO_LOG_INFORMATION("%s: INDICATING\n", program);
 
-			if (renegotiate == CODEX_INDICATION_NEAREND) {
+			if (indication == CODEX_INDICATION_NEAREND) {
 				codex_header_t header = CODEX_INDICATION_FAREND;
 				uint8_t * here = (uint8_t *)&header;
 				int length = sizeof(header);
+
 				header = htonl(header);
 				while (length > 0) {
 					rc = codex_connection_write(ssl, here, length);
 					if (rc <= 0) {
-						FATAL();
+						break;
 					}
 					here += rc;
 					length -= rc;
 				}
+				if (rc <= 0) {
+					break;
+				}
+
+				/* TODO */
+
+				states[READER] = CODEX_STATE_RESTART;
+				states[WRITER] = CODEX_STATE_START;
+
+			} else {
+
+				states[READER] = CODEX_STATE_RESTART;
+				states[WRITER] = CODEX_STATE_IDLE; /* (No change.) */
+				pending = true;
+
 			}
 
-			/* TODO */
-
-			states[READER] = CODEX_STATE_RESTART;
-			states[WRITER] = CODEX_STATE_START;
-
-			renegotiate = CODEX_INDICATION_NONE;
+			indication = CODEX_INDICATION_NONE;
 
 		}
 

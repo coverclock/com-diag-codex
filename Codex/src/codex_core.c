@@ -953,6 +953,11 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 	return rc;
 }
 
+bool codex_connection_is_ready(codex_connection_t * ssl)
+{
+	return !!SSL_pending(ssl);
+}
+
 /*******************************************************************************
  * MULTIPLEXING
  ******************************************************************************/

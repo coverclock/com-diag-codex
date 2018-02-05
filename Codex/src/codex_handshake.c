@@ -71,10 +71,7 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 	return rc;
 }
 
-bool codex_handshake_renegotiating(const codex_connection_t * ssl)
+bool codex_handshake_renegotiating(codex_connection_t * ssl)
 {
-	/*
-	 * Parameter of SSL_renegotiatate_pending() can and should be const.
-	 */
-	return SSL_renegotiate_pending((codex_connection_t *)ssl);
+	return !!SSL_renegotiate_pending(ssl);
 }

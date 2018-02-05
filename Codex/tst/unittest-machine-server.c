@@ -36,7 +36,7 @@ typedef struct Stream {
 typedef struct Client {
 	codex_connection_t * ssl;
 	int size;
-	codex_indication_t renegotiate;
+	codex_indication_t indication;
 	stream_t source;
 	stream_t sink;
 } client_t;
@@ -57,7 +57,7 @@ static client_t * allocate(diminuto_mux_t * muxp, diminuto_fd_map_t * mapp, code
 	ASSERT(codex_connection_is_server(clientp->ssl));
 	clientp->size = bufsize;
 
-	clientp->renegotiate = CODEX_INDICATION_NONE;
+	clientp->indication = CODEX_INDICATION_NONE;
 
 	clientp->source.state = CODEX_STATE_START;
 	clientp->source.buffer = malloc(bufsize);
@@ -126,12 +126,12 @@ static void swap(client_t * clientp)
 	clientp->sink.state = CODEX_STATE_RESTART;
 }
 
-static bool renegotiate(client_t * clientp)
+static bool indicate(client_t * clientp)
 {
 	void * temp = (void *)0;
 	int rc = -1;
 
-	if (clientp->renegotiate == CODEX_INDICATION_NEAREND) {
+	if (clientp->indication == CODEX_INDICATION_NEAREND) {
 		codex_header_t header = CODEX_INDICATION_FAREND;
 		uint8_t * here = (uint8_t *)&header;
 		int length = sizeof(header);
@@ -145,11 +145,8 @@ static bool renegotiate(client_t * clientp)
 			here += rc;
 			length -= rc;
 		}
-	}
 
-	/* TODO */
-
-	if (clientp->renegotiate == CODEX_INDICATION_NEAREND) {
+		/* TODO */
 
 		temp = clientp->sink.buffer;
 		clientp->sink.buffer = clientp->source.buffer;
@@ -162,11 +159,11 @@ static bool renegotiate(client_t * clientp)
 	} else {
 
 		clientp->source.state = CODEX_STATE_START;
-		clientp->sink.state = CODEX_STATE_IDLE;
+		clientp->sink.state = CODEX_STATE_IDLE; /* (No change.) */
 
 	}
 
-	clientp->renegotiate = CODEX_INDICATION_NONE;
+	clientp->indication = CODEX_INDICATION_NONE;
 
 	return true;
 }
@@ -286,7 +283,7 @@ int main(int argc, char ** argv)
 				ASSERT(here != (void **)0);
 				if (*here != (void *)0) {
 					client = (client_t *)*here;
-					client->renegotiate = CODEX_INDICATION_NEAREND;
+					client->indication = CODEX_INDICATION_NEAREND;
 				}
 			}
 		}
@@ -344,7 +341,7 @@ int main(int argc, char ** argv)
 			} else if (client->source.header == CODEX_INDICATION_FAREND) {
 
 				DIMINUTO_LOG_INFORMATION("%s: INDICATION client=%p indication=%d\n", program, client, client->source.header);
-				client->renegotiate = CODEX_INDICATION_FAREND;
+				client->indication = CODEX_INDICATION_FAREND;
 				state = CODEX_STATE_IDLE;
 
 			} else {
@@ -360,14 +357,14 @@ int main(int argc, char ** argv)
 				/* Do nothing. */
 			} else if (client->source.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */
-			} else if (!client->renegotiate) {
+			} else if (!client->indication) {
 
 				swap(client);
 
 			} else {
 
-				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING client=%p\n", program, client);
-				if (!renegotiate(client)) {
+				DIMINUTO_LOG_INFORMATION("%s: INDICATING client=%p\n", program, client);
+				if (!indicate(client)) {
 					DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
 					client = release(&mux, map, client, fd);
 				}
@@ -419,14 +416,14 @@ int main(int argc, char ** argv)
 				/* Do nothing. */
 			} else if (client->source.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */
-			} else if (!client->renegotiate) {
+			} else if (!client->indication) {
 
 				swap(client);
 
 			} else {
 
-				DIMINUTO_LOG_INFORMATION("%s: RENEGOTIATING client=%p\n", program, client);
-				if (!renegotiate(client)) {
+				DIMINUTO_LOG_INFORMATION("%s: INDICATING client=%p\n", program, client);
+				if (!indicate(client)) {
 					DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
 					client = release(&mux, map, client, fd);
 				}

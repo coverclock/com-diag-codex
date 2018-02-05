@@ -106,7 +106,9 @@ typedef enum CodexState {
  * through the segment header.
  */
 typedef enum CodexIndication {
-	CODEX_INDICATION_NONE		=  0,	/* Must be equal to false (0). */
+	CODEX_INDICATION_NONE		=  0,	/* Must be false (0). */
+	CODEX_INDICATION_DONE		= -3,	/* Must be negative. */
+	CODEX_INDICATION_READY		= -2,	/* Must be negative. */
 	CODEX_INDICATION_FAREND		= -1,	/* Must be negative. */
 	CODEX_INDICATION_NEAREND	=  1,	/* Must be positive. */
 } codex_indication_t;
@@ -294,6 +296,14 @@ extern int codex_connection_read(codex_connection_t * ssl, void * buffer, int si
  */
 extern int codex_connection_write(codex_connection_t * ssl, const void * buffer, int size);
 
+/**
+ * Return true if there is data in the connection waiting to be read, false
+ * otherwise.
+ * @param ssl points to the connection (an SSL).
+ * @return true if there is data waiting to be read.
+ */
+extern bool codex_connection_is_ready(codex_connection_t * ssl);
+
 /*******************************************************************************
  * MULTIPLEXING
  ******************************************************************************/
@@ -390,7 +400,7 @@ extern int codex_handshake_renegotiate(codex_connection_t * ssl);
  * @param ssl points to the connection (an SSL).
  * @return true if a renegotiation is pending, false otherwise.
  */
-extern bool codex_handshake_renegotiating(const codex_connection_t * ssl);
+extern bool codex_handshake_renegotiating(codex_connection_t * ssl);
 
 /*******************************************************************************
  * MACHINES

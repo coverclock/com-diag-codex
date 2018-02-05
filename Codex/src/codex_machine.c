@@ -35,7 +35,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 	codex_state_t prior = state;
 	int bytes = -1;
 
-	if (SSL_renegotiate_pending(ssl)) {
+	if (codex_handshake_renegotiating(ssl)) {
 		DIMINUTO_LOG_DEBUG("codex_machine_reader: RENEGOTIATING\n");
 	}
 
@@ -161,7 +161,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 	codex_state_t prior = state;
 	int bytes = -1;
 
-	if (SSL_renegotiate_pending(ssl)) {
+	if (codex_handshake_renegotiating(ssl)) {
 		DIMINUTO_LOG_DEBUG("codex_machine_writer: RENEGOTIATING\n");
 		return state;
 	}
