@@ -39,7 +39,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		DIMINUTO_LOG_DEBUG("codex_machine_reader: RENEGOTIATING\n");
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_reader: BEGIN state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
+	DIMINUTO_LOG_DEBUG("codex_machine_reader: BEGIN state='%c' ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
 	switch (state) {
 
@@ -82,8 +82,10 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
 			} else if (*header > size) {
-				DIMINUTO_LOG_WARNING("codex_machine_reader: INCOMPATIBLE (%d > %d)\n", *header, size);
-				state = CODEX_STATE_FINAL;
+				DIMINUTO_LOG_WARNING("codex_machine_reader: ENBIGGENED (%d > %d)\n", *header, size);
+				*here = (uint8_t *)buffer;
+				*length = size;
+				state = CODEX_STATE_PAYLOAD;
 			} else if (*header > 0) {
 				*here = (uint8_t *)buffer;
 				*length = *header;
@@ -125,8 +127,40 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 			*length -= bytes;
 			if (*length > 0) {
 				state = CODEX_STATE_PAYLOAD;
+			} else if (*header > size) {
+				*length = *header - size;
+				state = CODEX_STATE_SKIP;
 			} else {
 				state = CODEX_STATE_COMPLETE;
+			}
+		}
+
+		break;
+
+	case CODEX_STATE_SKIP:
+
+		{
+			char skip[512];
+			int slack = sizeof(skip);
+
+			if (*length < slack) {
+				slack = *length;
+			}
+			bytes = codex_connection_read(ssl, skip, slack);
+			if (bytes < 0) {
+				state = CODEX_STATE_FINAL;
+			} else if (bytes == 0) {
+				state = CODEX_STATE_FINAL;
+			} else if (bytes > slack) {
+				DIMINUTO_LOG_ERROR("codex_machine_reader: OVERFLOW (%d > %d)\n", bytes, slack);
+				state = CODEX_STATE_FINAL;
+			} else {
+				*length -= bytes;
+				if (*length > 0) {
+					state = CODEX_STATE_SKIP;
+				} else {
+					state = CODEX_STATE_COMPLETE;
+				}
 			}
 		}
 
@@ -151,7 +185,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 		(void)codex_connection_close(ssl);
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_reader: END state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
+	DIMINUTO_LOG_DEBUG("codex_machine_reader: END state='%c' ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
 	return state;
 }
@@ -166,7 +200,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		return state;
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_writer: BEGIN state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
+	DIMINUTO_LOG_DEBUG("codex_machine_writer: BEGIN state='%c' ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
 	switch (state) {
 
@@ -273,7 +307,7 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 		(void)codex_connection_close(ssl);
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_writer: END state=%c ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
+	DIMINUTO_LOG_DEBUG("codex_machine_writer: END state='%c' ssl=%p expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d\n", state, ssl, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length);
 
 	return state;
 }

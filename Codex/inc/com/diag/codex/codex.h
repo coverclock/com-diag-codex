@@ -94,6 +94,7 @@ typedef enum CodexState {
 	CODEX_STATE_RESTART		= 'R',	/* Read header. */
 	CODEX_STATE_HEADER		= 'H',	/* Continue reading header. */
 	CODEX_STATE_PAYLOAD		= 'P',	/* Read payload. */
+	CODEX_STATE_SKIP		= 'K',	/* Skip payload. */
 	CODEX_STATE_COMPLETE	= 'C',	/* Payload available for application. */
 	CODEX_STATE_IDLE		= 'I',	/* Do nothing. */
 	CODEX_STATE_FINAL		= 'F',	/* Far end closed connection. */
@@ -436,7 +437,10 @@ extern bool codex_handshake_renegotiating(codex_connection_t * ssl);
 /**
  * Implement a state machine for reading segmented data from an SSL, handling
  * verification and closing automatically. Except for ssl and size, all of the
- * parameters for the reader must be independent of those of the writer.
+ * parameters for the reader must be independent of those of the writer. If the
+ * received header indicates a segment size larger than the buffer, only as much
+ * of the segment as will fit in the buffer will be returned; the header will
+ * still indicate the original transmitted segment size.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.

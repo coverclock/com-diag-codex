@@ -178,7 +178,7 @@ codex_serror_t codex_serror(const char * str, const SSL * ssl, int rc)
 
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d result=%c\n", str, ssl, rc, error, save, result);
+	DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d result='%c'\n", str, ssl, rc, error, save, result);
 
 	errno = save;
 
@@ -855,7 +855,7 @@ int codex_connection_read_generic(codex_connection_t * ssl, void * buffer, int s
 			}
 		}
 
-		DIMINUTO_LOG_DEBUG("codex_connection_read: ssl=%p buffer=%p size=%d rc=%d error=%c retry=%d\n", ssl, buffer, size, rc, error, retry);
+		DIMINUTO_LOG_DEBUG("codex_connection_read: ssl=%p buffer=%p size=%d rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
 
 		if (retry) {
 			diminuto_yield();
@@ -922,7 +922,7 @@ int codex_connection_write_generic(codex_connection_t * ssl, const void * buffer
 			}
 		}
 
-		DIMINUTO_LOG_DEBUG("codex_connection_write: ssl=%p buffer=%p size=%d rc=%d error=%c retry=%d\n", ssl, buffer, size, rc, error, retry);
+		DIMINUTO_LOG_DEBUG("codex_connection_write: ssl=%p buffer=%p size=%d rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
 
 		if (retry) {
 			diminuto_yield();
