@@ -319,20 +319,16 @@ int main(int argc, char ** argv)
 			DIMINUTO_LOG_INFORMATION("%s: INDICATING\n", program);
 
 			if (indication == CODEX_INDICATION_NEAREND) {
-				codex_header_t header = CODEX_INDICATION_FAREND;
-				uint8_t * here = (uint8_t *)&header;
-				int length = sizeof(header);
+				codex_state_t state = CODEX_STATE_RESTART;
+				codex_header_t header = 0;
+				uint8_t * here = (uint8_t *)0;
+				int length = 0;
 
-				header = htonl(header);
-				while (length > 0) {
-					rc = codex_connection_write(ssl, here, length);
-					if (rc <= 0) {
-						break;
-					}
-					here += rc;
-					length -= rc;
-				}
-				if (rc <= 0) {
+				do {
+					state = codex_machine_writer(state, (char *)0, ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length);
+				} while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
+
+				if (state == CODEX_STATE_FINAL) {
 					break;
 				}
 
