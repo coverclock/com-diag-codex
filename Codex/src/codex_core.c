@@ -114,48 +114,43 @@ codex_serror_t codex_serror(const char * str, const SSL * ssl, int rc)
 	int error = -1;
 	int save = -1;
 	long queued = -1;
-	const char * debug = (const char *)0;
-	const char * information = (const char *)0;
-	const char * notice = (const char *)0;
-	const char * warning = (const char *)0;
 
 	save = errno;
 
 	error = SSL_get_error(ssl, rc);
-	result = (codex_serror_t)error;
 	switch (error) {
 
-	case CODEX_SERROR_NONE:
+	case SSL_ERROR_NONE:
 		/* Only happens if (rc > 0). */
-		debug = "NONE";
+		result = CODEX_SERROR_NONE;
 		break;
 
-	case CODEX_SERROR_ZERO:
+	case SSL_ERROR_ZERO_RETURN:
 		/* Only happens if received shutdown (presumably rc==0). */
-		debug = "ZERO";
+		result = CODEX_SERROR_ZERO;
 		break;
 
-	case CODEX_SERROR_READ:
-		information = "READ";
+	case SSL_ERROR_WANT_READ:
+		result = CODEX_SERROR_READ;
 		break;
 
-	case CODEX_SERROR_WRITE:
-		information = "WRITE";
+	case SSL_ERROR_WANT_WRITE:
+		result = CODEX_SERROR_WRITE;
 		break;
 
-	case CODEX_SERROR_CONNECT:
-		information = "CONNECT";
+	case SSL_ERROR_WANT_CONNECT:
+		result = CODEX_SERROR_CONNECT;
 		break;
 
-	case CODEX_SERROR_ACCEPT:
-		information = "ACCEPT";
+	case SSL_ERROR_WANT_ACCEPT:
+		result = CODEX_SERROR_ACCEPT;
 		break;
 
-	case CODEX_SERROR_LOOKUP:
-		notice = "LOOKUP";
+	case SSL_ERROR_WANT_X509_LOOKUP:
+		result = CODEX_SERROR_LOOKUP;
 		break;
 
-	case CODEX_SERROR_SYSCALL:
+	case SSL_ERROR_SYSCALL:
 		queued = ERR_peek_error();
 		if (queued != 0) {
 			codex_perror(str);
@@ -167,42 +162,23 @@ codex_serror_t codex_serror(const char * str, const SSL * ssl, int rc)
 			errno = save;
 			diminuto_perror(str);
 		}
-		debug = "SYSCALL";
+		result = CODEX_SERROR_SYSCALL;
 		break;
 
-	case CODEX_SERROR_SSL:
+	case SSL_ERROR_SSL:
 		errno = save;
 		codex_perror(str);
-		debug = "SSL";
+		result = CODEX_SERROR_SSL;
 		break;
 
 	default:
 		/* Might happen if libssl or libcrypto are updated. */
 		result = CODEX_SERROR_OTHER;
-		warning = "OTHER";
 		break;
 
 	}
 
-	/*
-	 * Here:
-	 * DEBUG items are those that aren't important or are redundant to log.
-	 * INFORMATION items are those that that might be of interest sometimes.
-	 * NOTICE items are those which I'm actively debugging or curious about.
-	 * WARNING items are where the OpenSSL API has done something unexpected.
-	 */
-
-	if (warning != (const char *)0) {
-		DIMINUTO_LOG_WARNING("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d warning=\"%s\" result=%d\n", str, ssl, rc, error, save, warning, result);
-	} else if (notice != (const char *)0) {
-		DIMINUTO_LOG_NOTICE("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d notice=\"%s\" result=%d\n", str, ssl, rc, error, save, notice, result);
-	} else if (information != (const char *)0) {
-		DIMINUTO_LOG_INFORMATION("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d information=\"%s\" result=%d\n", str, ssl, rc, error, save, information, result);
-	} else if (debug != (const char *)0) {
-		DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d debug=\"%s\" result=%d\n", str, ssl, rc, error, save, debug, result);
-	} else {
-		/* Do nothing. */
-	}
+	DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d result=%c\n", str, ssl, rc, error, save, result);
 
 	errno = save;
 
@@ -826,10 +802,10 @@ bool codex_connection_is_server(const codex_connection_t * ssl)
  * INPUT/OUTPUT
  ******************************************************************************/
 
-int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
+int codex_connection_read_generic(codex_connection_t * ssl, void * buffer, int size, codex_serror_t * serror)
 {
 	int rc = -1;
-	int error = 0;
+	codex_serror_t error = CODEX_SERROR_OKAY;
 	long queued = -1;
 	bool retry = false;
 	uint8_t empty[0];
@@ -879,7 +855,7 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 			}
 		}
 
-		DIMINUTO_LOG_DEBUG("codex_connection_read: ssl=%p buffer=%p size=%d rc=%d retry=%d\n", ssl, buffer, size, rc, retry);
+		DIMINUTO_LOG_DEBUG("codex_connection_read: ssl=%p buffer=%p size=%d rc=%d error=%c retry=%d\n", ssl, buffer, size, rc, error, retry);
 
 		if (retry) {
 			diminuto_yield();
@@ -887,13 +863,17 @@ int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 
 	} while (retry);
 
+	if (serror != (codex_serror_t *)0) {
+		*serror = error;
+	}
+
 	return rc;
 }
 
-int codex_connection_write(codex_connection_t * ssl, const void * buffer, int size)
+int codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, int size, codex_serror_t * serror)
 {
 	int rc = -1;
-	int error = 0;
+	codex_serror_t error = CODEX_SERROR_OKAY;
 	bool retry = false;
 	uint8_t empty[0];
 
@@ -942,13 +922,17 @@ int codex_connection_write(codex_connection_t * ssl, const void * buffer, int si
 			}
 		}
 
-		DIMINUTO_LOG_DEBUG("codex_connection_write: ssl=%p buffer=%p size=%d rc=%d retry=%d\n", ssl, buffer, size, rc, retry);
+		DIMINUTO_LOG_DEBUG("codex_connection_write: ssl=%p buffer=%p size=%d rc=%d error=%c retry=%d\n", ssl, buffer, size, rc, error, retry);
 
 		if (retry) {
 			diminuto_yield();
 		}
 
 	} while (retry);
+
+	if (serror != (codex_serror_t *)0) {
+		*serror = error;
+	}
 
 	return rc;
 }

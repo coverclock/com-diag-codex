@@ -44,16 +44,17 @@ typedef SSL codex_connection_t;
  * They are just enumerations of the defined numbers that SSL_error() returns.
  */
 typedef enum CodexSerror {
-	CODEX_SERROR_NONE		= SSL_ERROR_NONE,
-	CODEX_SERROR_SSL		= SSL_ERROR_SSL,
-	CODEX_SERROR_READ		= SSL_ERROR_WANT_READ,
-	CODEX_SERROR_WRITE		= SSL_ERROR_WANT_WRITE,
-	CODEX_SERROR_LOOKUP		= SSL_ERROR_WANT_X509_LOOKUP,
-	CODEX_SERROR_SYSCALL	= SSL_ERROR_SYSCALL,
-	CODEX_SERROR_ZERO		= SSL_ERROR_ZERO_RETURN,
-	CODEX_SERROR_CONNECT	= SSL_ERROR_WANT_CONNECT,
-	CODEX_SERROR_ACCEPT		= SSL_ERROR_WANT_ACCEPT,
-	CODEX_SERROR_OTHER		= ~((int)1 << ((sizeof(int) * 8) - 1)),
+	CODEX_SERROR_NONE		= '!', /* SSL_ERROR_NONE */
+	CODEX_SERROR_SSL		= 'S', /* SSL_ERROR_SSL */
+	CODEX_SERROR_READ		= 'R', /* SSL_ERROR_WANT_READ */
+	CODEX_SERROR_WRITE		= 'W', /* SSL_ERROR_WANT_WRITE */
+	CODEX_SERROR_LOOKUP		= 'L', /* SSL_ERROR_WANT_X509_LOOKUP */
+	CODEX_SERROR_SYSCALL	= 'K', /* SSL_ERROR_SYSCALL */
+	CODEX_SERROR_ZERO		= '0', /* SSL_ERROR_ZERO_RETURN */
+	CODEX_SERROR_CONNECT	= 'C', /* SSL_ERROR_WANT_CONNECT */
+	CODEX_SERROR_ACCEPT		= 'A', /* SSL_ERROR_WANT_ACCEPT */
+	CODEX_SERROR_OTHER		= '?',
+	CODEX_SERROR_OKAY		= '-',
 } codex_serror_t;
 
 /**
@@ -283,9 +284,32 @@ extern bool codex_connection_is_server(const codex_connection_t * ssl);
  * @param ssl points to the connection.
  * @param buffer points to the buffer.
  * @param size is the size of the buffer in bytes.
+ * @param serror points to the variable into which an OpenSSL error is returned.
  * @return the number of bytes actually read, 0 if closed, <0 if in error.
  */
-extern int codex_connection_read(codex_connection_t * ssl, void * buffer, int size);
+extern int codex_connection_read_generic(codex_connection_t * ssl, void * buffer, int size, codex_serror_t * serror);
+
+/**
+ * Read data from a connection into a buffer of a specified size.
+ * @param ssl points to the connection.
+ * @param buffer points to the buffer.
+ * @param size is the size of the buffer in bytes.
+ * @return the number of bytes actually read, 0 if closed, <0 if in error.
+ */
+static inline int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
+{
+	return codex_connection_read_generic(ssl, buffer, size, (codex_serror_t *)0);
+}
+
+/**
+ * Write data to a connection from a buffer of a specified size.
+ * @param ssl points to the connection.
+ * @param buffer points to the buffer.
+ * @param size is the size of the buffer in bytes.
+ * @param serror points to the variable into which an OpenSSL error is returned.
+ * @return the number of bytes actually written, 0 if closed, <0 if in error.
+ */
+extern int codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, int size, codex_serror_t * serror);
 
 /**
  * Write data to a connection from a buffer of a specified size.
@@ -294,7 +318,10 @@ extern int codex_connection_read(codex_connection_t * ssl, void * buffer, int si
  * @param size is the size of the buffer in bytes.
  * @return the number of bytes actually written, 0 if closed, <0 if in error.
  */
-extern int codex_connection_write(codex_connection_t * ssl, const void * buffer, int size);
+static inline int codex_connection_write(codex_connection_t * ssl, const void * buffer, int size)
+{
+	return codex_connection_write_generic(ssl, buffer, size, (codex_serror_t *)0);
+}
 
 /**
  * Return true if there is data in the connection waiting to be read, false
