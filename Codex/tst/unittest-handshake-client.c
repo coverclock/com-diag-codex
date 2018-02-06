@@ -31,8 +31,8 @@
 
 int main(int argc, char ** argv)
 {
-	const char * program = "unittest-machine-client";
-	const char * farend = "localhost:49152";
+	const char * program = "unittest-handshake-client";
+	const char * farend = "localhost:49154";
 	const char * expected = "server.prairiethorn.org";
 	bool enforce = true;
 	diminuto_ticks_t period = 0;

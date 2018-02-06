@@ -41,8 +41,8 @@ typedef struct Client {
 	stream_t sink;
 } client_t;
 
-static const char * program = "unittest-machine-server";
-static const char * nearend = "49152";
+static const char * program = "unittest-handshake-server";
+static const char * nearend = "49154";
 static const char * expected = "client.prairiethorn.org";
 static bool enforce = true;
 static long seconds = -1; /* Unimplemented. */
