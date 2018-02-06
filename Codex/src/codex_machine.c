@@ -81,19 +81,19 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 			*header = ntohl(*header);
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
+			} else if (*header < 0) {
+				state = CODEX_STATE_COMPLETE;
+			} else if (*header == 0) {
+				state = CODEX_STATE_RESTART;
 			} else if (*header > size) {
 				DIMINUTO_LOG_WARNING("codex_machine_reader: ENBIGGENED (%d > %d)\n", *header, size);
 				*here = (uint8_t *)buffer;
 				*length = size;
 				state = CODEX_STATE_PAYLOAD;
-			} else if (*header > 0) {
+			} else {
 				*here = (uint8_t *)buffer;
 				*length = *header;
 				state = CODEX_STATE_PAYLOAD;
-			} else if (*header == 0) {
-				state = CODEX_STATE_RESTART;
-			} else {
-				state = CODEX_STATE_COMPLETE;
 			}
 		}
 
