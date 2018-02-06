@@ -5,7 +5,7 @@ PERIOD=${2:-"10"}
 BUFSIZE=${3:-"512"}
 BLOCKSIZE=${4:-"4096"}
 BLOCKS=${5:-"1048576"}
-NEAREND=${6:-"49152"}
+NEAREND=${6:-"49162"}
 FAREND=${7:-"localhost:${NEAREND}"}
 
 export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe

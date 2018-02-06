@@ -27,7 +27,7 @@
 int main(int argc, char ** argv)
 {
 	const char * program = "unittest-core-server";
-	const char * nearend = "49152";
+	const char * nearend = "49162";
 	const char * expected = "client.prairiethorn.org";
 	bool enforce = true;
 	long seconds = -1; /* Unimplemented. */

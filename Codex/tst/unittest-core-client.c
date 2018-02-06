@@ -30,7 +30,7 @@
 int main(int argc, char ** argv)
 {
 	const char * program = "unittest-core-client";
-	const char * farend = "localhost:49152";
+	const char * farend = "localhost:49162";
 	const char * expected = "server.prairiethorn.org";
 	bool enforce = true;
 	diminuto_ticks_t period = 0;

@@ -42,7 +42,7 @@ typedef struct Client {
 } client_t;
 
 static const char * program = "unittest-handshake-server";
-static const char * nearend = "49154";
+static const char * nearend = "49202";
 static const char * expected = "client.prairiethorn.org";
 static bool enforce = true;
 static long seconds = -1; /* Unimplemented. */
@@ -141,31 +141,31 @@ static client_t * release(client_t * client)
 	return client;
 }
 
-static void swap(client_t * clientp)
+static void swap(client_t * client)
 {
 	void * temp = (void *)0;
 
-	temp = clientp->sink.buffer;
-	clientp->sink.buffer = clientp->source.buffer;
-	clientp->sink.header = clientp->source.header;
-	clientp->source.buffer = temp;
+	temp = client->sink.buffer;
+	client->sink.buffer = client->source.buffer;
+	client->sink.header = client->source.header;
+	client->source.buffer = temp;
 
-	clientp->source.state = CODEX_STATE_RESTART;
-	clientp->sink.state = CODEX_STATE_RESTART;
+	client->source.state = CODEX_STATE_RESTART;
+	client->sink.state = CODEX_STATE_RESTART;
 }
 
-static bool indicate(client_t * clientp)
+static bool indicate(client_t * client)
 {
 	void * temp = (void *)0;
 
-	if (clientp->indication == CODEX_INDICATION_NEAREND) {
+	if (client->indication == CODEX_INDICATION_NEAREND) {
 		codex_state_t state = CODEX_STATE_RESTART;
 		codex_header_t header = 0;
 		uint8_t * here = (uint8_t *)0;
 		int length = 0;
 
 		do {
-			state = codex_machine_writer(state, (char *)0, clientp->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length);
+			state = codex_machine_writer(state, (char *)0, client->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length);
 		} while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
 
 		if (state == CODEX_STATE_FINAL) {
@@ -174,22 +174,22 @@ static bool indicate(client_t * clientp)
 
 		/* TODO */
 
-		temp = clientp->sink.buffer;
-		clientp->sink.buffer = clientp->source.buffer;
-		clientp->sink.header = clientp->source.header;
-		clientp->source.buffer = temp;
+		temp = client->sink.buffer;
+		client->sink.buffer = client->source.buffer;
+		client->sink.header = client->source.header;
+		client->source.buffer = temp;
 
-		clientp->source.state = CODEX_STATE_RESTART;
-		clientp->sink.state = CODEX_STATE_START;
+		client->source.state = CODEX_STATE_RESTART;
+		client->sink.state = CODEX_STATE_START;
 
 	} else {
 
-		clientp->source.state = CODEX_STATE_START;
-		clientp->sink.state = CODEX_STATE_IDLE; /* (No change.) */
+		client->source.state = CODEX_STATE_START;
+		client->sink.state = CODEX_STATE_IDLE; /* (No change.) */
 
 	}
 
-	clientp->indication = CODEX_INDICATION_NONE;
+	client->indication = CODEX_INDICATION_NONE;
 
 	return true;
 }
