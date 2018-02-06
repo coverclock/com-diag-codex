@@ -41,7 +41,21 @@ typedef struct Client {
 	stream_t sink;
 } client_t;
 
-static client_t * allocate(diminuto_mux_t * muxp, diminuto_fd_map_t * mapp, codex_context_t * ctxp, codex_rendezvous_t * biop, int bufsize)
+static const char * program = "unittest-machine-server";
+static const char * nearend = "49152";
+static const char * expected = "client.prairiethorn.org";
+static bool enforce = true;
+static long seconds = -1; /* Unimplemented. */
+static long octets = -1; /* Unimplemented. */
+static size_t bufsize = 256;
+
+static diminuto_mux_t mux = { 0 };
+static diminuto_fd_map_t * map = (diminuto_fd_map_t *)0;
+static codex_context_t * ctx = (codex_context_t *)0;
+static codex_rendezvous_t * bio = (codex_rendezvous_t *)0;
+static int rendezvous = -1;
+
+static client_t * allocate(void)
 {
 	client_t * clientp = (client_t *)0;
 	int fd = -1;
@@ -52,7 +66,7 @@ static client_t * allocate(diminuto_mux_t * muxp, diminuto_fd_map_t * mapp, code
 	ASSERT(clientp != (client_t *)0);
 	memset(clientp, 0, sizeof(client_t));
 
-	clientp->ssl = codex_server_connection_new(ctxp, biop);
+	clientp->ssl = codex_server_connection_new(ctx, bio);
 	ASSERT(clientp->ssl != (codex_connection_t *)0);
 	ASSERT(codex_connection_is_server(clientp->ssl));
 	clientp->size = bufsize;
@@ -70,13 +84,13 @@ static client_t * allocate(diminuto_mux_t * muxp, diminuto_fd_map_t * mapp, code
 	fd = codex_connection_descriptor(clientp->ssl);
 	ASSERT(fd >= 0);
 
-	rc = diminuto_mux_register_read(muxp, fd);
+	rc = diminuto_mux_register_read(&mux, fd);
 	ASSERT(rc >= 0);
 
-	rc = diminuto_mux_register_write(muxp, fd);
+	rc = diminuto_mux_register_write(&mux, fd);
 	ASSERT(rc >= 0);
 
-	here = diminuto_fd_map_ref(mapp, fd);
+	here = diminuto_fd_map_ref(map, fd);
 	ASSERT(here != (void **)0);
 	ASSERT(*here == (void *)0);
 	*here = (void *)clientp;
@@ -84,33 +98,47 @@ static client_t * allocate(diminuto_mux_t * muxp, diminuto_fd_map_t * mapp, code
 	return clientp;
 }
 
-static client_t * release(diminuto_mux_t * muxp, diminuto_fd_map_t * mapp, client_t * clientp, int fd)
+static client_t * release(client_t * client)
 {
+	int fd = -1;
 	int rc = -1;
 	void ** here = (void **)0;
 
-	clientp->ssl = codex_connection_free(clientp->ssl);
-	ASSERT(clientp->ssl == (codex_connection_t *)0);
+	fd = codex_connection_descriptor(client->ssl);
+	ASSERT(fd >= 0);
 
-	free(clientp->source.buffer);
-	free(clientp->sink.buffer);
-	free(clientp);
-
-	rc = diminuto_mux_unregister_read(muxp, fd);
-	ASSERT(rc >= 0);
-
-	rc = diminuto_mux_unregister_write(muxp, fd);
-	ASSERT(rc >= 0);
-
-	here = diminuto_fd_map_ref(mapp, fd);
+	here = diminuto_fd_map_ref(map, fd);
 	ASSERT(here != (void **)0);
 	ASSERT(*here != (void *)0);
-	ASSERT(clientp == (client_t *)*here);
+	ASSERT(client == (client_t *)*here);
 	*here = (void *)0;
 
-	clientp = (client_t *)0;
+	rc = diminuto_mux_unregister_read(&mux, fd);
+	ASSERT(rc >= 0);
 
-	return clientp;
+	rc = diminuto_mux_unregister_write(&mux, fd);
+	ASSERT(rc >= 0);
+
+	free(client->source.buffer);
+	free(client->sink.buffer);
+
+	if (client->source.state == CODEX_STATE_FINAL) {
+		/* Do nothing. */
+	} else if (client->sink.state == CODEX_STATE_FINAL) {
+		/* Do nothing. */
+	} else {
+		rc = codex_connection_close(client->ssl);
+		ASSERT(rc >= 0);
+	}
+
+	client->ssl = codex_connection_free(client->ssl);
+	ASSERT(client->ssl == (codex_connection_t *)0);
+
+	free(client);
+
+	client = (client_t *)0;
+
+	return client;
 }
 
 static void swap(client_t * clientp)
@@ -129,21 +157,19 @@ static void swap(client_t * clientp)
 static bool indicate(client_t * clientp)
 {
 	void * temp = (void *)0;
-	int rc = -1;
 
 	if (clientp->indication == CODEX_INDICATION_NEAREND) {
-		codex_header_t header = CODEX_INDICATION_FAREND;
-		uint8_t * here = (uint8_t *)&header;
-		int length = sizeof(header);
+		codex_state_t state = CODEX_STATE_RESTART;
+		codex_header_t header = 0;
+		uint8_t * here = (uint8_t *)0;
+		int length = 0;
 
-		header = htonl(header);
-		while (length > 0) {
-			rc = codex_connection_write(clientp->ssl, here, length);
-			if (rc <= 0) {
-				return false;
-			}
-			here += rc;
-			length -= rc;
+		do {
+			state = codex_machine_writer(state, (char *)0, clientp->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length);
+		} while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
+
+		if (state == CODEX_STATE_FINAL) {
+			return false;
 		}
 
 		/* TODO */
@@ -170,21 +196,9 @@ static bool indicate(client_t * clientp)
 
 int main(int argc, char ** argv)
 {
-	const char * program = "unittest-machine-server";
-	const char * nearend = "49152";
-	const char * expected = "client.prairiethorn.org";
-	bool enforce = true;
-	long seconds = -1; /* Unimplemented. */
-	long octets = -1; /* Unimplemented. */
-	size_t bufsize = 256;
 	int rc = -1;
-	codex_context_t * ctx = (codex_context_t *)0;
-	codex_rendezvous_t * bio = (codex_rendezvous_t *)0;
 	ssize_t count = 0;
-	diminuto_fd_map_t * map = (diminuto_fd_map_t *)0;
-	diminuto_mux_t mux = { 0 };
 	int fd = -1;
-	int rendezvous = -1;
 	int bytes = -1;
 	char * endptr = (char *)0;
 	client_t * client = 0;
@@ -303,7 +317,7 @@ int main(int argc, char ** argv)
 			}
 			ASSERT(fd == rendezvous);
 
-			client = allocate(&mux, map, ctx, bio, bufsize);
+			client = allocate();
 			DIMINUTO_LOG_INFORMATION("%s: START client=%p\n", program, client);
 
 		}
@@ -329,7 +343,7 @@ int main(int argc, char ** argv)
 			if (state == CODEX_STATE_FINAL) {
 
 				DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
-				client = release(&mux, map, client, fd);
+				client = release(client);
 				continue;
 
 			}
@@ -366,7 +380,7 @@ int main(int argc, char ** argv)
 				DIMINUTO_LOG_INFORMATION("%s: INDICATING client=%p\n", program, client);
 				if (!indicate(client)) {
 					DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
-					client = release(&mux, map, client, fd);
+					client = release(client);
 				}
 
 			}
@@ -394,7 +408,7 @@ int main(int argc, char ** argv)
 			if (state == CODEX_STATE_FINAL) {
 
 				DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
-				client = release(&mux, map, client, fd);
+				client = release(client);
 				continue;
 
 			}
@@ -425,7 +439,7 @@ int main(int argc, char ** argv)
 				DIMINUTO_LOG_INFORMATION("%s: INDICATING client=%p\n", program, client);
 				if (!indicate(client)) {
 					DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
-					client = release(&mux, map, client, fd);
+					client = release(client);
 				}
 
 			}
@@ -457,16 +471,7 @@ int main(int argc, char ** argv)
 		if (*here == (void *)0) { continue; }
 		client = (client_t *)*here;
 
-		if (client->source.state == CODEX_STATE_FINAL) {
-			/* Do nothing. */
-		} else if (client->sink.state == CODEX_STATE_FINAL) {
-			/* Do nothing. */
-		} else {
-			rc = codex_connection_close(client->ssl);
-			ASSERT(rc >= 0);
-		}
-
-		client = release(&mux, map, client, fd);
+		client = release(client);
 
 	}
 
