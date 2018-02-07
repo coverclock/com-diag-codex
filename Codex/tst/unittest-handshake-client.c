@@ -70,7 +70,7 @@ int main(int argc, char ** argv)
 	long count = 0;
 	diminuto_sticks_t ticks = -1;
 	codex_indication_t indication = CODEX_INDICATION_NONE;
-	bool pending = false;
+	bool verify = true;
     int opt = '\0';
     extern char * optarg;
 
@@ -230,10 +230,14 @@ int main(int argc, char ** argv)
 
 						states[WRITER] = CODEX_STATE_IDLE;
 
-					} else {
+					} else if (indication == CODEX_INDICATION_NEAREND) {
 
 						headers[WRITER] = CODEX_INDICATION_FAREND;
 						states[WRITER] = CODEX_STATE_RESTART;
+
+					} else {
+
+						states[WRITER] = CODEX_STATE_IDLE;
 
 					}
 
@@ -315,7 +319,8 @@ int main(int argc, char ** argv)
 				f16source = diminuto_fletcher_16(buffers[WRITER], headers[WRITER], &f16sourceA, &f16sourceB);
 				input += headers[WRITER];
 
-				states[WRITER] = (input == bytes) ? CODEX_STATE_START : CODEX_STATE_RESTART;
+				states[WRITER] = verify ? CODEX_STATE_START : CODEX_STATE_RESTART;
+				verify = false;
 
 			}
 
@@ -340,14 +345,54 @@ int main(int argc, char ** argv)
 
 			states[READER] = CODEX_STATE_RESTART;
 			headers[WRITER] = CODEX_INDICATION_DONE;
-			states[WRITER] = CODEX_STATE_START;
+			states[WRITER] = CODEX_STATE_RESTART;
+			verify = true;
 			indication = CODEX_INDICATION_NONE;
 
 		} else if (indication == CODEX_INDICATION_FAREND) {
 
 			DIMINUTO_LOG_INFORMATION("%s: FAREND\n", program);
 
-			FATAL(); /* TODO */
+			/*
+			 * Drop into synchronous mode until the handshake is either complete or
+			 * fails.
+			 */
+
+			headers[WRITER] = CODEX_INDICATION_READY;
+			states[WRITER] = CODEX_STATE_RESTART;
+			DIMINUTO_LOG_INFORMATION("%s: WRITE header=%d\n", program, headers[WRITER]);
+			do {
+				states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
+			} while ((states[WRITER] != CODEX_STATE_FINAL) && (states[WRITER] != CODEX_STATE_COMPLETE));
+			if (states[WRITER] == CODEX_STATE_FINAL) {
+				break;
+			}
+
+			/*
+			 * Read until we get a DONE indication. The far end can write zero length
+			 * packets it it needs to drive the OpenSSL actions and our reader
+			 * machine will silently drop them. Likewise, we could write zero length
+			 * packets and the far end's reader state machine will similarly
+			 * silently drop them.
+			 */
+
+			states[READER] = CODEX_STATE_RESTART;
+			do {
+				states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), (void *)0, 0, &(heres[READER]), &(lengths[READER]));
+			} while ((states[READER] != CODEX_STATE_FINAL) && (states[READER] != CODEX_STATE_COMPLETE));
+			if (states[READER] == CODEX_STATE_FINAL) {
+				break;
+			}
+			DIMINUTO_LOG_INFORMATION("%s: READ header=%d\n", program, headers[READER]);
+
+			if (headers[READER] != CODEX_INDICATION_DONE) {
+				break;
+			}
+
+			states[READER] = CODEX_STATE_RESTART;
+			states[WRITER] = CODEX_STATE_IDLE;
+			verify = true;
+			indication = CODEX_INDICATION_NONE;
 
 		} else {
 			FATAL(); /* Should never happen. */
