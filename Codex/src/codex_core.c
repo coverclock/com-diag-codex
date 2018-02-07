@@ -178,7 +178,7 @@ codex_serror_t codex_serror(const char * str, const SSL * ssl, int rc)
 
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d result='%c'\n", str, ssl, rc, error, save, result);
+	DIMINUTO_LOG_INFORMATION("codex_serror: str=\"%s\" ssl=%p rc=%d error=%d errno=%d result='%c'\n", str, ssl, rc, error, save, result);
 
 	errno = save;
 

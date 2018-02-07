@@ -21,7 +21,8 @@
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/diminuto/diminuto_pipe.h"
 #include "com/diag/codex/codex.h"
-#include "../src/codex_unittest.h"
+#include "unittest-core.h"
+#include "unittest-machine.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>

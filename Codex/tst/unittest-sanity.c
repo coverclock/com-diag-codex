@@ -13,7 +13,7 @@
 #include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex.h"
-#include "../src/codex_unittest.h"
+#include "unittest-core.h"
 #include <string.h>
 
 int main(char * argc, char ** argv)

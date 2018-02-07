@@ -100,21 +100,6 @@ typedef enum CodexState {
 	CODEX_STATE_FINAL		= 'F',	/* Far end closed connection. */
 } codex_state_t;
 
-/**
- * This defines the states an indication may have: there may be no indication,
- * the indication may have come from the far end of the connection, or it may
- * have come from the near end of the connection. Indications are an abstract
- * way of saying the peers on the connection are communicating with one another
- * through the segment header.
- */
-typedef enum CodexIndication {
-	CODEX_INDICATION_NONE		=  0,	/* Must be false (0). */
-	CODEX_INDICATION_DONE		= -3,	/* Must be negative. */
-	CODEX_INDICATION_READY		= -2,	/* Must be negative. */
-	CODEX_INDICATION_FAREND		= -1,	/* Must be negative. */
-	CODEX_INDICATION_NEAREND	=  1,	/* Must be positive. */
-} codex_indication_t;
-
 /*******************************************************************************
  * CONSTANTS
  ******************************************************************************/
