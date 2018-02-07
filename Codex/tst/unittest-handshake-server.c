@@ -147,7 +147,7 @@ static bool process(client_t * client)
 {
 	bool success = false;
 	void * temp = (void *)0;
-	codex_serror_t serror = CODEX_SERROR_OKAY;
+	/* codex_serror_t serror = CODEX_SERROR_OKAY; */
 
 	switch (client->indication) {
 
@@ -166,6 +166,7 @@ static bool process(client_t * client)
 		break;
 
 	case CODEX_INDICATION_NEAREND:
+		FATAL(); /* Unimplemented */
 		break;
 
 	case CODEX_INDICATION_FAREND:
@@ -177,6 +178,7 @@ static bool process(client_t * client)
 
 		client->sink.header = CODEX_INDICATION_READY;
 		client->sink.state = CODEX_STATE_RESTART;
+		DIMINUTO_LOG_INFORMATION("%s: WRITE client=%p header=%d\n", program, client, client->sink.header);
 		do {
 			client->sink.state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length));
 		} while ((client->sink.state != CODEX_STATE_FINAL) && (client->sink.state != CODEX_STATE_COMPLETE));
@@ -185,10 +187,10 @@ static bool process(client_t * client)
 		}
 
 		/*
-		 * Read until we get a DONE indication. The far end can send zero length
+		 * Read until we get a DONE indication. The far end can write zero length
 		 * packets it it needs to drive the OpenSSL actions and our reader
-		 * machine will silently drop them. Like wise, we could send zero length
-		 * packets and the far end's reader state machine will likewise
+		 * machine will silently drop them. Likewise, we could write zero length
+		 * packets and the far end's reader state machine will similarly
 		 * silently drop them.
 		 */
 
@@ -199,6 +201,7 @@ static bool process(client_t * client)
 		if (client->source.state == CODEX_STATE_FINAL) {
 			break;
 		}
+		DIMINUTO_LOG_INFORMATION("%s: READ client=%p header=%d\n", program, client, client->source.header);
 
 		if (client->source.header != CODEX_INDICATION_DONE) {
 			break;
@@ -212,7 +215,7 @@ static bool process(client_t * client)
 		break;
 
 	default:
-		FATAL();
+		FATAL(); /* Should never happen. */
 		break;
 
 	}
@@ -385,6 +388,7 @@ int main(int argc, char ** argv)
 			} else if (client->indication != CODEX_INDICATION_NONE) {
 				/* Do nothing. */
 			} else {
+				DIMINUTO_LOG_INFORMATION("%s: FAREND client=%p\n", program, client);
 				client->indication = CODEX_INDICATION_FAREND;
 			}
 

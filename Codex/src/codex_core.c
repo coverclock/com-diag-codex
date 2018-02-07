@@ -812,47 +812,45 @@ int codex_connection_read_generic(codex_connection_t * ssl, void * buffer, int s
 
 	do {
 
-		if (size > 0) {
-			rc = SSL_read(ssl, buffer, size);
-			if (rc <= 0) {
+		retry = false;
+		rc = SSL_read(ssl, buffer, size);
+		if (rc <= 0) {
 
-				retry = false;
-				error = codex_serror("SSL_read", ssl, rc);
-				switch (error) {
-				case CODEX_SERROR_NONE:
-					retry = true; /* Maybe an EINTR? */
-					break;
-				case CODEX_SERROR_SSL:
-					rc = -1;
-					break;
-				case CODEX_SERROR_READ:
-					if (retry) { rc = -1; } else { retry = true; }
-					break;
-				case CODEX_SERROR_WRITE:
-					if (retry) { rc = -1; } else { retry = true; }
-					break;
-				case CODEX_SERROR_LOOKUP:
-					rc = -1; /* TODO */
-					break;
-				case CODEX_SERROR_SYSCALL:
-					rc = -1;
-					break;
-				case CODEX_SERROR_ZERO:
-					rc = 0;
-					break;
-				case CODEX_SERROR_CONNECT:
-					rc = -1; /* Should never happen. */
-					break;
-				case CODEX_SERROR_ACCEPT:
-					rc = -1; /* Should never happen. */
-					break;
-				case CODEX_SERROR_OTHER:
-				default:
-					rc = -1; /* Might happen if OpenSSL is updated. */
-					break;
-				}
-
+			error = codex_serror("SSL_read", ssl, rc);
+			switch (error) {
+			case CODEX_SERROR_NONE:
+				retry = true; /* Maybe an EINTR? */
+				break;
+			case CODEX_SERROR_SSL:
+				rc = -1;
+				break;
+			case CODEX_SERROR_READ:
+				if (retry) { rc = -1; } else { retry = true; }
+				break;
+			case CODEX_SERROR_WRITE:
+				if (retry) { rc = -1; } else { retry = true; }
+				break;
+			case CODEX_SERROR_LOOKUP:
+				rc = -1; /* TODO */
+				break;
+			case CODEX_SERROR_SYSCALL:
+				rc = -1;
+				break;
+			case CODEX_SERROR_ZERO:
+				rc = 0;
+				break;
+			case CODEX_SERROR_CONNECT:
+				rc = -1; /* Should never happen. */
+				break;
+			case CODEX_SERROR_ACCEPT:
+				rc = -1; /* Should never happen. */
+				break;
+			case CODEX_SERROR_OTHER:
+			default:
+				rc = -1; /* Might happen if OpenSSL is updated. */
+				break;
 			}
+
 		}
 
 		DIMINUTO_LOG_DEBUG("codex_connection_read: ssl=%p buffer=%p size=%d rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
@@ -879,47 +877,45 @@ int codex_connection_write_generic(codex_connection_t * ssl, const void * buffer
 
 	do {
 
-		if (size > 0) {
-			rc = SSL_write(ssl, buffer, size);
-			if (rc <= 0) {
+		retry = false;
+		rc = SSL_write(ssl, buffer, size);
+		if (rc <= 0) {
 
-				retry = false;
-				error = codex_serror("SSL_write", ssl, rc);
-				switch (error) {
-				case CODEX_SERROR_NONE:
-					retry = true; /* Maybe an EINTR? */
-					break;
-				case CODEX_SERROR_SSL:
-					rc = -1;
-					break;
-				case CODEX_SERROR_READ:
-					if (retry) { rc = -1; } else { retry = true; }
-					break;
-				case CODEX_SERROR_WRITE:
-					if (retry) { rc = -1; } else { retry = true; }
-					break;
-				case CODEX_SERROR_LOOKUP:
-					rc = -1; /* TODO */
-					break;
-				case CODEX_SERROR_SYSCALL:
-					rc = -1;
-					break;
-				case CODEX_SERROR_ZERO:
-					rc = 0;
-					break;
-				case CODEX_SERROR_CONNECT:
-					rc = -1; /* Should never happen. */
-					break;
-				case CODEX_SERROR_ACCEPT:
-					rc = -1; /* Should never happen. */
-					break;
-				case CODEX_SERROR_OTHER:
-				default:
-					rc = -1; /* Might happen if OpenSSL is updated. */
-					break;
-				}
-
+			error = codex_serror("SSL_write", ssl, rc);
+			switch (error) {
+			case CODEX_SERROR_NONE:
+				retry = true; /* Maybe an EINTR? */
+				break;
+			case CODEX_SERROR_SSL:
+				rc = -1;
+				break;
+			case CODEX_SERROR_READ:
+				if (retry) { rc = -1; } else { retry = true; }
+				break;
+			case CODEX_SERROR_WRITE:
+				if (retry) { rc = -1; } else { retry = true; }
+				break;
+			case CODEX_SERROR_LOOKUP:
+				rc = -1; /* TODO */
+				break;
+			case CODEX_SERROR_SYSCALL:
+				rc = -1;
+				break;
+			case CODEX_SERROR_ZERO:
+				rc = 0;
+				break;
+			case CODEX_SERROR_CONNECT:
+				rc = -1; /* Should never happen. */
+				break;
+			case CODEX_SERROR_ACCEPT:
+				rc = -1; /* Should never happen. */
+				break;
+			case CODEX_SERROR_OTHER:
+			default:
+				rc = -1; /* Might happen if OpenSSL is updated. */
+				break;
 			}
+
 		}
 
 		DIMINUTO_LOG_DEBUG("codex_connection_write: ssl=%p buffer=%p size=%d rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
