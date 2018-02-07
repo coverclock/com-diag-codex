@@ -30,7 +30,7 @@
  * MACHINES
  ******************************************************************************/
 
-codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length)
+codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length, codex_serror_t * serror)
 {
 	codex_state_t prior = state;
 	int bytes = -1;
@@ -67,9 +67,9 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 
 	case CODEX_STATE_HEADER:
 
-		bytes = codex_connection_read(ssl, *here, *length);
+		bytes = codex_connection_read_generic(ssl, *here, *length, serror);
 		if (bytes < 0) {
-			state = CODEX_STATE_FINAL;
+			state = (serror == (codex_serror_t *)0) ? CODEX_STATE_FINAL : CODEX_STATE_COMPLETE;
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
@@ -114,9 +114,9 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 
 	case CODEX_STATE_PAYLOAD:
 
-		bytes = codex_connection_read(ssl, *here, *length);
+		bytes = codex_connection_read_generic(ssl, *here, *length, serror);
 		if (bytes < 0) {
-			state = CODEX_STATE_FINAL;
+			state = (serror == (codex_serror_t *)0) ? CODEX_STATE_FINAL : CODEX_STATE_COMPLETE;
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
@@ -146,9 +146,9 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 			if (*length < slack) {
 				slack = *length;
 			}
-			bytes = codex_connection_read(ssl, skip, slack);
+			bytes = codex_connection_read_generic(ssl, skip, slack, serror);
 			if (bytes < 0) {
-				state = CODEX_STATE_FINAL;
+				state = (serror == (codex_serror_t *)0) ? CODEX_STATE_FINAL : CODEX_STATE_COMPLETE;
 			} else if (bytes == 0) {
 				state = CODEX_STATE_FINAL;
 			} else if (bytes > slack) {
@@ -190,7 +190,7 @@ codex_state_t codex_machine_reader(codex_state_t state, const char * expected, c
 	return state;
 }
 
-codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length)
+codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length, codex_serror_t * serror)
 {
 	codex_state_t prior = state;
 	int bytes = -1;
@@ -228,9 +228,9 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 
 	case CODEX_STATE_HEADER:
 
-		bytes = codex_connection_write(ssl, *here, *length);
+		bytes = codex_connection_write_generic(ssl, *here, *length, serror);
 		if (bytes < 0) {
-			state = CODEX_STATE_FINAL;
+			state = (serror == (codex_serror_t *)0) ? CODEX_STATE_FINAL : CODEX_STATE_COMPLETE;
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
@@ -268,9 +268,9 @@ codex_state_t codex_machine_writer(codex_state_t state, const char * expected, c
 
 	case CODEX_STATE_PAYLOAD:
 
-		bytes = codex_connection_write(ssl, *here, *length);
+		bytes = codex_connection_write_generic(ssl, *here, *length, serror);
 		if (bytes < 0) {
-			state = CODEX_STATE_FINAL;
+			state = (serror == (codex_serror_t *)0) ? CODEX_STATE_FINAL : CODEX_STATE_COMPLETE;
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {

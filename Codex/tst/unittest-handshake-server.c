@@ -145,8 +145,9 @@ static client_t * release(client_t * client)
 
 static bool process(client_t * client)
 {
-	bool success = true;
+	bool success = false;
 	void * temp = (void *)0;
+	codex_serror_t serror = CODEX_SERROR_OKAY;
 
 	switch (client->indication) {
 
@@ -160,6 +161,8 @@ static bool process(client_t * client)
 		client->source.state = CODEX_STATE_RESTART;
 		client->sink.state = CODEX_STATE_RESTART;
 
+		success = true;
+
 		break;
 
 	case CODEX_INDICATION_NEAREND:
@@ -167,11 +170,49 @@ static bool process(client_t * client)
 
 	case CODEX_INDICATION_FAREND:
 
+		/*
+		 * Drop into synchronous mode until the handshake is either complete or
+		 * fails.
+		 */
 
+		client->sink.header = CODEX_INDICATION_READY;
+		client->sink.state = CODEX_STATE_RESTART;
+		do {
+			client->sink.state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length));
+		} while ((client->sink.state != CODEX_STATE_FINAL) && (client->sink.state != CODEX_STATE_COMPLETE));
+		if (client->sink.state == CODEX_STATE_FINAL) {
+			break;
+		}
+
+		/*
+		 * Read until we get a DONE indication. The far end can send zero length
+		 * packets it it needs to drive the OpenSSL actions and our reader
+		 * machine will silently drop them. Like wise, we could send zero length
+		 * packets and the far end's reader state machine will likewise
+		 * silently drop them.
+		 */
+
+		client->source.state = CODEX_STATE_RESTART;
+		do {
+			client->source.state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.header), (void *)0, 0, &(client->source.here), &(client->source.length));
+		} while ((client->source.state != CODEX_STATE_FINAL) && (client->source.state != CODEX_STATE_COMPLETE));
+		if (client->source.state == CODEX_STATE_FINAL) {
+			break;
+		}
+
+		if (client->source.header != CODEX_INDICATION_DONE) {
+			break;
+		}
+
+		client->source.state = CODEX_STATE_START;
+		client->indication = CODEX_INDICATION_NONE;
+
+		success = true;
 
 		break;
 
 	default:
+		FATAL();
 		break;
 
 	}
@@ -339,8 +380,23 @@ int main(int argc, char ** argv)
 			DIMINUTO_LOG_DEBUG("%s: READ client=%p bytes=%d state='%c' indication=%d\n", program, client, client->source.header, client->source.state, client->indication);
 			client->source.state = CODEX_STATE_IDLE;
 
-			if ((client->source.header == CODEX_INDICATION_FAREND) && (client->indication == CODEX_INDICATION_NONE)) {
+			if (client->source.header != CODEX_INDICATION_FAREND) {
+				/* Do nothing. */
+			} else if (client->indication != CODEX_INDICATION_NONE) {
+				/* Do nothing. */
+			} else {
 				client->indication = CODEX_INDICATION_FAREND;
+			}
+
+			if (client->indication != CODEX_INDICATION_NONE) {
+				/* Do nothing. */
+			} else if (client->source.header >= 0) {
+				/* Do nothing. */
+			} else {
+
+				client->source.state = CODEX_STATE_RESTART;
+				continue;
+
 			}
 
 			if (client->sink.state != CODEX_STATE_IDLE) {

@@ -434,9 +434,49 @@ extern bool codex_handshake_renegotiating(codex_connection_t * ssl);
  * @param size is the size of the payload buffer in bytes.
  * @param here points to where the current buffer pointer will be stored.
  * @param length points to where the remaining buffer length will be stored.
+ * @param serror points to the variable into which an OpenSSL error is returned.
  * @return the new state.
  */
-extern codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
+extern codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length, codex_serror_t * serror);
+
+/**
+ * Implement a state machine for reading segmented data from an SSL, handling
+ * verification and closing automatically. Except for ssl and size, all of the
+ * parameters for the reader must be independent of those of the writer. If the
+ * received header indicates a segment size larger than the buffer, only as much
+ * of the segment as will fit in the buffer will be returned; the header will
+ * still indicate the original transmitted segment size.
+ * @param state is the current state whose initial value depends on the application.
+ * @param expected is the expected FQDN or CN for verification.
+ * @param ssl points to the SSL.
+ * @param header points to where the header will be stored.
+ * @param buffer points to where the payload will be stored.
+ * @param size is the size of the payload buffer in bytes.
+ * @param here points to where the current buffer pointer will be stored.
+ * @param length points to where the remaining buffer length will be stored.
+ * @return the new state.
+ */
+static inline codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length)
+{
+	return codex_machine_reader_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0);
+}
+
+/**
+ * Implement a state machine for writing segmented data to an SSL, handling
+ * verification and closing automatically. Except for ssl and size, all of the
+ * parameters for the reader must be independent of those of the writer.
+ * @param state is the current state whose initial value depends on the application.
+ * @param expected is the expected FQDN or CN for verification.
+ * @param ssl points to the SSL.
+ * @param header points to where the header will be stored.
+ * @param buffer points to where the payload will be stored.
+ * @param size is the size of the payload buffer in bytes.
+ * @param here points to where the current buffer pointer will be stored.
+ * @param length points to where the remaining buffer length will be stored.
+ * @param serror points to the variable into which an OpenSSL error is returned.
+ * @return the new state.
+ */
+extern codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length, codex_serror_t * serror);
 
 /**
  * Implement a state machine for writing segmented data to an SSL, handling
@@ -452,6 +492,9 @@ extern codex_state_t codex_machine_reader(codex_state_t state, const char * expe
  * @param length points to where the remaining buffer length will be stored.
  * @return the new state.
  */
-extern codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length);
+static inline codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length)
+{
+	return codex_machine_writer_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0);
+}
 
 #endif
