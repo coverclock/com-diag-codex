@@ -147,7 +147,7 @@ static bool process(client_t * client)
 {
 	bool success = false;
 	void * temp = (void *)0;
-	/* codex_serror_t serror = CODEX_SERROR_OKAY; */
+	int rc = -1;
 
 	switch (client->indication) {
 
@@ -166,10 +166,26 @@ static bool process(client_t * client)
 		break;
 
 	case CODEX_INDICATION_NEAREND:
-		FATAL(); /* Unimplemented */
+
+		DIMINUTO_LOG_INFORMATION("%s: NEAREND client=%p\n", program, client);
+
+		rc = codex_handshake_renegotiate(client->ssl);
+		if (rc < 0) {
+			break;
+		}
+
+		client->source.state = CODEX_STATE_START;
+		client->sink.header = CODEX_INDICATION_DONE;
+		client->sink.state = CODEX_STATE_RESTART;
+		client->indication = CODEX_INDICATION_NONE;
+
+		success = true;
+
 		break;
 
 	case CODEX_INDICATION_FAREND:
+
+		DIMINUTO_LOG_INFORMATION("%s: FAREND client=%p\n", program, client);
 
 		/*
 		 * Drop into synchronous mode until the handshake is either complete or
@@ -381,25 +397,24 @@ int main(int argc, char ** argv)
 			}
 
 			DIMINUTO_LOG_DEBUG("%s: READ client=%p bytes=%d state='%c' indication=%d\n", program, client, client->source.header, client->source.state, client->indication);
-			client->source.state = CODEX_STATE_IDLE;
 
-			if (client->source.header != CODEX_INDICATION_FAREND) {
-				/* Do nothing. */
-			} else if (client->indication != CODEX_INDICATION_NONE) {
-				/* Do nothing. */
-			} else {
-				DIMINUTO_LOG_INFORMATION("%s: FAREND client=%p\n", program, client);
+			if ((client->source.header == CODEX_INDICATION_FAREND) && (client->indication == CODEX_INDICATION_NONE)) {
+
 				client->indication = CODEX_INDICATION_FAREND;
-			}
+				client->source.state = CODEX_STATE_IDLE;
 
-			if (client->indication != CODEX_INDICATION_NONE) {
-				/* Do nothing. */
-			} else if (client->source.header >= 0) {
-				/* Do nothing. */
-			} else {
+			} else if ((client->source.header == CODEX_INDICATION_READY) && (client->indication == CODEX_INDICATION_NEAREND)) {
+
+				client->source.state = CODEX_STATE_IDLE;
+
+			} else if ((client->source.header <= 0) && (client->indication == CODEX_INDICATION_NONE)) {
 
 				client->source.state = CODEX_STATE_RESTART;
 				continue;
+
+			} else {
+
+				client->source.state = CODEX_STATE_IDLE;
 
 			}
 
@@ -446,9 +461,27 @@ int main(int argc, char ** argv)
 				continue;
 			}
 
-
 			DIMINUTO_LOG_DEBUG("%s: WRITE client=%p bytes=%d state='%c' indication=%d\n", program, client, client->sink.header, client->sink.state, client->indication);
-			client->sink.state = CODEX_STATE_IDLE;
+
+			if (client->indication == CODEX_INDICATION_NONE) {
+
+				client->sink.state = CODEX_STATE_IDLE;
+
+			} else if (client->sink.header == CODEX_INDICATION_FAREND) {
+
+				client->sink.state = CODEX_STATE_IDLE;
+
+			} else if (client->indication == CODEX_INDICATION_NEAREND) {
+
+				client->sink.header = CODEX_INDICATION_FAREND;
+				client->sink.state = CODEX_STATE_RESTART;
+				continue;
+
+			} else {
+
+				client->sink.state = CODEX_STATE_IDLE;
+
+			}
 
 			if (client->source.state != CODEX_STATE_IDLE) {
 				/* Do nothing. */

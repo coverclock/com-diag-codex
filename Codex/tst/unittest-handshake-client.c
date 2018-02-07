@@ -354,8 +354,8 @@ int main(int argc, char ** argv)
 			DIMINUTO_LOG_INFORMATION("%s: FAREND\n", program);
 
 			/*
-			 * Drop into synchronous mode until the handshake is either complete or
-			 * fails.
+			 * Drop into synchronous mode until the handshake is either complete
+			 * or fails.
 			 */
 
 			headers[WRITER] = CODEX_INDICATION_READY;
@@ -369,11 +369,11 @@ int main(int argc, char ** argv)
 			}
 
 			/*
-			 * Read until we get a DONE indication. The far end can write zero length
-			 * packets it it needs to drive the OpenSSL actions and our reader
-			 * machine will silently drop them. Likewise, we could write zero length
-			 * packets and the far end's reader state machine will similarly
-			 * silently drop them.
+			 * Read until we get a DONE indication. The far end can write zero
+			 * length packets it it needs to drive the OpenSSL actions and our
+			 * reader machine will silently drop them. Likewise, we could write
+			 * zero length packets and the far end's reader state machine will
+			 * similarly silently drop them.
 			 */
 
 			states[READER] = CODEX_STATE_RESTART;
