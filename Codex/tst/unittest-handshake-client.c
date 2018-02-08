@@ -189,7 +189,9 @@ int main(int argc, char ** argv)
 
 		if (diminuto_hangup_check()) {
 			DIMINUTO_LOG_INFORMATION("%s: SIGHUP\n", program);
-			indication = CODEX_INDICATION_NEAREND;
+			if (indication == CODEX_INDICATION_NONE) {
+				indication = CODEX_INDICATION_NEAREND;
+			}
 		}
 
 		if (diminuto_pipe_check()) {
@@ -286,6 +288,7 @@ int main(int argc, char ** argv)
 					} else if ((headers[READER] == CODEX_INDICATION_READY) && (indication == CODEX_INDICATION_NEAREND)) {
 
 						states[READER] = CODEX_STATE_IDLE;
+						indication = CODEX_INDICATION_READY;
 
 					} else {
 
@@ -334,7 +337,7 @@ int main(int argc, char ** argv)
 			/* Do nothing. */
 		} else if (states[WRITER] != CODEX_STATE_IDLE) {
 			/* Do nothing. */
-		} else if (indication == CODEX_INDICATION_NEAREND) {
+		} else if (indication == CODEX_INDICATION_READY) {
 
 			DIMINUTO_LOG_INFORMATION("%s: NEAREND\n", program);
 

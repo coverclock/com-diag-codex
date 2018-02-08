@@ -165,7 +165,7 @@ static bool process(client_t * client)
 
 		break;
 
-	case CODEX_INDICATION_NEAREND:
+	case CODEX_INDICATION_READY:
 
 		DIMINUTO_LOG_INFORMATION("%s: NEAREND client=%p\n", program, client);
 
@@ -231,7 +231,7 @@ static bool process(client_t * client)
 		break;
 
 	default:
-		FATAL(); /* Should never happen. */
+		FATAL();
 		break;
 
 	}
@@ -341,7 +341,9 @@ int main(int argc, char ** argv)
 				ASSERT(here != (void **)0);
 				if (*here != (void *)0) {
 					client = (client_t *)*here;
-					client->indication = CODEX_INDICATION_NEAREND;
+					if (client->indication == CODEX_INDICATION_NONE) {
+						client->indication = CODEX_INDICATION_NEAREND;
+					}
 				}
 			}
 		}
@@ -405,6 +407,7 @@ int main(int argc, char ** argv)
 
 			} else if ((client->source.header == CODEX_INDICATION_READY) && (client->indication == CODEX_INDICATION_NEAREND)) {
 
+				client->indication = CODEX_INDICATION_READY;
 				client->source.state = CODEX_STATE_IDLE;
 
 			} else if ((client->source.header <= 0) && (client->indication == CODEX_INDICATION_NONE)) {
