@@ -171,6 +171,7 @@ static bool process(client_t * client)
 		break;
 
 	case CODEX_INDICATION_NEAREND:
+	case CODEX_INDICATION_FARENDED:
 
 		/*
 		 * We have sent the farend a FAREND indication, but we have to continue
@@ -404,12 +405,7 @@ int main(int argc, char ** argv)
 
 		}
 
-		while (true) {
-
-			fd = diminuto_mux_ready_read(&mux);
-			if (fd < 0) {
-				break;
-			}
+		while ((fd = diminuto_mux_ready_read(&mux)) >= 0) {
 
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
@@ -438,11 +434,13 @@ int main(int argc, char ** argv)
 
 			if ((client->source.header == CODEX_INDICATION_FAREND) && (client->indication == CODEX_INDICATION_NONE)) {
 
+				DIMINUTO_LOG_INFORMATION("%s: READ FAREND client=%p header=%d state='%c' indication=%d\n", program, client, client->source.header, client->source.state, client->indication);
 				client->indication = CODEX_INDICATION_FAREND;
 				client->source.state = CODEX_STATE_IDLE;
 
-			} else if ((client->source.header == CODEX_INDICATION_READY) && (client->indication == CODEX_INDICATION_NEAREND)) {
+			} else if ((client->source.header == CODEX_INDICATION_READY) && (client->indication == CODEX_INDICATION_FARENDED)) {
 
+				DIMINUTO_LOG_INFORMATION("%s: READ READY client=%p header=%d state='%c' indication=%d\n", program, client, client->source.header, client->source.state, client->indication);
 				client->indication = CODEX_INDICATION_READY;
 				client->source.state = CODEX_STATE_IDLE;
 
@@ -470,12 +468,7 @@ int main(int argc, char ** argv)
 
 		}
 
-		while (true) {
-
-			fd = diminuto_mux_ready_write(&mux);
-			if (fd < 0) {
-				break;
-			}
+		while ((fd = diminuto_mux_ready_write(&mux)) >= 0) {
 
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
@@ -514,6 +507,8 @@ int main(int argc, char ** argv)
 
 				client->sink.header = CODEX_INDICATION_FAREND;
 				client->sink.state = CODEX_STATE_RESTART;
+				DIMINUTO_LOG_INFORMATION("%s: WRITE FAREND client=%p header=%d state='%c' indication=%d\n", program, client, client->sink.header, client->sink.state, client->indication);
+				client->indication = CODEX_INDICATION_FARENDED;
 				continue;
 
 			} else {

@@ -237,6 +237,7 @@ int main(int argc, char ** argv)
 
 							headers[WRITER] = CODEX_INDICATION_FAREND;
 							states[WRITER] = CODEX_STATE_RESTART;
+							DIMINUTO_LOG_INFORMATION("%s: WRITE FAREND header=%d state=`%c` indication=%d\n", program, headers[WRITER], states[WRITER], indication);
 
 						} else {
 
@@ -254,6 +255,10 @@ int main(int argc, char ** argv)
 
 			}
 
+		}
+
+		if (states[WRITER] == CODEX_STATE_FINAL) {
+			break;
 		}
 
 		while ((fd = diminuto_mux_ready_read(&mux)) >= 0) {
@@ -290,11 +295,13 @@ int main(int argc, char ** argv)
 
 						} else if ((headers[READER] == CODEX_INDICATION_FAREND) && (indication == CODEX_INDICATION_NONE)) {
 
+							DIMINUTO_LOG_INFORMATION("%s: READ FAREND header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
 							states[READER] = CODEX_STATE_IDLE;
 							indication = CODEX_INDICATION_FAREND;
 
 						} else if ((headers[READER] == CODEX_INDICATION_READY) && (indication == CODEX_INDICATION_NEAREND)) {
 
+							DIMINUTO_LOG_INFORMATION("%s: READ READY header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
 							states[READER] = CODEX_STATE_IDLE;
 							indication = CODEX_INDICATION_READY;
 
@@ -341,6 +348,10 @@ int main(int argc, char ** argv)
 
 			}
 
+		}
+
+		if (states[READER] == CODEX_STATE_FINAL) {
+			break;
 		}
 
 		if (states[READER] != CODEX_STATE_IDLE) {

@@ -114,6 +114,7 @@ typedef enum CodexIndication {
 	CODEX_INDICATION_FAREND		= -1,	/* Tell FE to prepare for action. */
 	CODEX_INDICATION_NONE		=  0,	/* No action pending or in progress. */
 	CODEX_INDICATION_NEAREND	=  1,	/* NE preparing for action. */
+	CODEX_INDICATION_FARENDED	=  2,	/* NE told FE to prepare for action. */
 } codex_indication_t;
 
 /*******************************************************************************
