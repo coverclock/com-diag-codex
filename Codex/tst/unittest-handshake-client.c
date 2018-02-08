@@ -206,130 +206,140 @@ int main(int argc, char ** argv)
 		}
 		ASSERT(rc > 0);
 
-		fd = diminuto_mux_ready_write(&mux);
-		if (fd == codex_connection_descriptor(ssl)) {
+		while ((fd = diminuto_mux_ready_write(&mux)) >= 0) {
 
-			if (states[WRITER] != CODEX_STATE_IDLE) {
+			if (fd == codex_connection_descriptor(ssl)) {
 
-				states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
+				if (states[WRITER] != CODEX_STATE_IDLE) {
 
-				if (states[WRITER] == CODEX_STATE_FINAL) {
+					states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
 
-					DIMINUTO_LOG_INFORMATION("%s: FINAL\n", program);
-					break;
+					if (states[WRITER] == CODEX_STATE_FINAL) {
 
-				}
+						DIMINUTO_LOG_INFORMATION("%s: FINAL\n", program);
+						break;
 
-				if (states[WRITER] == CODEX_STATE_COMPLETE) {
+					}
 
-					DIMINUTO_LOG_DEBUG("%s: WRITE header=%d state=`%c` indication=%d\n", program, headers[WRITER], states[WRITER], indication);
+					if (states[WRITER] == CODEX_STATE_COMPLETE) {
 
-					if (indication == CODEX_INDICATION_NONE) {
+						DIMINUTO_LOG_DEBUG("%s: WRITE DATA header=%d state=`%c` indication=%d\n", program, headers[WRITER], states[WRITER], indication);
 
-						states[WRITER] = CODEX_STATE_IDLE;
+						if (indication == CODEX_INDICATION_NONE) {
 
-					} else if (headers[WRITER] == CODEX_INDICATION_FAREND) {
+							states[WRITER] = CODEX_STATE_IDLE;
 
-						states[WRITER] = CODEX_STATE_IDLE;
+						} else if (headers[WRITER] == CODEX_INDICATION_FAREND) {
 
-					} else if (indication == CODEX_INDICATION_NEAREND) {
+							states[WRITER] = CODEX_STATE_IDLE;
 
-						headers[WRITER] = CODEX_INDICATION_FAREND;
-						states[WRITER] = CODEX_STATE_RESTART;
+						} else if (indication == CODEX_INDICATION_NEAREND) {
 
-					} else {
+							headers[WRITER] = CODEX_INDICATION_FAREND;
+							states[WRITER] = CODEX_STATE_RESTART;
 
-						states[WRITER] = CODEX_STATE_IDLE;
+						} else {
+
+							states[WRITER] = CODEX_STATE_IDLE;
+
+						}
 
 					}
 
 				}
+
+			} else {
+
+				FATAL();
 
 			}
 
 		}
 
-		fd = diminuto_mux_ready_read(&mux);
-		if (fd == codex_connection_descriptor(ssl)) {
+		while ((fd = diminuto_mux_ready_read(&mux)) >= 0) {
 
-			if (states[READER] != CODEX_STATE_IDLE) {
+			if (fd == codex_connection_descriptor(ssl)) {
 
-				states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
+				if (states[READER] != CODEX_STATE_IDLE) {
 
-				if (states[READER] == CODEX_STATE_FINAL) {
+					states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
 
-					DIMINUTO_LOG_INFORMATION("%s: FINAL\n", program);
-					break;
+					if (states[READER] == CODEX_STATE_FINAL) {
 
-				}
+						DIMINUTO_LOG_INFORMATION("%s: FINAL\n", program);
+						break;
 
-				if (states[READER] == CODEX_STATE_COMPLETE) {
+					}
 
-					DIMINUTO_LOG_DEBUG("%s: READ header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
+					if (states[READER] == CODEX_STATE_COMPLETE) {
 
-					if (headers[READER] >= 0) {
+						DIMINUTO_LOG_DEBUG("%s: READ DATA header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
 
-						f16sink = diminuto_fletcher_16(buffers[READER], headers[READER], &f16sinkA, &f16sinkB);
-						output += headers[READER];
+						if (headers[READER] >= 0) {
 
-						bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
-						if (bytes <= 0) {
-							DIMINUTO_LOG_INFORMATION("%s: EOF fd=%d\n", program, STDOUT_FILENO);
-							break;
+							f16sink = diminuto_fletcher_16(buffers[READER], headers[READER], &f16sinkA, &f16sinkB);
+							output += headers[READER];
+
+							bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
+							if (bytes <= 0) {
+								DIMINUTO_LOG_INFORMATION("%s: EOF fd=%d\n", program, STDOUT_FILENO);
+								break;
+							}
+
+							states[READER] = CODEX_STATE_RESTART;
+
+						} else if ((headers[READER] == CODEX_INDICATION_FAREND) && (indication == CODEX_INDICATION_NONE)) {
+
+							states[READER] = CODEX_STATE_IDLE;
+							indication = CODEX_INDICATION_FAREND;
+
+						} else if ((headers[READER] == CODEX_INDICATION_READY) && (indication == CODEX_INDICATION_NEAREND)) {
+
+							states[READER] = CODEX_STATE_IDLE;
+							indication = CODEX_INDICATION_READY;
+
+						} else {
+
+							states[READER] = CODEX_STATE_RESTART;
+
 						}
-
-						states[READER] = CODEX_STATE_RESTART;
-
-					} else if ((headers[READER] == CODEX_INDICATION_FAREND) && (indication == CODEX_INDICATION_NONE)) {
-
-						states[READER] = CODEX_STATE_IDLE;
-						indication = CODEX_INDICATION_FAREND;
-
-					} else if ((headers[READER] == CODEX_INDICATION_READY) && (indication == CODEX_INDICATION_NEAREND)) {
-
-						states[READER] = CODEX_STATE_IDLE;
-						indication = CODEX_INDICATION_READY;
-
-					} else {
-
-						states[READER] = CODEX_STATE_RESTART;
 
 					}
 
 				}
 
-			}
+			} else if (fd == STDIN_FILENO) {
 
-		} else if (fd == STDIN_FILENO) {
+				if (states[WRITER] != CODEX_STATE_IDLE) {
+					/* Do nothing. */
+				} else if (indication != CODEX_INDICATION_NONE) {
+					/* Do nothing. */
+				} else {
 
-			if (states[WRITER] != CODEX_STATE_IDLE) {
-				/* Do nothing. */
-			} else if (indication != CODEX_INDICATION_NONE) {
-				/* Do nothing. */
-			} else {
+					bytes = diminuto_fd_read(STDIN_FILENO, buffers[WRITER], bufsize);
+					if (bytes <= 0) {
+						DIMINUTO_LOG_INFORMATION("%s: EOF fd=%d\n", program, STDIN_FILENO);
+						rc = diminuto_mux_unregister_read(&mux, STDIN_FILENO);
+						ASSERT(rc >= 0);
+						eof = true;
+						continue;
+					}
 
-				bytes = diminuto_fd_read(STDIN_FILENO, buffers[WRITER], bufsize);
-				if (bytes <= 0) {
-					DIMINUTO_LOG_INFORMATION("%s: EOF fd=%d\n", program, STDIN_FILENO);
-					rc = diminuto_mux_unregister_read(&mux, STDIN_FILENO);
-					ASSERT(rc >= 0);
-					eof = true;
-					continue;
+					headers[WRITER] = bytes;
+
+					f16source = diminuto_fletcher_16(buffers[WRITER], headers[WRITER], &f16sourceA, &f16sourceB);
+					input += headers[WRITER];
+
+					states[WRITER] = verify ? CODEX_STATE_START : CODEX_STATE_RESTART;
+					verify = false;
+
 				}
 
-				headers[WRITER] = bytes;
+			} else {
 
-				f16source = diminuto_fletcher_16(buffers[WRITER], headers[WRITER], &f16sourceA, &f16sourceB);
-				input += headers[WRITER];
-
-				states[WRITER] = verify ? CODEX_STATE_START : CODEX_STATE_RESTART;
-				verify = false;
+				FATAL();
 
 			}
-
-		} else {
-
-			/* Do nothing. */
 
 		}
 
@@ -346,9 +356,18 @@ int main(int argc, char ** argv)
 				break;
 			}
 
-			states[READER] = CODEX_STATE_RESTART;
 			headers[WRITER] = CODEX_INDICATION_DONE;
 			states[WRITER] = CODEX_STATE_RESTART;
+			DIMINUTO_LOG_INFORMATION("%s: WRITE DONE header=%d state=`%c` indication=%d\n", program, headers[WRITER], states[WRITER], indication);
+			do {
+				states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
+			} while ((states[WRITER] != CODEX_STATE_FINAL) && (states[WRITER] != CODEX_STATE_COMPLETE));
+			if (states[WRITER] == CODEX_STATE_FINAL) {
+				break;
+			}
+
+			states[READER] = CODEX_STATE_RESTART;
+			states[WRITER] = CODEX_STATE_IDLE;
 			verify = true;
 			indication = CODEX_INDICATION_NONE;
 
@@ -363,7 +382,7 @@ int main(int argc, char ** argv)
 
 			headers[WRITER] = CODEX_INDICATION_READY;
 			states[WRITER] = CODEX_STATE_RESTART;
-			DIMINUTO_LOG_INFORMATION("%s: WRITE header=%d\n", program, headers[WRITER]);
+			DIMINUTO_LOG_INFORMATION("%s: WRITE READY header=%d state=`%c` indication=%d\n", program, headers[WRITER], states[WRITER], indication);
 			do {
 				states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
 			} while ((states[WRITER] != CODEX_STATE_FINAL) && (states[WRITER] != CODEX_STATE_COMPLETE));
@@ -386,7 +405,7 @@ int main(int argc, char ** argv)
 			if (states[READER] == CODEX_STATE_FINAL) {
 				break;
 			}
-			DIMINUTO_LOG_INFORMATION("%s: READ header=%d\n", program, headers[READER]);
+			DIMINUTO_LOG_INFORMATION("%s: READ DONE header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
 
 			if (headers[READER] != CODEX_INDICATION_DONE) {
 				break;
@@ -415,14 +434,17 @@ int main(int argc, char ** argv)
 
 	if (!eof) {
 		rc = diminuto_mux_unregister_read(&mux, STDIN_FILENO);
-		ASSERT(rc >= 0);
+		EXPECT(rc >= 0);
 	}
 
+	fd = codex_connection_descriptor(ssl);
+	ASSERT(fd >= 0);
+
 	rc = diminuto_mux_unregister_write(&mux, fd);
-	ASSERT(rc >= 0);
+	EXPECT(rc >= 0);
 
 	rc = diminuto_mux_unregister_read(&mux, fd);
-	ASSERT(rc >= 0);
+	EXPECT(rc >= 0);
 
 	diminuto_mux_fini(&mux);
 

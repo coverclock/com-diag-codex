@@ -143,44 +143,80 @@ static client_t * release(client_t * client)
 	return client;
 }
 
+static void swap(client_t * client)
+{
+	void * temp = (void *)0;
+
+	temp = client->sink.buffer;
+	client->sink.buffer = client->source.buffer;
+	client->sink.header = client->source.header;
+	client->source.buffer = temp;
+
+	client->source.state = CODEX_STATE_RESTART;
+	client->sink.state = CODEX_STATE_RESTART;
+}
+
 static bool process(client_t * client)
 {
 	bool success = false;
-	void * temp = (void *)0;
 	int rc = -1;
 
 	switch (client->indication) {
 
 	case CODEX_INDICATION_NONE:
 
-		temp = client->sink.buffer;
-		client->sink.buffer = client->source.buffer;
-		client->sink.header = client->source.header;
-		client->source.buffer = temp;
-
-		client->source.state = CODEX_STATE_RESTART;
-		client->sink.state = CODEX_STATE_RESTART;
+		swap(client);
 
 		success = true;
+		break;
 
+	case CODEX_INDICATION_NEAREND:
+
+		/*
+		 * We have sent the farend a FAREND indication, but we have to continue
+		 * to drain the stream until the farend acts on that indication, stops
+		 * transmitting, and responds with a READY indication.
+		 */
+
+		swap(client);
+
+		success = true;
 		break;
 
 	case CODEX_INDICATION_READY:
 
 		DIMINUTO_LOG_INFORMATION("%s: NEAREND client=%p\n", program, client);
 
+		/*
+		 * Drop into synchronous mode until the handshake is either complete or
+		 * fails.
+		 */
+
 		rc = codex_handshake_renegotiate(client->ssl);
 		if (rc < 0) {
 			break;
 		}
 
-		client->source.state = CODEX_STATE_START;
+		/*
+		 * Tell the far end that renegotiation is complete and the data stream
+		 * can recommence.
+		 */
+
 		client->sink.header = CODEX_INDICATION_DONE;
 		client->sink.state = CODEX_STATE_RESTART;
+		DIMINUTO_LOG_INFORMATION("%s: WRITE DONE client=%p header=%d state='%c' indication=%d\n", program, client, client->sink.header, client->sink.state, client->indication);
+		do {
+			client->sink.state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length));
+		} while ((client->sink.state != CODEX_STATE_FINAL) && (client->sink.state != CODEX_STATE_COMPLETE));
+		if (client->sink.state == CODEX_STATE_FINAL) {
+			break;
+		}
+
+		client->source.state = CODEX_STATE_START;
+		client->sink.state = CODEX_STATE_IDLE;
 		client->indication = CODEX_INDICATION_NONE;
 
 		success = true;
-
 		break;
 
 	case CODEX_INDICATION_FAREND:
@@ -194,7 +230,7 @@ static bool process(client_t * client)
 
 		client->sink.header = CODEX_INDICATION_READY;
 		client->sink.state = CODEX_STATE_RESTART;
-		DIMINUTO_LOG_INFORMATION("%s: WRITE client=%p header=%d\n", program, client, client->sink.header);
+		DIMINUTO_LOG_INFORMATION("%s: WRITE READY client=%p header=%d state='%c' indication=%d\n", program, client, client->sink.header, client->sink.state, client->indication);
 		do {
 			client->sink.state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length));
 		} while ((client->sink.state != CODEX_STATE_FINAL) && (client->sink.state != CODEX_STATE_COMPLETE));
@@ -203,10 +239,10 @@ static bool process(client_t * client)
 		}
 
 		/*
-		 * Read until we get a DONE indication. The far end can write zero length
-		 * packets it it needs to drive the OpenSSL actions and our reader
-		 * machine will silently drop them. Likewise, we could write zero length
-		 * packets and the far end's reader state machine will similarly
+		 * Read until we get a DONE indication. The far end can write zero
+		 * length packets it it needs to drive the OpenSSL actions and our
+		 * reader machine will silently drop them. Likewise, we could write zero
+		 * length packets and the far end's reader state machine will similarly
 		 * silently drop them.
 		 */
 
@@ -217,7 +253,7 @@ static bool process(client_t * client)
 		if (client->source.state == CODEX_STATE_FINAL) {
 			break;
 		}
-		DIMINUTO_LOG_INFORMATION("%s: READ client=%p header=%d\n", program, client, client->source.header);
+		DIMINUTO_LOG_INFORMATION("%s: READ DONE client=%p header=%d state='%c' indication=%d\n", program, client, client->source.header, client->source.state, client->indication);
 
 		if (client->source.header != CODEX_INDICATION_DONE) {
 			break;
@@ -227,10 +263,10 @@ static bool process(client_t * client)
 		client->indication = CODEX_INDICATION_NONE;
 
 		success = true;
-
 		break;
 
 	default:
+		DIMINUTO_LOG_ERROR("%s: FATAL client=%p source:( header=%d state='%c' ) sink:( header=%d state='%c' ) indication=%d\n", program, client, client->source.header, client->source.state, client->sink.header, client->sink.state, client->indication);
 		FATAL();
 		break;
 
@@ -398,7 +434,7 @@ int main(int argc, char ** argv)
 				continue;
 			}
 
-			DIMINUTO_LOG_DEBUG("%s: READ client=%p bytes=%d state='%c' indication=%d\n", program, client, client->source.header, client->source.state, client->indication);
+			DIMINUTO_LOG_DEBUG("%s: READ DATA client=%p header=%d state='%c' indication=%d\n", program, client, client->source.header, client->source.state, client->indication);
 
 			if ((client->source.header == CODEX_INDICATION_FAREND) && (client->indication == CODEX_INDICATION_NONE)) {
 
@@ -464,7 +500,7 @@ int main(int argc, char ** argv)
 				continue;
 			}
 
-			DIMINUTO_LOG_DEBUG("%s: WRITE client=%p bytes=%d state='%c' indication=%d\n", program, client, client->sink.header, client->sink.state, client->indication);
+			DIMINUTO_LOG_DEBUG("%s: WRITE DATA client=%p header=%d state='%c' indication=%d\n", program, client, client->sink.header, client->sink.state, client->indication);
 
 			if (client->indication == CODEX_INDICATION_NONE) {
 
