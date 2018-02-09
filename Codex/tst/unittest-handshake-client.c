@@ -364,6 +364,7 @@ int main(int argc, char ** argv)
 
 			rc = codex_handshake_renegotiate(ssl);
 			if (rc < 0) {
+COMMENT();
 				break;
 			}
 
@@ -374,6 +375,7 @@ int main(int argc, char ** argv)
 				states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
 			} while ((states[WRITER] != CODEX_STATE_FINAL) && (states[WRITER] != CODEX_STATE_COMPLETE));
 			if (states[WRITER] == CODEX_STATE_FINAL) {
+COMMENT();
 				break;
 			}
 

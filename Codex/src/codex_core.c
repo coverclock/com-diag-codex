@@ -429,6 +429,8 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 			break;
 		}
 
+		(void)SSL_CTX_set_session_cache_mode(ctx, SSL_SESS_CACHE_OFF);
+
 		SSL_CTX_set_verify(ctx, flags, codex_verification_callback);
 
 		SSL_CTX_set_verify_depth(ctx, depth);
