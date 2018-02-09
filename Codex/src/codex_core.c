@@ -25,6 +25,7 @@
 #include "com/diag/diminuto/diminuto_log.h"
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_token.h"
+#include "com/diag/diminuto/diminuto_ipc.h"
 #include "codex.h"
 
 /*******************************************************************************
@@ -1056,7 +1057,7 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 		}
 
 		/*
-		 * This doesn't appear to work, but at least it's benign.
+		 * This doesn't appear to do what I want, but at least it seems benign.
 		 */
 		(void)BIO_set_bind_mode(bio, BIO_BIND_REUSEADDR_IF_UNUSED);
 
@@ -1074,6 +1075,16 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 		bio = (BIO *)0;
 
 	} while (false);
+
+	if (bio == (BIO *)0) {
+		/* Do nothing: already failed. */
+	} else if ((fd = BIO_get_fd(bio, (int *)0)) < 0) {
+		/* Do nothing: should never happen; no recovery if it does. */
+	} else if ((rc = diminuto_ipc_set_reuseaddress(fd, !0)) < 0) {
+		/* Do nothing: function emits error message. */
+	} else {
+		/* Do nothing: experimental. */
+	}
 
 	return bio;
 }

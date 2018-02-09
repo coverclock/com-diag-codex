@@ -101,20 +101,19 @@ typedef enum CodexState {
 } codex_state_t;
 
 /**
- * These are the states (and for the negative values, the indications that
- * may be carried in a segment header) that the handshake unit tests use
- * to quiesce and then resume the data stream when doing a handshake for
- * negotiation. Applications using the Codex library don't have to use these;
- * their use isn't baked into the library in any way. But they're useful enough
- * to include here as a common convention.
+ * These are the the indications that may be carried in a segment header that
+ * the handshake unit tests use to quiesce and then resume the data stream when
+ * doing a handshake for renegotiation. Applications using the Codex library
+ * don't have to use these; their use isn't baked into the library in any way.
+ * But they're useful enough to include here as a common convention.
  */
 typedef enum CodexIndication {
+	CODEX_INDICATION_PENDING	= -5,	/* NE told FE to prepare for action. */
+	CODEX_INDICATION_NEAREND	= -4,	/* NE preparing for action. */
 	CODEX_INDICATION_DONE		= -3,	/* Tell FE action complete. */
 	CODEX_INDICATION_READY		= -2,	/* Tell NE that FE ready for action. */
 	CODEX_INDICATION_FAREND		= -1,	/* Tell FE to prepare for action. */
 	CODEX_INDICATION_NONE		=  0,	/* No action pending or in progress. */
-	CODEX_INDICATION_NEAREND	=  1,	/* NE preparing for action. */
-	CODEX_INDICATION_FARENDED	=  2,	/* NE told FE to prepare for action. */
 } codex_indication_t;
 
 /*******************************************************************************

@@ -16,7 +16,6 @@
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_delay.h"
-#include "com/diag/diminuto/diminuto_ipc.h"
 #include "com/diag/diminuto/diminuto_list.h"
 #include "com/diag/diminuto/diminuto_containerof.h"
 #include "com/diag/codex/codex.h"
@@ -131,7 +130,7 @@ static client_t * create(void)
 	client->source.buffer = (buffer_t *)0;
 	/* Source always pulls from shared pool. */
 
-	client->sink.state = CODEX_STATE_IDLE;
+	client->sink.state = CODEX_STATE_COMPLETE;
 	client->sink.buffer = (buffer_t *)0;
 	diminuto_list_nullinit(&(client->queue));
 
@@ -253,7 +252,7 @@ static bool renegotiate(client_t * client)
 		}
 
 		client->source.state = CODEX_STATE_START;
-		client->sink.state = CODEX_STATE_IDLE;
+		client->sink.state = CODEX_STATE_COMPLETE;
 		client->indication = CODEX_INDICATION_NONE;
 
 		success = true;
@@ -307,6 +306,7 @@ static bool renegotiate(client_t * client)
 		}
 
 		client->source.state = CODEX_STATE_START;
+		client->sink.state = CODEX_STATE_COMPLETE;
 		client->indication = CODEX_INDICATION_NONE;
 
 		success = true;
@@ -413,9 +413,6 @@ int main(int argc, char ** argv)
 	rc = diminuto_mux_register_accept(&mux, rendezvous);
 	ASSERT(rc >= 0);
 
-	rc = diminuto_ipc_set_reuseaddress(rendezvous, !0); /* Experimental. */
-	ASSERT(rc >= 0);
-
 	while (!diminuto_terminator_check()) {
 		int fd = -1;
 
@@ -474,7 +471,6 @@ int main(int argc, char ** argv)
 			if (client->source.buffer == (buffer_t *)0) {
 				client->source.buffer = allocate();
 			}
-
 			ASSERT(client->source.buffer != (buffer_t *)0);
 
 			client->source.state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.buffer->header), &(client->source.buffer->payload), bufsize, &(client->source.here), &(client->source.length));
@@ -491,14 +487,10 @@ int main(int argc, char ** argv)
 				continue;
 			}
 
-			DIMINUTO_LOG_DEBUG("%s: READ DATA client=%p header=%d state='%c' indication=%d\n", program, client, client->source.buffer->header, client->source.state, client->indication);
-
 			if (client->source.buffer->header > 0) {
 
+				DIMINUTO_LOG_DEBUG("%s: READ DATA client=%p header=%d state='%c' indication=%d\n", program, client, client->source.buffer->header, client->source.state, client->indication);
 				client->source.buffer = enqueue(client, client->source.buffer);
-				if (client->sink.state == CODEX_STATE_IDLE) {
-					client->sink.state = CODEX_STATE_RESTART;
-				}
 				client->source.state = CODEX_STATE_RESTART;
 				continue;
 
@@ -506,18 +498,19 @@ int main(int argc, char ** argv)
 
 				DIMINUTO_LOG_INFORMATION("%s: READ FAREND client=%p header=%d state='%c' indication=%d\n", program, client, client->source.buffer->header, client->source.state, client->indication);
 				client->source.buffer = release(client->source.buffer);
-				client->indication = CODEX_INDICATION_FAREND;
 				client->source.state = CODEX_STATE_IDLE;
+				client->indication = CODEX_INDICATION_FAREND;
 
-			} else if ((client->source.buffer->header == CODEX_INDICATION_READY) && (client->indication == CODEX_INDICATION_FARENDED)) {
+			} else if ((client->source.buffer->header == CODEX_INDICATION_READY) && (client->indication == CODEX_INDICATION_PENDING)) {
 
 				DIMINUTO_LOG_INFORMATION("%s: READ READY client=%p header=%d state='%c' indication=%d\n", program, client, client->source.buffer->header, client->source.state, client->indication);
 				client->source.buffer = release(client->source.buffer);
-				client->indication = CODEX_INDICATION_READY;
 				client->source.state = CODEX_STATE_IDLE;
+				client->indication = CODEX_INDICATION_READY;
 
 			} else {
 
+				DIMINUTO_LOG_WARNING("%s: READ INDICATION client=%p header=%d state='%c' indication=%d\n", program, client, client->source.buffer->header, client->source.state, client->indication);
 				client->source.state = CODEX_STATE_RESTART;
 				continue;
 
@@ -552,16 +545,14 @@ int main(int argc, char ** argv)
 			if (client->sink.buffer == (buffer_t *)0) {
 
 				client->sink.buffer = dequeue(client);
+				if (client->sink.buffer == (buffer_t *)0) {
+					continue;
+				}
 				client->sink.state = CODEX_STATE_RESTART;
 
 			}
 
-			if (client->sink.buffer == (buffer_t *)0) {
 
-				client->sink.state = CODEX_STATE_IDLE;
-				continue;
-
-			}
 
 			client->sink.state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.buffer->header), &(client->sink.buffer->payload), client->sink.buffer->header, &(client->sink.here), &(client->sink.length));
 
@@ -577,30 +568,35 @@ int main(int argc, char ** argv)
 				continue;
 			}
 
-			DIMINUTO_LOG_DEBUG("%s: WRITE DATA client=%p header=%d state='%c' indication=%d\n", program, client, client->sink.buffer->header, client->sink.state, client->indication);
-
 			if (client->indication == CODEX_INDICATION_NONE) {
 
-				client->sink.buffer = release(client->sink.buffer);
-				continue;
-
-			} else if (client->indication == CODEX_INDICATION_FARENDED) {
-
+				DIMINUTO_LOG_DEBUG("%s: WRITE DATA client=%p header=%d state='%c' indication=%d\n", program, client, client->sink.buffer->header, client->sink.state, client->indication);
 				client->sink.buffer = release(client->sink.buffer);
 				continue;
 
 			} else if (client->indication == CODEX_INDICATION_NEAREND) {
 
+				DIMINUTO_LOG_DEBUG("%s: WRITE DATA client=%p header=%d state='%c' indication=%d\n", program, client, client->sink.buffer->header, client->sink.state, client->indication);
 				client->sink.buffer->header = CODEX_INDICATION_FAREND;
 				client->sink.state = CODEX_STATE_RESTART;
-				DIMINUTO_LOG_INFORMATION("%s: WRITE FAREND client=%p header=%d state='%c' indication=%d\n", program, client, client->sink.buffer->header, client->sink.state, client->indication);
-				client->indication = CODEX_INDICATION_FARENDED;
+				client->indication = CODEX_INDICATION_PENDING;
 				continue;
+
+			} else if (client->indication == CODEX_INDICATION_PENDING) {
+
+				DIMINUTO_LOG_INFORMATION("%s: WRITE FAREND client=%p header=%d state='%c' indication=%d\n", program, client, client->sink.buffer->header, client->sink.state, client->indication);
+				client->sink.buffer = release(client->sink.buffer);
+				client->sink.state = CODEX_STATE_IDLE;
+
+				/*
+				 * Let the outbound stream drain.
+				 */
 
 			} else {
 
+				DIMINUTO_LOG_WARNING("%s: WRITE DATA client=%p header=%d state='%c' indication=%d\n", program, client, client->sink.buffer->header, client->sink.state, client->indication);
 				client->sink.buffer = release(client->sink.buffer);
-				client->sink.state = CODEX_STATE_IDLE;
+				continue;
 
 			}
 
@@ -620,8 +616,6 @@ int main(int argc, char ** argv)
 		diminuto_yield();
 
 	}
-
-	DIMINUTO_LOG_INFORMATION("%s: END\n", program);
 
 	diminuto_mux_fini(&mux);
 
@@ -664,7 +658,7 @@ int main(int argc, char ** argv)
 		ctx = codex_context_free(ctx);
 		EXPECT(ctx == (codex_context_t *)0);
 
-		DIMINUTO_LOG_INFORMATION("%s: allocated=%d freed=%d\n", program, malloced, freed);
+		DIMINUTO_LOG_INFORMATION("%s: END allocated=%d freed=%d\n", program, malloced, freed);
 		EXPECT(malloced == freed);
 
 	}
