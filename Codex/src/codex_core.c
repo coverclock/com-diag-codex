@@ -499,7 +499,6 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 	CONF_VALUE * val = (CONF_VALUE *)0;
 	int lim = 0;
 	X509_NAME * nam = (X509_NAME *)0;
-	char buffer[256];
 	int rc = -1;
 	const char * text = (const char *)0;
 	char * value = (char *)0;
@@ -507,6 +506,8 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 	ASN1_OCTET_STRING * extoct = (ASN1_OCTET_STRING *)0;
 	int extlen = 0;
 	const ASN1_ITEM * it = (const ASN1_ITEM *)0;
+	const char * fqdn = "";
+	char cn[256] = { '\0' };
 
 	do {
 
@@ -646,7 +647,9 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 						continue;
 					}
 
-					if (strcmp(val->value, expected) != 0) {
+					fqdn = val->value;
+
+					if (strcmp(fqdn, expected) != 0) {
 						CODEX_WTF;
 						continue;
 					}
@@ -655,7 +658,7 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 					 * Fully Qualified Domain Name (FQDN) matches.
 					 */
 
-					DIMINUTO_LOG_INFORMATION("codex_connection_verify: FQDN=\"%s\"==\"%s\"\n", val->value, expected);
+					DIMINUTO_LOG_INFORMATION("codex_connection_verify: FQDN=\"%s\"==\"%s\"\n", fqdn, expected);
 					result = CODEX_CONNECTION_VERIFY_FQDN;
 					found = !0;
 					break;
@@ -698,16 +701,16 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 			break;
 		}
 
-		buffer[0] = '\0';
-		rc = X509_NAME_get_text_by_NID(nam, NID_commonName, buffer, sizeof(buffer));
+		cn[0] = '\0';
+		rc = X509_NAME_get_text_by_NID(nam, NID_commonName, cn, sizeof(cn));
 		if (rc <= 0) {
 			break;
 		}
-		buffer[sizeof(buffer) - 1] = '\0';
+		cn[sizeof(cn) - 1] = '\0';
 
-		DIMINUTO_LOG_DEBUG("codex_connection_verify: name \"%s\"=\"%s\"\n", SN_commonName, buffer);
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: name \"%s\"=\"%s\"\n", SN_commonName, cn);
 
-		if (strcasecmp(buffer, expected) != 0) {
+		if (strcasecmp(cn, expected) != 0) {
 			break;
 		}
 
@@ -715,7 +718,7 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 		 * Common Name (CN) matches.
 		 */
 
-		DIMINUTO_LOG_INFORMATION("codex_connection_verify: CN=\"%s\"==\"%s\"\n", buffer, expected);
+		DIMINUTO_LOG_INFORMATION("codex_connection_verify: CN=\"%s\"==\"%s\"\n", cn, expected);
 		result = CODEX_CONNECTION_VERIFY_CN;
 		found = !0;
 		break;
@@ -740,7 +743,7 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 
 	if (error != X509_V_OK) {
 		text = X509_verify_cert_error_string(error);
-		DIMINUTO_LOG_WARNING("codex_connection_verify: FAILED <%d> \"%s\"\n", error, (text != (const char *)0) ? text : "");
+		DIMINUTO_LOG_WARNING("codex_connection_verify: crt=%p FQDN=\"%s\" CN=\"%s\" error=%d=\"%s\"\n", crt, fqdn, cn, error, (text != (const char *)0) ? text : "");
 		result = CODEX_CONNECTION_VERIFY_FAILED;
 	}
 

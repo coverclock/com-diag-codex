@@ -513,7 +513,6 @@ int main(int argc, char ** argv)
 				} else if ((client->source.buffer->header == CODEX_INDICATION_READY) && (client->indication == CODEX_INDICATION_PENDING)) {
 
 					DIMINUTO_LOG_INFORMATION("%s: READ READY client=%p header=%d state='%c' indication=%d\n", program, client, client->source.buffer->header, client->source.state, client->indication);
-					client->source.buffer = release(client->source.buffer);
 					client->source.state = CODEX_STATE_IDLE;
 					client->indication = CODEX_INDICATION_READY;
 

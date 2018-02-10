@@ -385,6 +385,7 @@ COMMENT();
 			indication = CODEX_INDICATION_NONE;
 
 		} else if (indication == CODEX_INDICATION_FAREND) {
+			codex_serror_t serror = CODEX_SERROR_OTHER;
 
 			DIMINUTO_LOG_INFORMATION("%s: FAREND\n", program);
 
@@ -413,16 +414,29 @@ COMMENT();
 
 			states[READER] = CODEX_STATE_RESTART;
 			do {
-				states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), (void *)0, 0, &(heres[READER]), &(lengths[READER]));
+				states[READER] = codex_machine_reader_generic(states[READER], expected, ssl, &(headers[READER]), (void *)0, 0, &(heres[READER]), &(lengths[READER]), &serror);
 			} while ((states[READER] != CODEX_STATE_FINAL) && (states[READER] != CODEX_STATE_COMPLETE));
 			if (states[READER] == CODEX_STATE_FINAL) {
 				break;
 			}
-			DIMINUTO_LOG_INFORMATION("%s: READ DONE header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
+
+			if (serror != CODEX_SERROR_OKAY) {
+
+				states[READER] = CODEX_STATE_RESTART;
+				do {
+					states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), (void *)0, 0, &(heres[READER]), &(lengths[READER]));
+				} while ((states[READER] != CODEX_STATE_FINAL) && (states[READER] != CODEX_STATE_COMPLETE));
+				if (states[READER] == CODEX_STATE_FINAL) {
+					break;
+				}
+
+			}
 
 			if (headers[READER] != CODEX_INDICATION_DONE) {
 				break;
 			}
+
+			DIMINUTO_LOG_INFORMATION("%s: READ DONE header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
 
 			states[READER] = CODEX_STATE_RESTART;
 			states[WRITER] = CODEX_STATE_IDLE;
