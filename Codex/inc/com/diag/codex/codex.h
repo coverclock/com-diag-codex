@@ -40,8 +40,8 @@ typedef BIO codex_rendezvous_t;
 typedef SSL codex_connection_t;
 
 /**
- * These are the values the integer returned by codex_serror() may assume.
- * They are just enumerations of the defined numbers that SSL_error() returns.
+ * These are the values that the enumeration returned by codex_serror() may
+ * assume.
  */
 typedef enum CodexSerror {
 	CODEX_SERROR_NONE		= '!', /* SSL_ERROR_NONE */
@@ -58,8 +58,8 @@ typedef enum CodexSerror {
 } codex_serror_t;
 
 /**
- * These are the values the integer returned by codex_connection_verify() may
- * assume.
+ * These are the values that the enumeration returned by
+ * codex_connection_verify() may assume.
  */
 typedef enum CodexConnectionVerify {
 	CODEX_CONNECTION_VERIFY_FAILED	= -1,	/* Verification failed. */
@@ -85,7 +85,7 @@ typedef int32_t codex_header_t;
  * output direction of a single connection have separate states, they may be
  * initialized to different values. The state for a connection that has a
  * payload available for the application is COMPLETE, for a connection that
- * has closed is FINAL, and for a connection whose segment has been consumed
+ * has closed is FINAL, and for a connection whose packet has been consumed
  * and is ready for another is set by the application to RESTART. IDLE is a
  * do-nothing state.
  */
@@ -101,7 +101,7 @@ typedef enum CodexState {
 } codex_state_t;
 
 /**
- * These are the the indications that may be carried in a segment header that
+ * These are the the indications that may be carried in a packet header that
  * the handshake unit tests use to quiesce and then resume the data stream when
  * doing a handshake for renegotiation. Applications using the Codex library
  * don't have to use these; their use isn't baked into the library in any way.
@@ -115,66 +115,6 @@ typedef enum CodexIndication {
 	CODEX_INDICATION_FAREND		= -1,	/* Tell FE to prepare for action. */
 	CODEX_INDICATION_NONE		=  0,	/* No action pending or in progress. */
 } codex_indication_t;
-
-/*******************************************************************************
- * CONSTANTS
- ******************************************************************************/
-
-/**
- * Names the environmental variable whose value is the server password.
- */
-extern const char * const codex_server_password_env;
-
-/**
- * Names the environmental variable whose value is the client password.
- */
-extern const char * const codex_client_password_env;
-
-/**
- * Declares the name of the secure socket layer method.
- */
-extern const char * const codex_method;
-
-/**
- * Declares the usable cipher algorithms among those that are available.
- */
-extern const char * const codex_cipher_list;
-
-/**
- * Declares the context string used to identify reusable SSL sessions.
- */
-extern const char * const codex_session_id_context;
-
-/**
- * Declares the maximum depth to which certificates may be chained.
- */
-extern const int codex_certificate_depth;
-
-/**
- * Declares the minimum number of bytes which may trigger a renegotiation.
- */
-extern const long codex_renegotiate_bytes;
-
-/**
- * Declares the minimum number of seconds which may trigger a renegotiation.
- */
-extern const long codex_renegotiate_seconds;
-
-/*******************************************************************************
- * DEBUGGING
- ******************************************************************************/
-
-/**
- * Log at NOTICE a line containing the file name, line number, connection
- * pointer, first peeked error value, return code, SSL error value, and
- * errno (as errnumber).
- * @param file names the translation unit.
- * @param line is the line number.
- * @param ssl points to the connection.
- * @param rc is the return code.
- * @param errnumber is a copy of errno.
- */
-extern void codex_wtf(const char * file, int line, const codex_connection_t * ssl, int rc, int errnumber);
 
 /*******************************************************************************
  * ERRORS
@@ -441,12 +381,12 @@ extern bool codex_handshake_renegotiating(codex_connection_t * ssl);
  ******************************************************************************/
 
 /**
- * Implement a state machine for reading segmented data from an SSL, handling
+ * Implement a state machine for reading packet data from an SSL, handling
  * verification and closing automatically. Except for ssl and size, all of the
  * parameters for the reader must be independent of those of the writer. If the
- * received header indicates a segment size larger than the buffer, only as much
- * of the segment as will fit in the buffer will be returned; the header will
- * still indicate the original transmitted segment size.
+ * received header indicates a packet size larger than the buffer, only as much
+ * of the packet as will fit in the buffer will be returned; the header will
+ * still indicate the original transmitted packet size.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
@@ -461,12 +401,12 @@ extern bool codex_handshake_renegotiating(codex_connection_t * ssl);
 extern codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length, codex_serror_t * serror);
 
 /**
- * Implement a state machine for reading segmented data from an SSL, handling
+ * Implement a state machine for reading packet data from an SSL, handling
  * verification and closing automatically. Except for ssl and size, all of the
  * parameters for the reader must be independent of those of the writer. If the
- * received header indicates a segment size larger than the buffer, only as much
- * of the segment as will fit in the buffer will be returned; the header will
- * still indicate the original transmitted segment size.
+ * received header indicates a packet size larger than the buffer, only as much
+ * of the packet as will fit in the buffer will be returned; the header will
+ * still indicate the original transmitted packet size.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
@@ -483,7 +423,7 @@ static inline codex_state_t codex_machine_reader(codex_state_t state, const char
 }
 
 /**
- * Implement a state machine for writing segmented data to an SSL, handling
+ * Implement a state machine for writing packet data to an SSL, handling
  * verification and closing automatically. Except for ssl and size, all of the
  * parameters for the reader must be independent of those of the writer.
  * @param state is the current state whose initial value depends on the application.
@@ -500,7 +440,7 @@ static inline codex_state_t codex_machine_reader(codex_state_t state, const char
 extern codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length, codex_serror_t * serror);
 
 /**
- * Implement a state machine for writing segmented data to an SSL, handling
+ * Implement a state machine for writing packet data to an SSL, handling
  * verification and closing automatically. Except for ssl and size, all of the
  * parameters for the reader must be independent of those of the writer.
  * @param state is the current state whose initial value depends on the application.

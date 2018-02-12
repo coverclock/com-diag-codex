@@ -20,7 +20,7 @@
 #include "com/diag/diminuto/diminuto_alarm.h"
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/codex/codex.h"
-#include "unittest-core.h"
+#include "unittest-codex.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>

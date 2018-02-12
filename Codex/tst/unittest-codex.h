@@ -15,15 +15,17 @@
  * PARAMETERS
  ******************************************************************************/
 
-#undef COM_DIAG_CODEX_CIPHER_LIST
+#undef COM_DIAG_CODEX_CLIENT_PASSWORD_ENV
+
+#undef COM_DIAG_CODEX_SERVER_PASSWORD_ENV
+
+#undef COM_DIAG_CODEX_METHOD
+
+#undef OM_DIAG_CODEX_CIPHER_LIST
 
 #undef COM_DIAG_CODEX_SESSION_ID_CONTEXT
 
 #undef COM_DIAG_CODEX_CERTIFICATE_DEPTH
-
-#undef COM_DIAG_CODEX_RENEGOTIATE_BYTES
-
-#undef COM_DIAG_CODEX_RENEGOTIATE_SECONDS
 
 /*******************************************************************************
  * GENERATORS

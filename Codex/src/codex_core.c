@@ -29,24 +29,19 @@
 #include "codex.h"
 
 /*******************************************************************************
- * CONSTANTS
+ * GENERATORS
  ******************************************************************************/
 
-const char * const codex_client_password_env = COM_DIAG_CODEX_CLIENT_PASSWORD_ENV;
-
-const char * const codex_server_password_env = COM_DIAG_CODEX_SERVER_PASSWORD_ENV;
-
-const char * const codex_method = DIMINUTO_TOKEN_TOKEN(COM_DIAG_CODEX_METHOD);
-
-const char * const codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
-
-const char * const codex_session_id_context = COM_DIAG_CODEX_SESSION_ID_CONTEXT;
-
-const int codex_certificate_depth = COM_DIAG_CODEX_CERTIFICATE_DEPTH;
-
-const long codex_renegotiate_bytes = COM_DIAG_CODEX_RENEGOTIATE_BYTES;
-
-const long codex_renegotiate_seconds = COM_DIAG_CODEX_RENEGOTIATE_SECONDS;
+#define CODEX_SET(_NAME_, _TYPE_, _UNDEFINED_) \
+	_TYPE_ codex_set_##_NAME_(_TYPE_ now) \
+	{ \
+		_TYPE_ was = (_TYPE_)_UNDEFINED_; \
+		DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex); \
+			was = codex_##_NAME_; \
+			if (now != (_TYPE_)_UNDEFINED_) { codex_##_NAME_ = now; } \
+		DIMINUTO_CRITICAL_SECTION_END; \
+		return was; \
+	}
 
 /*******************************************************************************
  * GLOBALS
@@ -55,12 +50,44 @@ const long codex_renegotiate_seconds = COM_DIAG_CODEX_RENEGOTIATE_SECONDS;
 DH * codex_dh = (DH *)0;
 
 /*******************************************************************************
+ * PARAMETERS
+ ******************************************************************************/
+
+static codex_method_t codex_method = COM_DIAG_CODEX_METHOD;
+
+static const char * codex_client_password_env = COM_DIAG_CODEX_CLIENT_PASSWORD_ENV;
+
+static const char * codex_server_password_env = COM_DIAG_CODEX_SERVER_PASSWORD_ENV;
+
+static const char * codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
+
+static const char * codex_session_id_context = COM_DIAG_CODEX_SESSION_ID_CONTEXT;
+
+static int codex_certificate_depth = COM_DIAG_CODEX_CERTIFICATE_DEPTH;
+
+/*******************************************************************************
  * STATICS
  ******************************************************************************/
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static bool initialized = false;
+
+/*******************************************************************************
+ * GETTORS/SETTORS
+ ******************************************************************************/
+
+CODEX_SET(method, codex_method_t, 0);
+
+CODEX_SET(client_password_env, const char *, 0);
+
+CODEX_SET(server_password_env, const char *, 0);
+
+CODEX_SET(cipher_list, const char *, 0);
+
+CODEX_SET(session_id_context, const char *, 0);
+
+CODEX_SET(certificate_depth, int, -1);
 
 /*******************************************************************************
  * DEBUGGING
@@ -374,7 +401,6 @@ int codex_parameters(const char * dhf)
 
 	DIMINUTO_CRITICAL_SECTION_END;
 
-
 	return rc;
 
 }
@@ -393,7 +419,7 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 
 	do {
 
-		method = COM_DIAG_CODEX_METHOD;
+		method = (*codex_method)();
 		if (method == (SSL_METHOD *)0) {
 			codex_perror("SSLv23_method");
 			break;

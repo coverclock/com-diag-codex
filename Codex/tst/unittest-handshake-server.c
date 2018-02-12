@@ -19,9 +19,7 @@
 #include "com/diag/diminuto/diminuto_list.h"
 #include "com/diag/diminuto/diminuto_containerof.h"
 #include "com/diag/codex/codex.h"
-#include "unittest-core.h"
-#include "unittest-machine.h"
-#include "unittest-handshake.h"
+#include "unittest-codex.h"
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>

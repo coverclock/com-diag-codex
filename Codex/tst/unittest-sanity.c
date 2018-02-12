@@ -13,8 +13,9 @@
 #include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/codex/codex.h"
 #include "../src/codex.h"
-#include "unittest-core.h"
+#include "unittest-codex.h"
 #include <string.h>
+#include <stdio.h>
 
 int main(char * argc, char ** argv)
 {
@@ -24,51 +25,49 @@ int main(char * argc, char ** argv)
 	diminuto_log_setmask();
 
 	{
-		TEST();
-
-		ASSERT(codex_method != (char *)0);
-		COMMENT("codex_method=(%s)\n", codex_method);
-		EXPECT(*codex_method != '\0');
-
-		COMMENT("codex_certificate_depth=%d\n", codex_certificate_depth);
-		EXPECT(codex_certificate_depth > 0);
-
-		ASSERT(codex_cipher_list != (char *)0);
-		COMMENT("codex_cipher_list=\"%s\"\n", codex_cipher_list);
-		EXPECT(*codex_cipher_list != '\0');
-
-		ASSERT(codex_session_id_context != (char *)0);
-		COMMENT("codex_session_id_context=\"%s\"\n", codex_session_id_context);
-		EXPECT(*codex_session_id_context != '\0');
-
-		COMMENT("codex_renegotiate_bytes=%ld\n", codex_renegotiate_bytes);
-		EXPECT(codex_renegotiate_bytes > 0);
-
-		COMMENT("codex_renegotiate_seconds=%ld\n", codex_renegotiate_seconds);
-		EXPECT(codex_renegotiate_seconds > 0);
-
-
-		STATUS();
-	}
-
-	{
-		const char * value;
+		codex_method_t wasp;
+		const SSL_METHOD * meth;
+		const char * was;
+		int iwas;
+		const char * val;
 
 		TEST();
 
-		ASSERT(codex_server_password_env != (char *)0);
-		EXPECT(*codex_server_password_env != '\0');
-		value = getenv(codex_server_password_env);
-		ASSERT(value != (const char *)0);
-		ADVISE(*value != '\0');
-		COMMENT("%s=\"%s\"\n", codex_server_password_env, (value != (const char *)0) ? "(defined)" : "(UNDEFINED)");
+		wasp = codex_set_method(NULL);
+		ASSERT(wasp != (codex_method_t)0);
+		COMMENT("codex_method=%p\n", wasp);
+		meth = (*wasp)();
+		ASSERT(meth != (SSL_METHOD *)0);
 
-		ASSERT(codex_client_password_env != (char *)0);
-		EXPECT(*codex_client_password_env != '\0');
-		value = getenv(codex_client_password_env);
-		ASSERT(value != (const char *)0);
-		ADVISE(*value != '\0');
-		COMMENT("%s=\"%s\"\n", codex_client_password_env, (value != (const char *)0) ? "(defined)" : "(UNDEFINED)");
+		iwas = codex_set_certificate_depth(-1);
+		COMMENT("codex_certificate_depth=%d\n", iwas);
+		EXPECT(iwas > 0);
+
+		was = codex_set_cipher_list(NULL);
+		ASSERT(was != (char *)0);
+		COMMENT("codex_cipher_list=\"%s\"\n", was);
+		EXPECT(*was != '\0');
+
+		was = codex_set_session_id_context(NULL);
+		ASSERT(was != (char *)0);
+		COMMENT("codex_session_id_context=\"%s\"\n", was);
+		EXPECT(*was != '\0');
+
+		was = codex_set_server_password_env(NULL);
+		ASSERT(was != (char *)0);
+		EXPECT(*was != '\0');
+		val = getenv(was);
+		ASSERT(val != (const char *)0);
+		ADVISE(*val != '\0');
+		COMMENT("%s=\"%s\"\n", was, (val != (const char *)0) ? "(defined)" : "(UNDEFINED)");
+
+		was = codex_set_client_password_env(NULL);
+		ASSERT(was != (char *)0);
+		EXPECT(*was != '\0');
+		val = getenv(was);
+		ASSERT(val != (const char *)0);
+		ADVISE(*val != '\0');
+		COMMENT("%s=\"%s\"\n", was, (val != (const char *)0) ? "(defined)" : "(UNDEFINED)");
 
 		STATUS();
 	}

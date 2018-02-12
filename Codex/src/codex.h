@@ -11,8 +11,9 @@
  * https://github.com/coverclock/com-diag-codex<BR>
  *
  * These elements are not part of the public API. They are typically exposed
- * only for unit testing or for supporting separate translation modules in the
- * underlying implementation.
+ * only for unit testing, for supporting separate translation modules in the
+ * underlying implementation, or for supporting user-defined translations
+ * modules that are built as part of this library for purposes of customization.
  */
 
 /*******************************************************************************
@@ -54,16 +55,6 @@
 #	define COM_DIAG_CODEX_CERTIFICATE_DEPTH 0
 #endif
 
-#if !defined(COM_DIAG_CODEX_RENEGOTIATE_BYTES)
-#	warning COM_DIAG_CODEX_RENEGOTIATE_BYTES undefined!
-#	define COM_DIAG_CODEX_RENEGOTIATE_BYTES 0
-#endif
-
-#if !defined(COM_DIAG_CODEX_RENEGOTIATE_SECONDS)
-#	warning COM_DIAG_CODEX_RENEGOTIATE_SECONDS undefined!
-#	define COM_DIAG_CODEX_RENEGOTIATE_SECONDS 0
-#endif
-
 #if !defined(COM_DIAG_CODEX_SERVER_PASSWORD_ENV)
 #	warning COM_DIAG_CODEX_SERVER_PASSWORD_ENV undefined!
 #	define COM_DIAG_CODEX_SERVER_PASSWORD_ENV ""
@@ -83,10 +74,48 @@
 #define COM_DIAG_CODEX_CONFNAME_DNS "DNS"
 
 /*******************************************************************************
+ * TYPES
+ ******************************************************************************/
+
+typedef const SSL_METHOD * (*codex_method_t)(void);
+
+/*******************************************************************************
  * GLOBALS
  ******************************************************************************/
 
 extern DH * codex_dh;
+
+/*******************************************************************************
+ * DEBUGGING
+ ******************************************************************************/
+
+/**
+ * Log at NOTICE a line containing the file name, line number, connection
+ * pointer, first peeked error value, return code, SSL error value, and
+ * errno (as errnumber).
+ * @param file names the translation unit.
+ * @param line is the line number.
+ * @param ssl points to the connection.
+ * @param rc is the return code.
+ * @param errnumber is a copy of errno.
+ */
+extern void codex_wtf(const char * file, int line, const codex_connection_t * ssl, int rc, int errnumber);
+
+/*******************************************************************************
+ * GETTORS/SETTORS
+ ******************************************************************************/
+
+extern codex_method_t codex_set_method(codex_method_t now);
+
+extern const char * codex_set_client_password_env(const char * now);
+
+extern const char * codex_set_server_password_env(const char * now);
+
+extern const char * codex_set_cipher_list(const char * now);
+
+extern const char * codex_set_session_id_context(const char * now);
+
+extern int codex_set_certificate_depth(int now);
 
 /*******************************************************************************
  * CALLBACKS

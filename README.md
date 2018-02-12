@@ -24,6 +24,14 @@ excuse to learn how to use OpenSSL for both authentication and encryption
 for the kinds of low-level, typically C or C++, code that I get paid
 to develop.
 
+## Layers
+
+core
+
+machine
+
+handshake
+
 ## Contact
 
 Chip Overclock  
@@ -32,6 +40,16 @@ Digital Aggregates Corporation
 <http://www.diag.com>  
 3440 Youngfield St. #209  
 Wheat Ridge CO 80033 USA  
+
+## Unit Tests
+
+unittest-sanity
+
+unittest-core
+
+unittest-machine
+
+unittest-handshake
 
 ## Dependencies
 
