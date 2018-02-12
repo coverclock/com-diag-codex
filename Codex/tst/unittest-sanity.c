@@ -26,14 +26,20 @@ int main(char * argc, char ** argv)
 	{
 		TEST();
 
+		ASSERT(codex_method != (char *)0);
 		COMMENT("codex_method=(%s)\n", codex_method);
 		EXPECT(*codex_method != '\0');
 
 		COMMENT("codex_certificate_depth=%d\n", codex_certificate_depth);
 		EXPECT(codex_certificate_depth > 0);
 
+		ASSERT(codex_cipher_list != (char *)0);
 		COMMENT("codex_cipher_list=\"%s\"\n", codex_cipher_list);
 		EXPECT(*codex_cipher_list != '\0');
+
+		ASSERT(codex_session_id_context != (char *)0);
+		COMMENT("codex_session_id_context=\"%s\"\n", codex_session_id_context);
+		EXPECT(*codex_session_id_context != '\0');
 
 		COMMENT("codex_renegotiate_bytes=%ld\n", codex_renegotiate_bytes);
 		EXPECT(codex_renegotiate_bytes > 0);

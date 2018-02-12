@@ -136,9 +136,14 @@ extern const char * const codex_client_password_env;
 extern const char * const codex_method;
 
 /**
- * Declares the available and usable cipher algorithms.
+ * Declares the usable cipher algorithms among those that are available.
  */
 extern const char * const codex_cipher_list;
+
+/**
+ * Declares the context string used to identify reusable SSL sessions.
+ */
+extern const char * const codex_session_id_context;
 
 /**
  * Declares the maximum depth to which certificates may be chained.

@@ -40,6 +40,8 @@ const char * const codex_method = DIMINUTO_TOKEN_TOKEN(COM_DIAG_CODEX_METHOD);
 
 const char * const codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
 
+const char * const codex_session_id_context = COM_DIAG_CODEX_SESSION_ID_CONTEXT;
+
 const int codex_certificate_depth = COM_DIAG_CODEX_CERTIFICATE_DEPTH;
 
 const long codex_renegotiate_bytes = COM_DIAG_CODEX_RENEGOTIATE_BYTES;
@@ -1048,7 +1050,23 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 
 codex_context_t * codex_server_context_new(const char * caf, const char * cap, const char * crt, const char * key)
 {
-	return codex_context_new(codex_server_password_env, caf, cap, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, codex_certificate_depth, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
+	codex_context_t * ctx = (codex_context_t *)0;
+	int rc = -1;
+
+	ctx = codex_context_new(codex_server_password_env, caf, cap, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, codex_certificate_depth, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
+
+	if (ctx != (codex_context_t *)0) {
+		rc = SSL_CTX_set_session_id_context(ctx, codex_session_id_context, strlen(codex_session_id_context));
+		if (rc != 1) {
+			/*
+			 * Not fatal but will probably break renegotiation handshake from
+			 * the server side.
+			 */
+			DIMINUTO_LOG_ERROR("codex_server_context_new: SSL_CTX_set_session_id_context\n");
+		}
+	}
+
+	return ctx;
 }
 
 codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
