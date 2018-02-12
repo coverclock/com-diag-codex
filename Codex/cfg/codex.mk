@@ -23,15 +23,15 @@
 # SSL_SPW:		server unit test certificate password environmental variable name
 # SSL_CPW:		client unit test certificate password environmental variable name
 
-SSL_KEY 			:=	rsa:3072
-SSL_ALG				:=	sha256
-SSL_GEN				:=	2
-#SSL_GEN			:=	5
-SSL_MTH				:=	TLSv1_2_method
-SSL_LST				:=	TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL
-SSL_SID				:=	com-diag-codex
-SSL_DEP				:=	9
-SSL_DHK				:=	2048
-SSL_EXP				:=	365
-SSL_SPW				:=	COM_DIAG_CODEX_SERVER_PASSWORD
-SSL_CPW				:=	COM_DIAG_CODEX_CLIENT_PASSWORD
+SSL_KEY 		:=	rsa:3072
+SSL_ALG			:=	sha256
+SSL_GEN			:=	2
+#SSL_GEN		:=	5
+SSL_MTH			:=	TLSv1_2_method
+SSL_LST			:=	TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL
+SSL_SID			:=	com-diag-codex
+SSL_DEP			:=	9
+SSL_DHK			:=	2048
+SSL_EXP			:=	365
+SSL_SPW			:=	COM_DIAG_CODEX_SERVER_PASSWORD
+SSL_CPW			:=	COM_DIAG_CODEX_CLIENT_PASSWORD

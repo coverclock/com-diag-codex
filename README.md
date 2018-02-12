@@ -121,6 +121,12 @@ Run the Codex unit tests.
     unittest-machine
     unittest-handshake
     
+These unit tests will deliberately fail as a test of verification failure
+either by the client (the server fails to authenticate) or the server (the
+client fails to authenticate).
+
+    unittest-verification-client
+    unittest-verification-server
 
 ## Contact
 

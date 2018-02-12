@@ -1,11 +1,11 @@
 #!/bin/bash -x
 
-CLIENTS=${1:-"3"}
+CLIENTS=${1:-"1"}
 PERIOD=${2:-"10"}
 BUFSIZE=${3:-"512"}
 BLOCKSIZE=${4:-"4096"}
 BLOCKS=${5:-"1048576"}
-NEAREND=${6:-"49202"}
+NEAREND=${6:-"49222"}
 FAREND=${7:-"localhost:${NEAREND}"}
 EXPECTED="other.prairiethorn.org"
 
@@ -27,4 +27,3 @@ trap "kill -9 ${SERVER} ${CLIENT} 2> /dev/null" HUP INT TERM EXIT
 wait ${CLIENT}
 kill -TERM ${SERVER}
 wait ${SERVER}
-
