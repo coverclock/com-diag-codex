@@ -35,10 +35,6 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 	codex_state_t prior = state;
 	int bytes = -1;
 
-	if (codex_handshake_renegotiating(ssl)) {
-		DIMINUTO_LOG_INFORMATION("codex_machine_reader_generic: RENEGOTIATING\n");
-	}
-
 	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: BEGIN ssl=%p state='%c' expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, serror);
 
 	switch (state) {
@@ -194,10 +190,6 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 {
 	codex_state_t prior = state;
 	int bytes = -1;
-
-	if (codex_handshake_renegotiating(ssl)) {
-		DIMINUTO_LOG_INFORMATION("codex_machine_writer_generic: RENEGOTIATING\n");
-	}
 
 	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: BEGIN ssl=%p state='%c' expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, serror);
 

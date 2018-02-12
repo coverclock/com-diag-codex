@@ -35,6 +35,12 @@
  * PARAMETERS
  ******************************************************************************/
 
+/*
+ * This is mostly done to keep the IDE (Eclipse in my case) happy because
+ * nominally these preprocessor symbols are defined by the makefile at build-
+ * time.
+ */
+
 #if !defined(COM_DIAG_CODEX_METHOD)
 #	warning COM_DIAG_CODEX_METHOD undefined!
 #	define COM_DIAG_CODEX_METHOD ((SSL_METHOD *)0)
@@ -69,20 +75,34 @@
  * GENERATORS
  ******************************************************************************/
 
+/**
+ * @COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME defines a short name we expect
+ * to find in the certificate.
+ */
 #define COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME "subjectAltName"
 
+/**
+ * @COM_DIAG_CODEX_CONFNAME_DNS defines a configuration name we expect to
+ * find in the certificate.
+ */
 #define COM_DIAG_CODEX_CONFNAME_DNS "DNS"
 
 /*******************************************************************************
  * TYPES
  ******************************************************************************/
 
+/**
+ * Declares a type used by OpenSSL to define a method.
+ */
 typedef const SSL_METHOD * (*codex_method_t)(void);
 
 /*******************************************************************************
  * GLOBALS
  ******************************************************************************/
 
+/**
+ * Points to the one and only Diffie Hellman parameter structure.
+ */
 extern DH * codex_dh;
 
 /*******************************************************************************
@@ -105,32 +125,98 @@ extern void codex_wtf(const char * file, int line, const codex_connection_t * ss
  * GETTORS/SETTORS
  ******************************************************************************/
 
+/**
+ * Get the existing method and optionally set a new one used for subsequent
+ * calls to codex_context_new().
+ * @param now if not NULL is the new value.
+ * @return the prior or current value.
+ */
 extern codex_method_t codex_set_method(codex_method_t now);
 
+/**
+ * Get the existing client password environmental variable name and optionally
+ * set a new one used for subsequent calls to codex_context_new().
+ * @param now if not NULL is the new value.
+ * @return the prior or current value.
+ */
 extern const char * codex_set_client_password_env(const char * now);
 
+/**
+ * Get the existing server password environmental variable name and optionally
+ * set a new one used for subsequent calls to codex_context_new().
+ * @param now if not NULL is the new value.
+ * @return the prior or current value.
+ */
 extern const char * codex_set_server_password_env(const char * now);
 
+/**
+ * Get the existing cipher list and optionally set a new one used for subsequent
+ * calls to codex_context_new().
+ * @param now if not NULL is the new value.
+ * @return the prior or current value.
+ */
 extern const char * codex_set_cipher_list(const char * now);
 
+/**
+ * Get the existing session identifier context and optionally set a new one used
+ * for subsequent calls to codex_context_new().
+ * @param now if not NULL is the new value.
+ * @return the prior or current value.
+ */
 extern const char * codex_set_session_id_context(const char * now);
 
+/**
+ * Get the existing maximum certificate depth and optionally set a new one used
+ * for subsequent calls to codex_context_new().
+ * @param now if not -1 is the new value.
+ * @return the prior or current value.
+ */
 extern int codex_set_certificate_depth(int now);
 
 /*******************************************************************************
  * CALLBACKS
  ******************************************************************************/
 
+/**
+ * This call back allows the library to provide a password for its own
+ * certificate files.
+ * @param buffer is where to put the password.
+ * @param size is the size of the buffer in bytes.
+ * @param writing is true if the password is for writing, otherwise for reading.
+ * @param that points to a context provided by the Codex library.
+ * @return the size of the password string.
+ */
 extern int codex_password_callback(char * buffer, int size, int writing, void * that);
 
+/**
+ * This call back allows the application to further verify the certificate.
+ * @param ok indicates whether OpenSSL verified the certificate.
+ * @param ctx points to the X.509 certificate.
+ * @return a value indicating whether the application verified the certificate.
+ */
 extern int codex_verification_callback(int ok, X509_STORE_CTX * ctx);
 
+/**
+ * This call back selects the DH parameter structure to use. It always returns
+ * the imported structure (see below) regardless of the requested key length.
+ * @param ssl points to the connection.
+ * @param exp is not used.
+ * @param length is the requested key length which is ignored.
+ * @return a pointer to the DH parameter structure.
+ */
 extern DH * codex_parameters_callback(SSL * ssl, int exp, int length);
 
 /*******************************************************************************
  * HELPERS
  ******************************************************************************/
 
+/**
+ * Import Diffie Hellman parameters from the specified file.
+ * @param dhf is the name of the file. Note: the DH parameter structure
+ * might be dynamically allocated in the OpenSSL implementation; I don't find
+ * an API call to release it.
+ * @return a pointer to a new DH parameter structure.
+ */
 extern DH * codex_parameters_import(const char * dhf);
 
 #endif

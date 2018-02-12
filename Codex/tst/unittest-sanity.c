@@ -29,19 +29,35 @@ int main(char * argc, char ** argv)
 		const SSL_METHOD * meth;
 		const char * was;
 		int iwas;
+		int inow;
 		const char * val;
 
 		TEST();
 
+		/*
+		 * Because the code implementing the settors was generated using a
+		 * common code template, I'm cheating and not fully unit testing all
+		 * of them. That's probably a mistake.
+		 */
+
 		wasp = codex_set_method(NULL);
 		ASSERT(wasp != (codex_method_t)0);
+		EXPECT(wasp == TLSv1_2_method); /* Must be changed if default changed. */
 		COMMENT("codex_method=%p\n", wasp);
 		meth = (*wasp)();
-		ASSERT(meth != (SSL_METHOD *)0);
+		EXPECT(meth != (SSL_METHOD *)0);
 
 		iwas = codex_set_certificate_depth(-1);
 		COMMENT("codex_certificate_depth=%d\n", iwas);
 		EXPECT(iwas > 0);
+		inow = codex_set_certificate_depth(iwas + 1);
+		EXPECT(inow == iwas);
+		inow = codex_set_certificate_depth(-1);
+		EXPECT(inow == (iwas + 1));
+		inow = codex_set_certificate_depth(iwas);
+		EXPECT(inow == (iwas + 1));
+		inow = codex_set_certificate_depth(-1);
+		EXPECT(inow == iwas);
 
 		was = codex_set_cipher_list(NULL);
 		ASSERT(was != (char *)0);

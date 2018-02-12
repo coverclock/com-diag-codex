@@ -70,8 +70,3 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 
 	return rc;
 }
-
-bool codex_handshake_renegotiating(codex_connection_t * ssl)
-{
-	return !!SSL_renegotiate_pending(ssl);
-}

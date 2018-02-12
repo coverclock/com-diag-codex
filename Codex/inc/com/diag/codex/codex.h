@@ -363,18 +363,18 @@ extern codex_connection_t * codex_server_connection_new(codex_context_t * ctx, c
  ******************************************************************************/
 
 /**
- * Immediately force a peer to renegotiate a connection.
+ * Immediately force a peer to renegotiate a connection. This has the effect of
+ * generating new temporary encryption keys for the peers to use; this is a good
+ * thing to do for very long lived connections, since the encryption is more
+ * likely to be broken by evil actors the longer it is used. Empirical evidence
+ * suggests that regardless of what the OpenSSL documentation may suggest, both
+ * unidirectional streams of the full-duplex connections must be empty of
+ * application data for the renegotiation to succeed. See the handshake unit
+ * test for an example.
  * @param ssl points to the connection (an SSL).
  * @return 0 for success, <0 otherwise.
  */
 extern int codex_handshake_renegotiate(codex_connection_t * ssl);
-
-/**
- * Return true if the connection is awaiting a pending renegotiation.
- * @param ssl points to the connection (an SSL).
- * @return true if a renegotiation is pending, false otherwise.
- */
-extern bool codex_handshake_renegotiating(codex_connection_t * ssl);
 
 /*******************************************************************************
  * MACHINES
@@ -406,7 +406,7 @@ extern codex_state_t codex_machine_reader_generic(codex_state_t state, const cha
  * parameters for the reader must be independent of those of the writer. If the
  * received header indicates a packet size larger than the buffer, only as much
  * of the packet as will fit in the buffer will be returned; the header will
- * still indicate the original transmitted packet size.
+ * still indicate the original received packet size.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.

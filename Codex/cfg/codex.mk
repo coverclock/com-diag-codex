@@ -8,6 +8,20 @@
 
 # These values control how the certificates used by the unit tests are
 # generated at build-time, and how OpenSSL is configured for use at run-time.
+# Those parameters in the latter category can also be changed at run-time
+# using settors in the private API.
+
+# SSL_KEY:		encryption algorithm:key size in bits
+# SSL_ALG:		cryptograph hash function
+# SSL_GEN:		Diffie Hellman generator function
+# SSL_MTH:		cryptographic suite
+# SSL_LST:		list of acceptable cryptographic choices
+# SSL_SID:		session identifier
+# SSL_DEP:		maximum certificate depth
+# SSL_DHK:		Diffie Hellman key size
+# SSL_EXP:		expiration period in days
+# SSL_SPW:		server unit test certificate password environmental variable name
+# SSL_CPW:		client unit test certificate password environmental variable name
 
 SSL_KEY 			:=	rsa:3072
 SSL_ALG				:=	sha256
