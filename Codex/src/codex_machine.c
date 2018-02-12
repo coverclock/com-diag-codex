@@ -82,7 +82,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 			} else if (*header == 0) {
 				state = CODEX_STATE_RESTART;
 			} else if (*header > size) {
-				DIMINUTO_LOG_WARNING("codex_machine_reader_generic: ENBIGGENED ssl=%p header=%d size=%d\n", ssl, *header, size);
+				DIMINUTO_LOG_WARNING("codex_machine_reader_generic: EMBIGGENED ssl=%p header=%d size=%d\n", ssl, *header, size);
 				*here = (uint8_t *)buffer;
 				*length = size;
 				state = CODEX_STATE_PAYLOAD;

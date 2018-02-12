@@ -20,6 +20,7 @@
 #include "com/diag/diminuto/diminuto_alarm.h"
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/diminuto/diminuto_pipe.h"
+#include "com/diag/diminuto/diminuto_ipc6.h"
 #include "com/diag/codex/codex.h"
 #include "unittest-codex.h"
 #include <unistd.h>
@@ -69,6 +70,12 @@ int main(int argc, char ** argv)
 	diminuto_sticks_t ticks = -1;
 	codex_indication_t indication = CODEX_INDICATION_NONE;
 	bool verify = true;
+	diminuto_ipv6_t addressne = { 0 };
+	diminuto_port_t portne = 0;
+	diminuto_ipv6_t addressfe = { 0 };
+	diminuto_port_t portfe = 0;
+	char bufferne[sizeof("XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX")];
+	char bufferfe[sizeof("XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX")];
     int opt = '\0';
     extern char * optarg;
 
@@ -164,6 +171,12 @@ int main(int argc, char ** argv)
 	ASSERT(fd >= 0);
 	ASSERT(fd != STDIN_FILENO);
 	ASSERT(fd != STDOUT_FILENO);
+
+	rc = diminuto_ipc6_nearend(fd, &addressne, &portne);
+	EXPECT(rc == 0);
+	rc = diminuto_ipc6_farend(fd, &addressfe, &portfe);
+	EXPECT(rc == 0);
+	DIMINUTO_LOG_INFORMATION("%s: START nearend=%s:%d farend=%s:%d\n", program, diminuto_ipc6_address2string(addressne, bufferne, sizeof(bufferne)), portne, diminuto_ipc6_address2string(addressfe, bufferfe, sizeof(bufferfe)), portfe);
 
 	diminuto_mux_init(&mux);
 

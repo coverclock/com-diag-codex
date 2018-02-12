@@ -18,6 +18,7 @@
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_list.h"
 #include "com/diag/diminuto/diminuto_containerof.h"
+#include "com/diag/diminuto/diminuto_ipc6.h"
 #include "com/diag/codex/codex.h"
 #include "unittest-codex.h"
 #include <errno.h>
@@ -445,13 +446,25 @@ int main(int argc, char ** argv)
 
 			while ((fd = diminuto_mux_ready_accept(&mux)) >= 0) {
 				client_t * client = (client_t *)0;
+				int rc = -1;
+				diminuto_ipv6_t addressne = { 0 };
+				diminuto_port_t portne = 0;
+				diminuto_ipv6_t addressfe = { 0 };
+				diminuto_port_t portfe = 0;
+				char bufferne[sizeof("XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX")];
+				char bufferfe[sizeof("XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX")];
 
 				ASSERT(fd == rendezvous);
 				client = create();
 				if (client == (client_t *)0) {
 					continue;
 				}
-				DIMINUTO_LOG_INFORMATION("%s: START client=%p\n", program, client);
+				fd = codex_connection_descriptor(client->ssl);
+				rc = diminuto_ipc6_nearend(fd, &addressne, &portne);
+				EXPECT(rc == 0);
+				rc = diminuto_ipc6_farend(fd, &addressfe, &portfe);
+				EXPECT(rc == 0);
+				DIMINUTO_LOG_INFORMATION("%s: START client=%p nearend=%s:%d farend=%s:%d\n", program, client, diminuto_ipc6_address2string(addressne, bufferne, sizeof(bufferne)), portne, diminuto_ipc6_address2string(addressfe, bufferfe, sizeof(bufferfe)), portfe);
 
 			}
 

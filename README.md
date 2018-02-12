@@ -85,6 +85,10 @@ substantial (thousands of packets, each containing hundreds of bytes). Any
 application expecting to renegotiate an OpenSSL connection being used for
 full-duplex communication must take this into account.
 
+Important safety tip: I haven't tried to make the Handshake unit test robust
+against two peers simultaneously requesting a renegotiation. But that's a
+legitimate concern that a real-world application should worry about.
+
 ## Building
 
 Clone and build Diminuto 48.0.0.
