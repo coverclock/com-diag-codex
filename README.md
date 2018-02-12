@@ -40,7 +40,9 @@ stream connections and pass data in a full-duplex fashion.
 
 The Machine layer allows peers to establish secure stream connections and pass
 variable sized packets in a full-duplex fashion. In addition, the peers may
-pass "indications" in-band to signal actions to the far end.
+pass "indications" in-band to signal actions to the far end. This is implemented
+using finite state machines to iteratively handle the I/O streams; this also
+simplifies multiplexing the OpenSSL sockets using the select(2) system call.
 
 The Handshake layer allows peers to establish secure stream connections, pass
 variable sized packets in full-duplex fashion, and use indications to coordinate
