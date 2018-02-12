@@ -420,18 +420,6 @@ COMMENT();
 				break;
 			}
 
-			if (serror != CODEX_SERROR_OKAY) {
-
-				states[READER] = CODEX_STATE_RESTART;
-				do {
-					states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), (void *)0, 0, &(heres[READER]), &(lengths[READER]));
-				} while ((states[READER] != CODEX_STATE_FINAL) && (states[READER] != CODEX_STATE_COMPLETE));
-				if (states[READER] == CODEX_STATE_FINAL) {
-					break;
-				}
-
-			}
-
 			if (headers[READER] != CODEX_INDICATION_DONE) {
 				break;
 			}
