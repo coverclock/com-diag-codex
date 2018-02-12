@@ -69,7 +69,7 @@ renegotiation with all of its clients. In any case, both uni-directional
 (read, write) streams of the full-duplex connection must be emptied for the
 handshake to succeed.
 
-The unit test implements a simple protocol consisting of FAREND (start)
+The unit test implements a simple protocol consisting of a FAREND (start)
 indication sent from the requestor to the requestee while at the same time the
 requestor ceases writing data packets to the connection. The requestee responds
 with a READY indication while at the same time ceasing writing to the requestor.
@@ -78,7 +78,7 @@ requestee reads, and then full-duplex communication resumes.
 
 In the case of the server side of the Handshake unit test being the requestor,
 the server must buffer incoming packets that were in-flight at the time it
-sent the client a FAREND indication, in order to quiesce its output stream.
+sent the client a FAREND indication in order to quiesce its output stream.
 The amount of data it must buffer will be two times the bandwidth delay product
 of the communication channel between the client and the server. This can be
 substantial (thousands of packets, each containing hundreds of bytes). Any
