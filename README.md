@@ -19,10 +19,28 @@ Licensed under the terms in LICENSE.txt.
 ## Abstract
 
 Codex provides a slightly simpler higher-level C-based application programming
-interface to the Open Secure Socket Layer (OpenSSL) API. Mostly it's my
+interface to the Open Secure Socket Layer (OpenSSL) 1.0.2 API. Mostly it's my
 excuse to learn how to use the OpenSSL C API for both authentication and
 encryption for the kinds of low-level, usually C or C++, code that I typically
 am asked to develop.
+
+**Important safety tip**: the OpenSSL API is apparently a quickly moving target.
+Codex builds against OpenSSL 1.0.2, but will not build against 1.0.0, nor
+against 1.1.1, because of changes in the library. *This does not fill me with
+confidence.* It has also discouraged me from testing it on other targets I
+have laying around, like a Raspberry Pi running Raspbian. Any application of
+Codex on a client system will likely result in a pretty significant porting
+and testing effort on my part. I'd like to think this repo still puts me ahead
+of starting from scratch, but I'm not completely convinced.
+
+## Contact
+
+Chip Overclock  
+<coverclock@diag.com>  
+Digital Aggregates Corporation  
+<http://www.diag.com>  
+3440 Youngfield St. #209  
+Wheat Ridge CO 80033 USA  
 
 ## Theory of Operation
 
@@ -52,13 +70,17 @@ lived connections, since the longer an encryption key is used, the more likely i
 is that it will be cracked.
 
 Empirical evidence suggests that regardless of what the OpenSSL documentation
-may suggest, both unidirectional streams of the full-duplex connection must be
-empty of application data for the renegotiation to succeed. This is because
+may suggest, both unidirectional byte streams of the full-duplex connection must
+be empty of application data for the renegotiation to succeed. This is because
 the handshake for the renegotiation is done in-band, and the protocol does not
-know how to handle unexpected application data. This is probably not a problem
-in typical web-based OpenSSL applications, whose communication consists of
-half-duplex HTTP requests and responses. But in the Internet of Things (IoT)
-world of sensors and real-time data, this is not the case.
+know how to handle unexpected application data. This is probably
+not a problem in typical web-based OpenSSL applications, whose communication
+consists of half-duplex HTTP requests and responses. But in the Internet of
+Things (IoT) domain of sensors and real-time data, this may not be the case.
+Furthermore, the handshake itself is implemented on the requestee side by state
+machines in OpenSSL which piggy-back the handshake protocol on application-driven
+I/O. So the requestee must drive those state machines on its side of the
+handshake by doing I/O, whether it has any data to send or receive or not.
 
 Using the Handshake unit test as an example, either the Server or the Client
 processes that implement the unit test can initiate a renegotiation; this is
@@ -85,15 +107,34 @@ substantial (thousands of packets, each containing hundreds of bytes). Any
 application expecting to renegotiate an OpenSSL connection being used for
 full-duplex communication must take this into account.
 
-Important safety tip: I haven't tried to make the Handshake unit test robust
-against two peers simultaneously requesting a renegotiation. But that's a
-legitimate concern that a real-world application should worry about.
+**Important safety tip**: I haven't tried to make the Handshake unit test robust
+against a client and a server simultaneously requesting a renegotiation. But
+that's a legitimate concern that a real-world application should worry about.
+
+## Dependencies
+
+Ubuntu 16.04.3 LTS "xenial"
+
+Linux nickel 4.10.0-28-generic #32~16.04.2-Ubuntu SMP Thu Jul 20 10:19:48 UTC
+2017 x86_64 x86_64 x86_64 GNU/Linux
+
+gcc (Ubuntu 5.4.0-6ubuntu1~16.04.5) 5.4.0 20160609
+
+OpenSSL 1.0.2g  1 Mar 2016
+
+Diminuto 48.0.0 35bd7e6cd0e5f80e3095223940c005ee0676f921
+
+## Targets
+
+"nickel"    
+Intel NUC5i7RYH    
+Intel Core i7-5557U @ 3.10GHz x 8    
 
 ## Building
 
 Clone and build Diminuto 48.0.0.
 
-    cd ~
+    cd
     mkdir -p src
     cd src
     git clone https://github.com/coverclock/com-diag-diminuto
@@ -104,7 +145,7 @@ Clone and build Diminuto 48.0.0.
 
 Clone and build Codex.
 
-    cd ~
+    cd
     mkdir -p src
     cd src
     git clone https://github.com/coverclock/com-diag-codex
@@ -112,13 +153,21 @@ Clone and build Codex.
     make pristine depend all
     # sudo make install # Optional to install in /usr/local .
 
+## Testing
+
 Run the Codex unit tests.
 
     cd ~/src/com-diag-codex/Codex
-    . out/host/bin/setup # Sets up PATH etc. in environment.
+    . out/host/bin/setup # Sets PATH, LD_LIBRARY_PATH, etc. in environment.
     unittest-sanity
     unittest-core
     unittest-machine
+    
+This unit test allows you to test renegotiation from either side of the
+connection by sending the server process or a client process a SIGHUP. You can
+find the process identifiers (PID) for the processes in the log output to
+standard error.    
+
     unittest-handshake
     
 These unit tests will deliberately fail as a test of verification failure
@@ -128,27 +177,14 @@ client fails to authenticate).
     unittest-verification-client
     unittest-verification-server
 
-## Contact
 
-Chip Overclock  
-<coverclock@diag.com>  
-Digital Aggregates Corporation  
-<http://www.diag.com>  
-3440 Youngfield St. #209  
-Wheat Ridge CO 80033 USA  
+## Repositories
 
-## Dependencies
+<https://github.com/coverclock/com-diag-codex>
 
-Linux nickel 4.10.0-28-generic #32~16.04.2-Ubuntu SMP Thu Jul 20 10:19:48 UTC
-2017 x86_64 x86_64 x86_64 GNU/Linux
+<https://github.com/coverclock/com-diag-diminuto>
 
-Ubuntu 16.04.3 LTS "xenial"
-
-gcc (Ubuntu 5.4.0-6ubuntu1~16.04.5) 5.4.0 20160609
-
-OpenSSL 1.0.2g  1 Mar 2016
-
-Diminuto 48.0.0 35bd7e6cd0e5f80e3095223940c005ee0676f921
+<https://github.com/openssl/openssl>
 
 ## References
 
@@ -169,6 +205,8 @@ O'Reilly, 2005
 J. Davies, _Implementing SSL/TLS_, Wiley, 2011
 
 D. Gibbons, personal communication, 2018-01-17
+
+D. Gibbons, personal communication, 2018-02-12
 
 D. Gillmor, "Negotiated Finite Diffie-Hellman Ephemeral Parameters for
 Transport Layer Security (TLS)", RFC 7919, 2016-08

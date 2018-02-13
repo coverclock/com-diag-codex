@@ -28,6 +28,7 @@ SSL_ALG			:=	sha256
 SSL_GEN			:=	2
 #SSL_GEN		:=	5
 SSL_MTH			:=	TLSv1_2_method
+#SSL_MTH		:=	TLS_method#TODO
 SSL_LST			:=	TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL
 SSL_SID			:=	com-diag-codex
 SSL_DEP			:=	9

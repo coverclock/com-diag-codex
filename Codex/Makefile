@@ -143,6 +143,12 @@ CDEFINES			+=	-DCOM_DIAG_CODEX_CERTIFICATE_DEPTH=$(SSL_DEP)
 CDEFINES			+=	-DCOM_DIAG_CODEX_SERVER_PASSWORD_ENV=\"$(SSL_SPW)\"
 CDEFINES			+=	-DCOM_DIAG_CODEX_CLIENT_PASSWORD_ENV=\"$(SSL_CPW)\"
 
+OPENSSL			:=	openssl
+C_REHASH		:=	c_rehash
+#OPENSSL_ROOT	:=	$(HOME)/src/openssl#TODO
+#OPENSSL		:=	$(OPENSSL_ROOT)/apps/openssl#TODO
+#C_REHASH		:=	$(OPENSSL_ROOT)/tools/c_rehash#TODO
+
 ########## Diminuto Configuration
 
 DIMINUTO_TITLE		:=	Diminuto
@@ -170,9 +176,11 @@ RANLIB				:=	$(CROSS_COMPILE)ranlib
 STRIP				:=	$(CROSS_COMPILE)strip
 
 LDLIBRARIES			:=	-lssl -lcrypto
+#LDLIBRARIES		:= -L$(HOME)/src/openssl -lssl -lcrypto#TODO
 
 ARFLAGS				:=	crsv
 CPPFLAGS			:=	$(CDEFINES) -iquote $(SRC_DIR) -iquote $(INC_DIR) -iquote $(OUT)/$(INC_DIR) $(DIMINUTO_CPPFLAGS) $(CPPARCH)
+#CPPFLAGS			+=	-I$(OPENSSL_ROOT)/include#TODO
 CFLAGS				:=	$(CARCH) -g
 CPFLAGS				:=	-i
 MVFLAGS				:=	-i
@@ -242,101 +250,101 @@ $(SSL_PWD)/%.pwd:	$(ETC_DIR)/%.cnf
 
 $(SSL_TXT)/%.txt:	$(SSL_CRT)/%.pem
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -text -noout -in $< > $@
+	$(OPENSSL) x509 -text -noout -in $< > $@
 
 ##### Root
 
 $(SSL_CRT)/rootreq.pem:	$(ETC_DIR)/root.cnf
 	D=`dirname $@`; mkdir -p $$D
-	openssl req -config $(ETC_DIR)/root.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/rootkey.pem -out $@
+	$(OPENSSL) req -config $(ETC_DIR)/root.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/rootkey.pem -out $@
 	ls --full-time $(SSL_CRT)
 
 $(SSL_CRT)/rootkey.pem:	$(SSL_CRT)/rootreq.pem
 
 $(SSL_CRT)/rootcert.pem:	$(SSL_CRT)/rootreq.pem $(ETC_DIR)/root.cnf $(SSL_CRT)/rootkey.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/root.cnf -extensions v3_ca -signkey $(SSL_CRT)/rootkey.pem -passin file:$(SSL_PWD)/root.pwd -out $@
-	c_rehash $(SSL_CRT)
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/root.cnf -extensions v3_ca -signkey $(SSL_CRT)/rootkey.pem -passin file:$(SSL_PWD)/root.pwd -out $@
+	$(C_REHASH) $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
 $(SSL_CRT)/root.pem:	$(SSL_CRT)/rootkey.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
-	c_rehash $(SSL_CRT)
+	$(C_REHASH) $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
-	openssl x509 -subject -issuer -noout -in $@
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
 
 ##### Certificate Authority
 
 $(SSL_CRT)/careq.pem:	$(ETC_DIR)/ca.cnf
 	D=`dirname $@`; mkdir -p $$D
-	openssl req -config $(ETC_DIR)/ca.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/cakey.pem -out $@
+	$(OPENSSL) req -config $(ETC_DIR)/ca.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/cakey.pem -out $@
 	ls --full-time $(SSL_CRT)
 	
 $(SSL_CRT)/cakey.pem:	$(SSL_CRT)/careq.pem
 
 $(SSL_CRT)/cacert.pem:	$(SSL_CRT)/careq.pem $(ETC_DIR)/ca.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/ca.cnf -extensions v3_ca -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
-	c_rehash $(SSL_CRT)
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/ca.cnf -extensions v3_ca -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	$(C_REHASH) $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
 $(SSL_CRT)/ca.pem:	$(SSL_CRT)/cacert.pem $(SSL_CRT)/cakey.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
-	c_rehash $(SSL_CRT)
+	$(C_REHASH) $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
-	openssl x509 -subject -issuer -noout -in $@
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
 
 ##### Server
 
 $(SSL_CRT)/serverreq.pem:	$(ETC_DIR)/server.cnf
 	D=`dirname $@`; mkdir -p $$D
-	openssl req -config $(ETC_DIR)/server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/serverkey.pem -out $@
+	$(OPENSSL) req -config $(ETC_DIR)/server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/serverkey.pem -out $@
 	ls --full-time $(SSL_CRT)
 
 $(SSL_CRT)/serverkey.pem:	$(SSL_CRT)/serverreq.pem
 
 $(SSL_CRT)/servercert.pem:	$(SSL_CRT)/serverreq.pem $(ETC_DIR)/server.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/server.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
-	c_rehash $(SSL_CRT)
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/server.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
+	$(C_REHASH) $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
 $(SSL_CRT)/server.pem:	$(SSL_CRT)/servercert.pem $(SSL_CRT)/serverkey.pem $(SSL_CRT)/cacert.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
-	c_rehash $(SSL_CRT)
+	$(C_REHASH) $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
-	openssl x509 -subject -issuer -noout -in $@
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
 
 ##### Client
 
 $(SSL_CRT)/clientreq.pem:	$(ETC_DIR)/client.cnf
 	D=`dirname $@`; mkdir -p $$D
-	openssl req -config $(ETC_DIR)/client.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/clientkey.pem -out $@
+	$(OPENSSL) req -config $(ETC_DIR)/client.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/clientkey.pem -out $@
 	ls --full-time $(SSL_CRT)
 
 $(SSL_CRT)/clientkey.pem:	$(SSL_CRT)/clientreq.pem
 
 $(SSL_CRT)/clientcert.pem:	$(SSL_CRT)/clientreq.pem $(ETC_DIR)/client.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	openssl x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/client.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
-	c_rehash $(SSL_CRT)
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/client.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	$(C_REHASH) $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 
 $(SSL_CRT)/client.pem:	$(SSL_CRT)/clientcert.pem $(SSL_CRT)/clientkey.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
-	c_rehash $(SSL_CRT)
+	$(C_REHASH) $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
-	openssl x509 -subject -issuer -noout -in $@
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
 
 ##### Diffie Hellman Parameters
 
 $(SSL_CRT)/dh.pem:
 	D=`dirname $@`; mkdir -p $$D
-	openssl dhparam -check -text -$(SSL_GEN) $(SSL_DHK) -out $@
+	$(OPENSSL) dhparam -check -text -$(SSL_GEN) $(SSL_DHK) -out $@
 	ls --full-time $(SSL_CRT)
 
 ##### Helpers
@@ -651,6 +659,7 @@ $(OUT)/$(BIN_DIR)/setup:	Makefile
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $${BASH_ARGV[0]}`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
 	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
+#	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(HOME)/src/openssl' >> $@# TODO
 	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
 	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo '. $(DIMINUTO_ROOT)/$(OUT)/$(BIN_DIR)/setup' >> $@

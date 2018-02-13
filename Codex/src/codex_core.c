@@ -129,7 +129,7 @@ void codex_perror(const char * str)
 		buffer[0] = '\0';
 		ERR_error_string_n(error, buffer, sizeof(buffer));
 		buffer[sizeof(buffer) - 1] = '\0';
-		DIMINUTO_LOG_ERROR("codex_perror: \"%s\" [%d] <%8.8x> \"%s\"\n", str, ii++, error, buffer);
+		DIMINUTO_LOG_ERROR("codex_perror: \"%s\" errno=%d index=%d error=0x%08x=\"%s\"\n", str, save, ii++, error, buffer);
 	}
 
 	if (ii == 0) {
@@ -209,9 +209,9 @@ codex_serror_t codex_serror(const char * str, const SSL * ssl, int rc)
 	}
 
 	if (rc < 0) {
-		DIMINUTO_LOG_INFORMATION("codex_serror: ssl=%p str=\"%s\" rc=%d error=%d errno=%d result='%c'\n", ssl, str, rc, error, save, result);
+		DIMINUTO_LOG_INFORMATION("codex_serror: \"%s\" ssl=%p rc=%d serror=%d errno=%d error='%c'\n", str, ssl, rc, error, save, result);
 	} else {
-		DIMINUTO_LOG_DEBUG("codex_serror: ssl=%p str=\"%s\" rc=%d error=%d errno=%d result='%c'\n", ssl, str, rc, error, save, result);
+		DIMINUTO_LOG_DEBUG("codex_serror: \"%s\" ssl=%p rc=%d serror=%d errno=%d error='%c'\n", str, ssl, rc, error, save, result);
 	}
 
 	errno = save;
@@ -544,7 +544,6 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 	do {
 
 		if (expected == (const char *)0) {
-			DIMINUTO_LOG_INFORMATION("codex_connection_verify: expected ssl=%p expected=%p\n", ssl, expected);
 			break;
 		}
 
@@ -553,8 +552,6 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 			DIMINUTO_LOG_WARNING("codex_connection_verify: crt ssl=%p crt=%p\n", ssl, crt);
 			break;
 		}
-
-		DIMINUTO_LOG_DEBUG("codex_connection_verify: crt ssl=%p crt=%p expected=\"%s\"\n", ssl, crt, expected);
 
 		count = X509_get_ext_count(crt);
 		DIMINUTO_LOG_DEBUG("codex_connection_verify: count ssl=%p crt=%p extensions=%d\n", ssl, crt, count);
@@ -690,7 +687,7 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 					 * Fully Qualified Domain Name (FQDN) matches.
 					 */
 
-					DIMINUTO_LOG_INFORMATION("codex_connection_verify: FQDN ssl=%p fqdn=\"%s\"\n", ssl, fqdn);
+					DIMINUTO_LOG_INFORMATION("codex_connection_verify: fqdn ssl=%p FQDN=\"%s\"\n", ssl, fqdn);
 					result = CODEX_CONNECTION_VERIFY_FQDN;
 					found = !0;
 					break;
@@ -740,7 +737,7 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 		}
 		cn[sizeof(cn) - 1] = '\0';
 
-		DIMINUTO_LOG_DEBUG("codex_connection_verify: cn ssl=%p \"%s\"=\"%s\"\n", ssl, SN_commonName, cn);
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: nid ssl=%p \"%s\"=\"%s\"\n", ssl, SN_commonName, cn);
 
 		if (strcasecmp(cn, expected) != 0) {
 			break;
@@ -750,7 +747,7 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 		 * Common Name (CN) matches.
 		 */
 
-		DIMINUTO_LOG_INFORMATION("codex_connection_verify: CN ssl=%p cn=\"%s\"\n", ssl, cn);
+		DIMINUTO_LOG_INFORMATION("codex_connection_verify: cn ssl=%p CN=\"%s\"\n", ssl, cn);
 		result = CODEX_CONNECTION_VERIFY_CN;
 		found = !0;
 		break;
@@ -775,8 +772,8 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 
 	if (error != X509_V_OK) {
 		text = X509_verify_cert_error_string(error);
-		DIMINUTO_LOG_WARNING("codex_connection_verify: FAILED ssl=%p crt=%p fqdn=\"%s\" cn=\"%s\" error=%d=\"%s\"\n", ssl, crt, fqdn, cn, error, (text != (const char *)0) ? text : "");
 		result = CODEX_CONNECTION_VERIFY_FAILED;
+		DIMINUTO_LOG_WARNING("codex_connection_verify: failed ssl=%p expected=%p crt=%p fqdn=\"%s\" cn=\"%s\" error=%d=\"%s\" verification=%d\n", ssl, expected, crt, fqdn, cn, error, (text != (const char *)0) ? text : "", result);
 	}
 
 	return result;
@@ -889,9 +886,9 @@ int codex_connection_read_generic(codex_connection_t * ssl, void * buffer, int s
 				break;
 			}
 
-		}
+			DIMINUTO_LOG_INFORMATION("codex_connection_read_generic: ssl=%p buffer=%p size=%d rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
 
-		DIMINUTO_LOG_DEBUG("codex_connection_read: ssl=%p buffer=%p size=%d rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
+		}
 
 		if (retry) {
 			diminuto_yield();
@@ -954,9 +951,9 @@ int codex_connection_write_generic(codex_connection_t * ssl, const void * buffer
 				break;
 			}
 
-		}
+			DIMINUTO_LOG_INFORMATION("codex_connection_write: ssl=%p buffer=%p size=%d rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
 
-		DIMINUTO_LOG_DEBUG("codex_connection_write: ssl=%p buffer=%p size=%d rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
+		}
 
 		if (retry) {
 			diminuto_yield();

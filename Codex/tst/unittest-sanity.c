@@ -16,6 +16,7 @@
 #include "unittest-codex.h"
 #include <string.h>
 #include <stdio.h>
+#include <openssl/opensslv.h>
 
 int main(char * argc, char ** argv)
 {
@@ -23,6 +24,34 @@ int main(char * argc, char ** argv)
 	(void)diminuto_core_enable();
 
 	diminuto_log_setmask();
+
+	{
+		unsigned long openssl_version_number = 0;
+		const char * openssl_version_text = "";
+		unsigned long major, minor, fix, patch, status;
+
+		TEST();
+
+#if defined(OPENSSL_VERSION_NUMBER)
+		openssl_version_number = OPENSSL_VERSION_NUMBER;
+#endif
+
+#if defined(OPENSSL_VERSION_TEXT)
+		openssl_version_text = OPENSSL_VERSION_TEXT;
+#endif
+
+		major  = (openssl_version_number & 0xf0000000) >> 28;
+		minor  = (openssl_version_number & 0x0ff00000) >> 20;
+		fix    = (openssl_version_number & 0x000ff000) >> 12;
+		patch  = (openssl_version_number & 0x00000ff0) >>  8;
+		status = (openssl_version_number & 0x0000000f) >>  0;
+
+		COMMENT("openssl_version_number=0x%08x\n", openssl_version_number);
+		COMMENT("openssl_version_text=\"%s\"\n", openssl_version_text);
+		COMMENT("openssl_version_decode=%u.%u.%u.%u.%u\n", major, minor, fix, patch, status);
+
+		STATUS();
+	}
 
 	{
 		codex_method_t wasp;
@@ -42,7 +71,6 @@ int main(char * argc, char ** argv)
 
 		wasp = codex_set_method(NULL);
 		ASSERT(wasp != (codex_method_t)0);
-		EXPECT(wasp == TLSv1_2_method); /* Must be changed if default changed. */
 		COMMENT("codex_method=%p\n", wasp);
 		meth = (*wasp)();
 		EXPECT(meth != (SSL_METHOD *)0);

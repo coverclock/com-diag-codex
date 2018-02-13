@@ -35,7 +35,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 	codex_state_t prior = state;
 	int bytes = -1;
 
-	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: BEGIN ssl=%p state='%c' expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, serror);
+	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: begin ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
 
 	switch (state) {
 
@@ -46,7 +46,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: UNEXPECTED ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 			break;
 		}
@@ -69,7 +69,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_ERROR("codex_machine_reader_generic: OVERFLOW ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
+			DIMINUTO_LOG_ERROR("codex_machine_reader_generic: overflow ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -82,7 +82,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 			} else if (*header == 0) {
 				state = CODEX_STATE_RESTART;
 			} else if (*header > size) {
-				DIMINUTO_LOG_WARNING("codex_machine_reader_generic: EMBIGGENED ssl=%p header=%d size=%d\n", ssl, *header, size);
+				DIMINUTO_LOG_WARNING("codex_machine_reader_generic: embiggened ssl=%p header=%d size=%d\n", ssl, *header, size);
 				*here = (uint8_t *)buffer;
 				*length = size;
 				state = CODEX_STATE_PAYLOAD;
@@ -102,7 +102,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: UNEXPECTED ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 		}
 
@@ -116,7 +116,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_ERROR("codex_machine_reader_generic: OVERFLOW ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
+			DIMINUTO_LOG_ERROR("codex_machine_reader_generic: overflow ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -148,7 +148,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 			} else if (bytes == 0) {
 				state = CODEX_STATE_FINAL;
 			} else if (bytes > slack) {
-				DIMINUTO_LOG_ERROR("codex_machine_reader_generic: OVERFLOW ssl=%p bytes=%d slack=%d)\n", ssl, bytes, slack);
+				DIMINUTO_LOG_ERROR("codex_machine_reader_generic: overflow ssl=%p bytes=%d slack=%d)\n", ssl, bytes, slack);
 				state = CODEX_STATE_FINAL;
 			} else {
 				*length -= bytes;
@@ -181,7 +181,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		(void)codex_connection_close(ssl);
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: END ssl=%p state='%c' expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, serror);
+	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: end ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
 
 	return state;
 }
@@ -191,7 +191,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 	codex_state_t prior = state;
 	int bytes = -1;
 
-	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: BEGIN ssl=%p state='%c' expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, serror);
+	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: begin ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
 
 	switch (state) {
 
@@ -202,7 +202,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: UNEXPECTED ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 			break;
 		}
@@ -225,7 +225,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_ERROR("codex_machine_writer_generic: OVERFLOW ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
+			DIMINUTO_LOG_ERROR("codex_machine_writer_generic: overflow ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -251,7 +251,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: UNEXPECTED ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 		}
 
@@ -265,7 +265,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_ERROR("codex_machine_writer_generic: OVERFLOW ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
+			DIMINUTO_LOG_ERROR("codex_machine_writer_generic: overflow ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -298,7 +298,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		(void)codex_connection_close(ssl);
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: END ssl=%p state='%c' expected=\"%s\" bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, serror);
+	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: end ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
 
 	return state;
 }
