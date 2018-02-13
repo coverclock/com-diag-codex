@@ -55,25 +55,28 @@ int main(char * argc, char ** argv)
 
 	{
 		codex_method_t wasp;
+		codex_method_t nowp;
 		const SSL_METHOD * meth;
 		const char * was;
+		const char * now;
 		int iwas;
 		int inow;
 		const char * val;
 
 		TEST();
 
-		/*
-		 * Because the code implementing the settors was generated using a
-		 * common code template, I'm cheating and not fully unit testing all
-		 * of them. That's probably a mistake.
-		 */
-
 		wasp = codex_set_method(NULL);
 		ASSERT(wasp != (codex_method_t)0);
 		COMMENT("codex_method=%p\n", wasp);
 		meth = (*wasp)();
 		EXPECT(meth != (SSL_METHOD *)0);
+		nowp = codex_set_method(TLSv1_method);
+		EXPECT(nowp != (codex_method_t)0);
+		EXPECT(nowp == wasp);
+		nowp = codex_set_method(wasp);
+		EXPECT(nowp != (codex_method_t)0);
+		nowp = codex_set_method(NULL);
+		EXPECT(nowp == wasp);
 
 		iwas = codex_set_certificate_depth(-1);
 		COMMENT("codex_certificate_depth=%d\n", iwas);
@@ -88,14 +91,30 @@ int main(char * argc, char ** argv)
 		EXPECT(inow == iwas);
 
 		was = codex_set_cipher_list(NULL);
-		ASSERT(was != (char *)0);
+		ASSERT(was != (const char *)0);
 		COMMENT("codex_cipher_list=\"%s\"\n", was);
 		EXPECT(*was != '\0');
+		now = codex_set_cipher_list("FIPS");
+		EXPECT(now != (const char *)0);
+		EXPECT(now == was);
+		now = codex_set_cipher_list(was);
+		EXPECT(now != (const char *)0);
+		EXPECT(*now != '\0');
+		now = codex_set_cipher_list(NULL);
+		EXPECT(now == was);
 
 		was = codex_set_session_id_context(NULL);
-		ASSERT(was != (char *)0);
+		ASSERT(was != (const char *)0);
 		COMMENT("codex_session_id_context=\"%s\"\n", was);
 		EXPECT(*was != '\0');
+		now = codex_set_session_id_context("com-prairiethorn-codex");
+		EXPECT(now != (const char *)0);
+		EXPECT(now == was);
+		now = codex_set_session_id_context(was);
+		EXPECT(now != (const char *)0);
+		EXPECT(*now != '\0');
+		now = codex_set_session_id_context(NULL);
+		EXPECT(now == was);
 
 		was = codex_set_server_password_env(NULL);
 		ASSERT(was != (char *)0);
@@ -104,6 +123,15 @@ int main(char * argc, char ** argv)
 		ASSERT(val != (const char *)0);
 		ADVISE(*val != '\0');
 		COMMENT("%s=\"%s\"\n", was, (val != (const char *)0) ? "(defined)" : "(UNDEFINED)");
+		now = codex_set_server_password_env("com-pairiethorn-server");
+		EXPECT(now != (const char *)0);
+		EXPECT(*now != '\0');
+		now = codex_set_server_password_env(was);
+		EXPECT(now != (const char *)0);
+		EXPECT(*now != '\0');
+		now = codex_set_server_password_env(NULL);
+		EXPECT(now != (const char *)0);
+		EXPECT(now == was);
 
 		was = codex_set_client_password_env(NULL);
 		ASSERT(was != (char *)0);
@@ -112,6 +140,15 @@ int main(char * argc, char ** argv)
 		ASSERT(val != (const char *)0);
 		ADVISE(*val != '\0');
 		COMMENT("%s=\"%s\"\n", was, (val != (const char *)0) ? "(defined)" : "(UNDEFINED)");
+		now = codex_set_client_password_env("com-pairiethorn-client");
+		EXPECT(now != (const char *)0);
+		EXPECT(*now != '\0');
+		now = codex_set_client_password_env(was);
+		EXPECT(now != (const char *)0);
+		EXPECT(*now != '\0');
+		now = codex_set_client_password_env(NULL);
+		EXPECT(now != (const char *)0);
+		EXPECT(now == was);
 
 		STATUS();
 	}
