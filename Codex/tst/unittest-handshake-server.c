@@ -37,7 +37,7 @@ typedef struct Stream {
 	codex_state_t state;
 	buffer_t * buffer;
 	uint8_t * here;
-	int length;
+	size_t length;
 } stream_t;
 
 typedef struct Client {
@@ -218,7 +218,7 @@ static bool renegotiate(client_t * client)
 	codex_header_t header = 0;
 	codex_state_t state = CODEX_STATE_IDLE;
 	uint8_t * here = (uint8_t *)0;
-	int length = 0;
+	size_t length = 0;
 
 	switch (client->indication) {
 

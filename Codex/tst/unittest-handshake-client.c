@@ -53,7 +53,7 @@ int main(int argc, char ** argv)
 	void * buffers[2] = { (void *)0, (void *)0 };
 	codex_header_t headers[2] = { 0, 0 };
 	uint8_t * heres[2] = { (uint8_t *)0, (uint8_t *)0 };
-	int lengths[2] = { 0, 0 };
+	size_t lengths[2] = { 0, 0 };
 	codex_connection_t * ssl = (codex_connection_t *)0;
 	void * temp = (void *)0;
 	int rc = -1;
@@ -73,7 +73,6 @@ int main(int argc, char ** argv)
 	uint8_t f16sinkB = 0;
 	size_t sourced = 0;
 	size_t sunk = 0;
-	long count = 0;
 	diminuto_sticks_t ticks = -1;
 	codex_indication_t indication = CODEX_INDICATION_NONE;
 	bool verify = true;

@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 
@@ -234,7 +235,7 @@ extern bool codex_connection_is_server(const codex_connection_t * ssl);
  * @param serror points to the variable into which an OpenSSL error is returned.
  * @return the number of bytes actually read, 0 if closed, <0 if in error.
  */
-extern int codex_connection_read_generic(codex_connection_t * ssl, void * buffer, int size, codex_serror_t * serror);
+extern ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, size_t size, codex_serror_t * serror);
 
 /**
  * Read data from a connection into a buffer of a specified size.
@@ -243,7 +244,7 @@ extern int codex_connection_read_generic(codex_connection_t * ssl, void * buffer
  * @param size is the size of the buffer in bytes.
  * @return the number of bytes actually read, 0 if closed, <0 if in error.
  */
-static inline int codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
+static inline ssize_t codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 {
 	return codex_connection_read_generic(ssl, buffer, size, (codex_serror_t *)0);
 }
@@ -256,7 +257,7 @@ static inline int codex_connection_read(codex_connection_t * ssl, void * buffer,
  * @param serror points to the variable into which an OpenSSL error is returned.
  * @return the number of bytes actually written, 0 if closed, <0 if in error.
  */
-extern int codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, int size, codex_serror_t * serror);
+extern ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, size_t size, codex_serror_t * serror);
 
 /**
  * Write data to a connection from a buffer of a specified size.
@@ -265,7 +266,7 @@ extern int codex_connection_write_generic(codex_connection_t * ssl, const void *
  * @param size is the size of the buffer in bytes.
  * @return the number of bytes actually written, 0 if closed, <0 if in error.
  */
-static inline int codex_connection_write(codex_connection_t * ssl, const void * buffer, int size)
+static inline ssize_t codex_connection_write(codex_connection_t * ssl, const void * buffer, size_t size)
 {
 	return codex_connection_write_generic(ssl, buffer, size, (codex_serror_t *)0);
 }
@@ -398,7 +399,7 @@ extern int codex_handshake_renegotiate(codex_connection_t * ssl);
  * @param serror points to the variable into which an OpenSSL error is returned.
  * @return the new state.
  */
-extern codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length, codex_serror_t * serror);
+extern codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, codex_serror_t * serror);
 
 /**
  * Implement a state machine for reading packet data from an SSL, handling
@@ -417,7 +418,7 @@ extern codex_state_t codex_machine_reader_generic(codex_state_t state, const cha
  * @param length points to where the remaining buffer length will be stored.
  * @return the new state.
  */
-static inline codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length)
+static inline codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length)
 {
 	return codex_machine_reader_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0);
 }
@@ -437,7 +438,7 @@ static inline codex_state_t codex_machine_reader(codex_state_t state, const char
  * @param serror points to the variable into which an OpenSSL error is returned.
  * @return the new state.
  */
-extern codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length, codex_serror_t * serror);
+extern codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, codex_serror_t * serror);
 
 /**
  * Implement a state machine for writing packet data to an SSL, handling
@@ -453,7 +454,7 @@ extern codex_state_t codex_machine_writer_generic(codex_state_t state, const cha
  * @param length points to where the remaining buffer length will be stored.
  * @return the new state.
  */
-static inline codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length)
+static inline codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length)
 {
 	return codex_machine_writer_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0);
 }

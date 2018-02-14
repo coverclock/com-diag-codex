@@ -30,12 +30,12 @@
  * MACHINES
  ******************************************************************************/
 
-codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length, codex_serror_t * serror)
+codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, codex_serror_t * serror)
 {
 	codex_state_t prior = state;
-	int bytes = -1;
+	ssize_t bytes = -1;
 
-	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: begin ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
+	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: begin ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%u here=%p length=%u serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
 
 	switch (state) {
 
@@ -76,7 +76,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_ERROR("codex_machine_reader_generic: overflow ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
+			DIMINUTO_LOG_ERROR("codex_machine_reader_generic: overflow ssl=%p bytes=%d length=%u\n", ssl, bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -90,7 +90,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 				} else if (*header == 0) {
 					state = CODEX_STATE_RESTART;
 				} else if (*header > size) {
-					DIMINUTO_LOG_WARNING("codex_machine_reader_generic: embiggened ssl=%p header=%d size=%d\n", ssl, *header, size);
+					DIMINUTO_LOG_WARNING("codex_machine_reader_generic: embiggened ssl=%p header=%d size=%u\n", ssl, *header, size);
 					*here = (uint8_t *)buffer;
 					*length = size;
 					state = CODEX_STATE_PAYLOAD;
@@ -132,7 +132,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_ERROR("codex_machine_reader_generic: overflow ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
+			DIMINUTO_LOG_ERROR("codex_machine_reader_generic: overflow ssl=%p bytes=%d length=%u\n", ssl, bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -153,7 +153,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 
 		{
 			char skip[512];
-			int slack = sizeof(skip);
+			size_t slack = sizeof(skip);
 
 			if (*length < slack) {
 				slack = *length;
@@ -165,7 +165,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 			} else if (bytes == 0) {
 				state = CODEX_STATE_FINAL;
 			} else if (bytes > slack) {
-				DIMINUTO_LOG_ERROR("codex_machine_reader_generic: overflow ssl=%p bytes=%d slack=%d)\n", ssl, bytes, slack);
+				DIMINUTO_LOG_ERROR("codex_machine_reader_generic: overflow ssl=%p bytes=%d slack=%u)\n", ssl, bytes, slack);
 				state = CODEX_STATE_FINAL;
 			} else {
 				*length -= bytes;
@@ -198,17 +198,17 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		(void)codex_connection_close(ssl);
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: end ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
+	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: end ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%u here=%p length=%u serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
 
 	return state;
 }
 
-codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, int size, uint8_t ** here, int * length, codex_serror_t * serror)
+codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, codex_serror_t * serror)
 {
 	codex_state_t prior = state;
-	int bytes = -1;
+	ssize_t bytes = -1;
 
-	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: begin ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
+	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: begin ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%u here=%p length=%u serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
 
 	switch (state) {
 
@@ -250,7 +250,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_ERROR("codex_machine_writer_generic: overflow ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
+			DIMINUTO_LOG_ERROR("codex_machine_writer_generic: overflow ssl=%p bytes=%d length=%u\n", ssl, bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -296,7 +296,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		} else if (bytes == 0) {
 			state = CODEX_STATE_FINAL;
 		} else if (bytes > *length) {
-			DIMINUTO_LOG_ERROR("codex_machine_writer_generic: overflow ssl=%p bytes=%d length=%d\n", ssl, bytes, *length);
+			DIMINUTO_LOG_ERROR("codex_machine_writer_generic: overflow ssl=%p bytes=%d length=%u\n", ssl, bytes, *length);
 			state = CODEX_STATE_FINAL;
 		} else {
 			*here += bytes;
@@ -329,7 +329,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		(void)codex_connection_close(ssl);
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: end ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%d here=%p length=%d serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
+	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: end ssl=%p state='%c' expected=%p bytes=%d header=%d buffer=%p size=%u here=%p length=%u serror=%p\n", ssl, state, expected, bytes, *header, buffer, size, *here, *length, serror);
 
 	return state;
 }

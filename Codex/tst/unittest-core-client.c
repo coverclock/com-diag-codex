@@ -50,9 +50,9 @@ int main(int argc, char ** argv)
 	diminuto_mux_t mux = { 0 };
 	int fd = -1;
 	codex_connection_t * ssl = (codex_connection_t *)0;
-	int bytes = -1;
-	int reads = -1;
-	int writes = -1;
+	ssize_t bytes = -1;
+	ssize_t reads = -1;
+	ssize_t writes = -1;
 	bool eof = false;
 	size_t input = 0;
 	size_t output = 0;

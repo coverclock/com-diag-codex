@@ -847,7 +847,7 @@ bool codex_connection_is_server(const codex_connection_t * ssl)
  * INPUT/OUTPUT
  ******************************************************************************/
 
-int codex_connection_read_generic(codex_connection_t * ssl, void * buffer, int size, codex_serror_t * serror)
+ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, size_t size, codex_serror_t * serror)
 {
 	int rc = -1;
 	codex_serror_t error = CODEX_SERROR_OKAY;
@@ -896,7 +896,7 @@ int codex_connection_read_generic(codex_connection_t * ssl, void * buffer, int s
 				break;
 			}
 
-			DIMINUTO_LOG_INFORMATION("codex_connection_read_generic: ssl=%p buffer=%p size=%d rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
+			DIMINUTO_LOG_INFORMATION("codex_connection_read_generic: ssl=%p buffer=%p size=%u rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
 
 		}
 
@@ -913,7 +913,7 @@ int codex_connection_read_generic(codex_connection_t * ssl, void * buffer, int s
 	return rc;
 }
 
-int codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, int size, codex_serror_t * serror)
+ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, size_t size, codex_serror_t * serror)
 {
 	int rc = -1;
 	codex_serror_t error = CODEX_SERROR_OKAY;
@@ -961,7 +961,7 @@ int codex_connection_write_generic(codex_connection_t * ssl, const void * buffer
 				break;
 			}
 
-			DIMINUTO_LOG_INFORMATION("codex_connection_write: ssl=%p buffer=%p size=%d rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
+			DIMINUTO_LOG_INFORMATION("codex_connection_write: ssl=%p buffer=%p size=%u rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
 
 		}
 

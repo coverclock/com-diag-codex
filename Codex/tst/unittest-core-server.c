@@ -50,9 +50,9 @@ int main(int argc, char ** argv)
 	int fd = -1;
 	int rendezvous = -1;
 	codex_connection_t * ssl = (codex_connection_t *)0;
-	int bytes = -1;
-	int reads = -1;
-	int writes = -1;
+	ssize_t bytes = -1;
+	ssize_t reads = -1;
+	ssize_t writes = -1;
 	uintptr_t temp = 0;
 	bool tripwire = false;
 	char * endptr = (char *)0;

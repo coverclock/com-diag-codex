@@ -14,16 +14,8 @@
  * HEADERS
  ******************************************************************************/
 
-#define _GNU_SOURCE
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
-#include <errno.h>
-#include <stdio.h>
-#include <arpa/inet.h>
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_log.h"
-#include "com/diag/diminuto/diminuto_delay.h"
 #include "codex.h"
 
 /*******************************************************************************

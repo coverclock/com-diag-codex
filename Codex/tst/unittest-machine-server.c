@@ -30,12 +30,12 @@ typedef struct Stream {
 	codex_header_t header;
 	void * buffer;
 	uint8_t * here;
-	int length;
+	size_t length;
 } stream_t;
 
 typedef struct Client {
 	codex_connection_t * ssl;
-	int size;
+	size_t size;
 	codex_indication_t indication;
 	stream_t source;
 	stream_t sink;
@@ -167,7 +167,7 @@ static bool indicate(client_t * clientp)
 		codex_state_t state = CODEX_STATE_RESTART;
 		codex_header_t header = 0;
 		uint8_t * here = (uint8_t *)0;
-		int length = 0;
+		size_t length = 0;
 
 		do {
 			state = codex_machine_writer(state, (char *)0, clientp->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length);
@@ -204,7 +204,7 @@ int main(int argc, char ** argv)
 	int rc = -1;
 	ssize_t count = 0;
 	int fd = -1;
-	int bytes = -1;
+	ssize_t bytes = -1;
 	char * endptr = (char *)0;
 	client_t * client = 0;
 	codex_state_t state = CODEX_STATE_IDLE;

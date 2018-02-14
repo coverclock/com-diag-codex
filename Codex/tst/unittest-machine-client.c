@@ -52,7 +52,7 @@ int main(int argc, char ** argv)
 	void * buffers[2] = { (void *)0, (void *)0 };
 	codex_header_t headers[2] = { 0, 0 };
 	uint8_t * heres[2] = { (uint8_t *)0, (uint8_t *)0 };
-	int lengths[2] = { 0, 0 };
+	size_t lengths[2] = { 0, 0 };
 	codex_connection_t * ssl = (codex_connection_t *)0;
 	codex_state_t state = CODEX_STATE_FINAL;
 	void * temp = (void *)0;
@@ -73,7 +73,6 @@ int main(int argc, char ** argv)
 	uint8_t f16sinkB = 0;
 	size_t sourced = 0;
 	size_t sunk = 0;
-	long count = 0;
 	diminuto_sticks_t ticks = -1;
 	codex_indication_t indication = CODEX_INDICATION_NONE;
 	bool pending = false;
@@ -349,7 +348,7 @@ int main(int argc, char ** argv)
 				codex_state_t state = CODEX_STATE_RESTART;
 				codex_header_t header = 0;
 				uint8_t * here = (uint8_t *)0;
-				int length = 0;
+				size_t length = 0;
 
 				do {
 					state = codex_machine_writer(state, (char *)0, ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length);
