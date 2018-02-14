@@ -1,4 +1,8 @@
-#!/bin/bash -x
+#!/bin/bash
+# Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+# Licensed under the terms in LICENSE.txt
+# Chip Overclock (mailto:coverclock@diag.com)
+# https://github.com/coverclock/com-diag-codex
 
 CLIENTS=${1:-"1"}
 PERIOD=${2:-"10"}

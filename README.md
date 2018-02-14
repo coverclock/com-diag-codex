@@ -24,10 +24,12 @@ excuse to learn how to use the OpenSSL C API for both authentication and
 encryption for the kinds of low-level, usually C or C++, code that I typically
 am asked to develop.
 
-**Important safety tip**: the OpenSSL API is apparently a quickly moving target.
+**Important safety tip**: the OpenSSL API is a quickly moving target. There are
+no guarantee that successive versions do not break the OpenSSL API. For example,
 Codex builds against OpenSSL 1.0.2, but will not build against 1.0.0, nor
-against 1.1.1, because of changes in the library. *This does not fill me with
-confidence.* It has also discouraged me from testing it on other targets I
+against 1.1.1, because of changes in the API. A quick web search will reveal
+that I am hardly the only developer dealing with this. *This does not fill me
+with confidence.* It has discouraged me from testing it on other targets I
 have laying around, like a Raspberry Pi running Raspbian. Any application of
 Codex on a client system will likely result in a pretty significant porting
 and testing effort on my part. I'd like to think this repo still puts me ahead
@@ -164,9 +166,11 @@ Run the Codex unit tests.
     unittest-machine
     
 This unit test allows you to test renegotiation from either side of the
-connection by sending the server process or a client process a SIGHUP. You can
-find the process identifiers (PID) for the processes in the log output to
-standard error.    
+connection by sending the server process or a client process a "hangup" signal
+a.k.a. SIGHUP. You can find the process identifiers (PID) for the processes in
+the log output to standard error. You can use the kill(1) command to send
+a SIGHUP to the process you want to instigate a renegotiation with its
+peer.
 
     unittest-handshake
     
