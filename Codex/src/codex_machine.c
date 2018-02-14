@@ -41,12 +41,19 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 
 	case CODEX_STATE_START:
 
+		/*
+		 * Authenticate the server by traversing its certificate and verifying
+		 * it via its common name (CN) or its fully qualified domain name
+		 * (FQDN). The server certificate is available immediately upon the
+		 * client's initial connection.
+		 */
+
 		if (codex_connection_is_server(ssl)) {
 			/* Do nothing. */
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected-server ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 			break;
 		}
@@ -74,24 +81,33 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		} else {
 			*here += bytes;
 			*length -= bytes;
-			*header = ntohl(*header);
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
-			} else if (*header < 0) {
-				state = CODEX_STATE_COMPLETE;
-			} else if (*header == 0) {
-				state = CODEX_STATE_RESTART;
-			} else if (*header > size) {
-				DIMINUTO_LOG_WARNING("codex_machine_reader_generic: embiggened ssl=%p header=%d size=%d\n", ssl, *header, size);
-				*here = (uint8_t *)buffer;
-				*length = size;
-				state = CODEX_STATE_PAYLOAD;
 			} else {
-				*here = (uint8_t *)buffer;
-				*length = *header;
-				state = CODEX_STATE_PAYLOAD;
+				*header = ntohl(*header);
+				if (*header < 0) {
+					state = CODEX_STATE_COMPLETE;
+				} else if (*header == 0) {
+					state = CODEX_STATE_RESTART;
+				} else if (*header > size) {
+					DIMINUTO_LOG_WARNING("codex_machine_reader_generic: embiggened ssl=%p header=%d size=%d\n", ssl, *header, size);
+					*here = (uint8_t *)buffer;
+					*length = size;
+					state = CODEX_STATE_PAYLOAD;
+				} else {
+					*here = (uint8_t *)buffer;
+					*length = *header;
+					state = CODEX_STATE_PAYLOAD;
+				}
 			}
 		}
+
+		/*
+		 * Authenticate the client by traversing its certificate and verifying
+		 * it via its common name (CN) or its fully qualified domain name
+		 * (FQDN). The client certificate is available only after the server has
+		 * done its first I/O.
+		 */
 
 		if (!codex_connection_is_server(ssl)) {
 			/* Do nothing. */
@@ -102,7 +118,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected-client ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 		}
 
@@ -142,6 +158,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 			if (*length < slack) {
 				slack = *length;
 			}
+
 			bytes = codex_connection_read_generic(ssl, skip, slack, serror);
 			if (bytes < 0) {
 				state = (serror == (codex_serror_t *)0) ? CODEX_STATE_FINAL : CODEX_STATE_COMPLETE;
@@ -197,12 +214,19 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 
 	case CODEX_STATE_START:
 
+		/*
+		 * Authenticate the server by traversing its certificate and verifying
+		 * it via its common name (CN) or its fully qualified domain name
+		 * (FQDN). The server certificate is available immediately upon the
+		 * client's initial connection.
+		 */
+
 		if (codex_connection_is_server(ssl)) {
 			/* Do nothing. */
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected-server ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 			break;
 		}
@@ -211,7 +235,8 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 
 	case CODEX_STATE_RESTART:
 
-		*header = htonl(size);
+		*header = size;
+		*header = htonl(*header);
 		*here = (uint8_t *)header;
 		*length = sizeof(*header);
 
@@ -230,17 +255,23 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		} else {
 			*here += bytes;
 			*length -= bytes;
-			*header = ntohl(*header);
 			if (*length > 0) {
 				state = CODEX_STATE_HEADER;
-			} else if (*header > 0) {
+			} else if (size > 0) {
 				*here = (uint8_t *)buffer;
-				*length = *header;
+				*length = size;
 				state = CODEX_STATE_PAYLOAD;
 			} else {
 				state = CODEX_STATE_COMPLETE;
 			}
 		}
+
+		/*
+		 * Authenticate the client by traversing its certificate and verifying
+		 * it via its common name (CN) or its fully qualified domain name
+		 * (FQDN). The client certificate is available only after the server has
+		 * done its first I/O.
+		 */
 
 		if (!codex_connection_is_server(ssl)) {
 			/* Do nothing. */
@@ -251,7 +282,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected-client ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 		}
 

@@ -55,6 +55,11 @@ static bool enforce = true;
 static long seconds = -1; /* Unimplemented. */
 static long octets = -1; /* Unimplemented. */
 static size_t bufsize = 256;
+static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
+static const char * pathcap = (const char *)0;
+static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
+static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
+static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
 
 static diminuto_list_t pool = { 0 };
 static int malloced = 0;
@@ -337,12 +342,32 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:Vb:e:n:s:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:C:D:K:P:R:Vb:e:n:s:v?")) >= 0) {
 
         switch (opt) {
 
         case 'B':
         	bufsize = strtoul(optarg, &endptr, 0);
+        	break;
+
+        case 'C':
+        	pathcrt = optarg;
+        	break;
+
+        case 'D':
+        	pathdhf = optarg;
+			break;
+
+        case 'K':
+        	pathkey = optarg;
+        	break;
+
+        case 'P':
+        	pathcap = optarg;
+        	break;
+
+        case 'R':
+        	pathcaf = optarg;
         	break;
 
         case 'V':
@@ -370,7 +395,7 @@ int main(int argc, char ** argv)
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -b BYTES ] [ -e EXPECTED ] [ -n NEAREND ] [ -s SECONDS ] [ -V | -v ]\n", program);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -e EXPECTED ] [ -n NEAREND ] [ -s SECONDS ] [ -V | -v ]\n", program);
             return 1;
             break;
 
@@ -381,7 +406,7 @@ int main(int argc, char ** argv)
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu b=%ld e=\"%s\" n=\"%s\" s=%ld v=%d fdcount=%d\n", program, bufsize, octets, expected, nearend, seconds, enforce, count);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" b=%ld e=\"%s\" n=\"%s\" s=%ld v=%d fdcount=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, pathcaf, octets, expected, nearend, seconds, enforce, count);
 
 	diminuto_list_nullinit(&pool);
 
@@ -399,10 +424,10 @@ int main(int argc, char ** argv)
 	rc = codex_initialize();
 	ASSERT(rc == 0);
 
-	rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
+	rc = codex_parameters(pathdhf);
 	ASSERT(rc == 0);
 
-	ctx = codex_server_context_new(COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem", (const char *)0, COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem");
+	ctx = codex_server_context_new(pathcaf, pathcap, pathcrt, pathkey);
 	ASSERT(ctx != (codex_context_t *)0);
 
 	bio = codex_server_rendezvous_new(nearend);

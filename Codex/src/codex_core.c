@@ -792,8 +792,6 @@ int codex_connection_close(codex_connection_t * ssl)
 {
 	int rc = 0;
 	int flags = 0;
-	int error = 0;
-	uint8_t empty[0];
 
 	flags = SSL_get_shutdown(ssl);
 	if ((flags & SSL_SENT_SHUTDOWN) == 0) {
@@ -805,7 +803,19 @@ int codex_connection_close(codex_connection_t * ssl)
 			} else if (rc == 0) {
 				diminuto_yield();
 			} else {
-				(void)codex_serror("SSL_shutdown", ssl, rc);
+				codex_serror_t serror = CODEX_SERROR_OTHER;
+
+				serror = codex_serror("SSL_shutdown", ssl, rc);
+				switch (serror) {
+				case CODEX_SERROR_NONE:
+				case CODEX_SERROR_ZERO:
+				case CODEX_SERROR_OKAY:
+					rc = 0;
+					break;
+				default:
+					break;
+				}
+
 				break;
 			}
 		}

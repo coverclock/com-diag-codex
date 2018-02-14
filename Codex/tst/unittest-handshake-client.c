@@ -31,14 +31,22 @@
 #include <arpa/inet.h>
 #include <string.h>
 
+static const char * program = "unittest-handshake-client";
+static const char * farend = "localhost:49202";
+static const char * expected = "server.prairiethorn.org";
+static bool enforce = true;
+static long seconds = -1; /* Unimplemented. */
+static long octets = -1; /* Unimplemented. */
+static diminuto_ticks_t period = 0;
+static size_t bufsize = 256;
+static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
+static const char * pathcap = (const char *)0;
+static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
+static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
+static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
+
 int main(int argc, char ** argv)
 {
-	const char * program = "unittest-handshake-client";
-	const char * farend = "localhost:49202";
-	const char * expected = "server.prairiethorn.org";
-	bool enforce = true;
-	diminuto_ticks_t period = 0;
-	size_t bufsize = 256;
 	static const int READER = 0;
 	static const int WRITER = 1;
 	codex_state_t states[2] = { CODEX_STATE_RESTART, CODEX_STATE_IDLE };
@@ -48,8 +56,6 @@ int main(int argc, char ** argv)
 	int lengths[2] = { 0, 0 };
 	codex_connection_t * ssl = (codex_connection_t *)0;
 	void * temp = (void *)0;
-	long seconds = -1; /* Unimplemented. */
-	long octets = -1; /* Unimplemented. */
 	int rc = -1;
 	codex_context_t * ctx = (codex_context_t *)0;
 	diminuto_mux_t mux = { 0 };
@@ -86,12 +92,32 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:Vf:b:e:p:s:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:C:D:K:P:R:Vf:b:e:p:s:v?")) >= 0) {
 
         switch (opt) {
 
         case 'B':
         	bufsize = strtoul(optarg, &endptr, 0);
+        	break;
+
+        case 'C':
+        	pathcrt = optarg;
+        	break;
+
+        case 'D':
+        	pathdhf = optarg;
+			break;
+
+        case 'K':
+        	pathkey = optarg;
+        	break;
+
+        case 'P':
+        	pathcap = optarg;
+        	break;
+
+        case 'R':
+        	pathcaf = optarg;
         	break;
 
         case 'V':
@@ -123,7 +149,7 @@ int main(int argc, char ** argv)
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -b BYTES ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -s SECONDS ] [ -V | -v ]\n", program);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -s SECONDS ] [ -V | -v ]\n", program);
             return 1;
             break;
 
@@ -131,7 +157,7 @@ int main(int argc, char ** argv)
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu b=%ld f=\"%s\" e=\"%s\" p=%llu s=%ld v=%d\n", program, bufsize, bytes, farend, expected, period, seconds, enforce);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" b=%ld f=\"%s\" e=\"%s\" p=%llu s=%ld v=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, pathcaf, octets, farend, expected, period, seconds, enforce);
 
 	rc = diminuto_hangup_install(!0);
 	ASSERT(rc == 0);
@@ -158,10 +184,10 @@ int main(int argc, char ** argv)
 	rc = codex_initialize();
 	ASSERT(rc == 0);
 
-	rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
+	rc = codex_parameters(pathdhf);
 	ASSERT(rc == 0);
 
-	ctx = codex_client_context_new(COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem", (const char *)0, COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem");
+	ctx = codex_client_context_new(pathcaf, pathcap, pathcrt, pathkey);
 	ASSERT(ctx != (SSL_CTX *)0);
 
 	ssl = codex_client_connection_new(ctx, farend);
