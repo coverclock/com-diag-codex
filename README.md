@@ -35,6 +35,12 @@ Codex on a client system will likely result in a pretty significant porting
 and testing effort on my part. I'd like to think this repo still puts me ahead
 of starting from scratch, but I'm not completely convinced.
 
+Note: I continue to noodle around with other SSL implementations, like
+OpenSSL 1.0.0 (used on Raspbian), OpenSSL 1.1.1 (the most current version),
+and BoringSSL 1.1.0 (Google's fork of OpenSSL), all so far without success.
+Ignore any breadcrumbs that might suggest that anything other then OpenSSL
+1.0.2 works (or even builds).
+
 ## Contact
 
 Chip Overclock  
