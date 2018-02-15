@@ -34,6 +34,8 @@ TARGET				:=	host
 # Only very specific versions of selected SSL libraries are supported.
 
 FLAVOR				:=	openssl-1.0.2
+#FLAVOR				:=	openssl-1.1.1
+#FLAVOR				:=	boringssl-1.1.0
 
 # Some certification, defense, or intelligence agencies (e.g. the U.S. Federal
 # Aviation Administration or FAA) require that software builds for safety
@@ -116,9 +118,8 @@ DISTRIBUTION		:=	$(OUT)/$(TGZ_DIR)/$(PROJECT)-$(MAJOR).$(MINOR).$(BUILD)
 
 TARBALL				:=	$(OUT)/$(TGZ_DIR)/$(PROJECT)
 
-SO					:=	so
-
-A2SOARCH			:=	-shared -Wl,-soname,lib$(PROJECT).$(SO).$(MAJOR).$(MINOR)
+PROJECT_A			:=	lib$(PROJECT).a
+PROJECT_SO			:=	lib$(PROJECT).so
 
 CDEFINES			:=
 
@@ -166,9 +167,6 @@ CDEFINES			+=	-DCOM_DIAG_CODEX_CLIENT_PASSWORD_ENV=\"$(SSL_CPW)\"
 
 ########## Commands and Option Flags
 
-PROJECT_A			:=	lib$(PROJECT).a
-PROJECT_SO			:=	lib$(PROJECT).$(SO)
-
 CROSS_COMPILE		:=	$(TOOLCHAIN)
 
 CC					:=	$(CROSS_COMPILE)gcc
@@ -176,6 +174,7 @@ AR					:=	$(CROSS_COMPILE)ar
 RANLIB				:=	$(CROSS_COMPILE)ranlib
 STRIP				:=	$(CROSS_COMPILE)strip
 
+SOLIBRARIES			:=	$(SSL_SOFLAGS) $(DIMINUTO_SOFLAGS)
 LDLIBRARIES			:=	$(SSL_LDFLAGS) $(DIMINUTO_LDFLAGS)
 
 ARFLAGS				:=	crsv
@@ -183,9 +182,8 @@ CPPFLAGS			:=	$(CDEFINES) -iquote $(SRC_DIR) -iquote $(INC_DIR) -iquote $(OUT)/$
 CFLAGS				:=	$(CARCH) -g
 CPFLAGS				:=	-i
 MVFLAGS				:=	-i
-LDFLAGS				:=	$(LDARCH) -g -l$(PROJECT) $(LDLIBRARIES)
-MOFLAGS				:=	$(MOARCH) -l$(PROJECT) $(LDLIBRARIES)
-SOFLAGS				:=	$(SOARCH) $(LDLIBRARIES)
+LDFLAGS				:=	$(LDARCH) -l$(PROJECT) $(LDLIBRARIES)
+SOFLAGS				:=	$(SOARCH) $(SOLIBRARIES)
 
 #BROWSER			:=	firefox
 #BROWSER			:=	epiphany
@@ -219,18 +217,21 @@ TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGE
 
 ########## Main Entry Points
 
-.PHONY:	all dist clean pristine clobber
+.PHONY:	all dist tidy clean pristine clobber
 
 all:	$(TARGETALL)
 
 dist:	distribution
 
+tidy:
+	rm -rf $(OUT)/arc $(OUT)/bin $(OUT)/inc $(OUT)/lib $(OUT)/obc $(OUT)/sym $(OUT)/tst
+
 clean:
 	rm -rf $(OUT)
-	rm -rf *.gcda *.gcno *.gcov
 
-pristine:	clean
+pristine:
 	rm -rf $(OUT_DIR)
+	rm -rf *.gcda *.gcno *.gcov
 
 clobber:	pristine
 	rm -f .cscope.lst .cscope.out .cscope.out.in .cscope.out.po
@@ -450,14 +451,14 @@ $(OUT)/$(ARC_DIR)/$(PROJECT_A):	$(TARGETOBJECTS)
 	$(AR) $(ARFLAGS) $@ $^
 	$(RANLIB) $@
 
-$(OUT)/$(LIB_DIR)/lib$(PROJECT).$(SO).$(MAJOR).$(MINOR):	$(TARGETOBJECTS)
+$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR):	$(TARGETOBJECTS)
 	D=`dirname $@`; mkdir -p $$D
-	$(CC) $(CFLAGS) $(A2SOARCH) -o $@ $(SOFLAGS) $(TARGETOBJECTS)
+	$(CC) $(CFLAGS) -shared -Wl,-soname,$(PROJECT_SO).$(MAJOR).$(MINOR) -o $@ $(SOFLAGS) $(TARGETOBJECTS)
 
-$(OUT)/$(LIB_DIR)/lib$(PROJECT).$(SO).$(MAJOR):	$(OUT)/$(LIB_DIR)/lib$(PROJECT).$(SO).$(MAJOR).$(MINOR)
+$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR):	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
 	D=`dirname $<`; F=`basename $<`; T=`basename $@`; ( cd $$D; ln -s -f $$F $$T ) 
 
-$(OUT)/$(LIB_DIR)/lib$(PROJECT).$(SO):	$(OUT)/$(LIB_DIR)/lib$(PROJECT).$(SO).$(MAJOR)
+$(OUT)/$(LIB_DIR)/$(PROJECT_SO):	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 	D=`dirname $<`; F=`basename $<`; T=`basename $@`; ( cd $$D; ln -s -f $$F $$T ) 
 
 ########## Target Unstripped Binaries

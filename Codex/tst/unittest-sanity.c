@@ -31,11 +31,11 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
-#if defined(OPENSSL_VERSION_NUMBER)
+#ifdef OPENSSL_VERSION_NUMBER
 		openssl_version_number = OPENSSL_VERSION_NUMBER;
 #endif
 
-#if defined(OPENSSL_VERSION_TEXT)
+#ifdef OPENSSL_VERSION_TEXT
 		openssl_version_text = OPENSSL_VERSION_TEXT;
 #endif
 
@@ -53,31 +53,33 @@ int main(char * argc, char ** argv)
 	}
 
 	{
-		const char * com_diag_codex_platform = "";
-		unsigned long com_diag_codex_platform_openssl = 0;
-		unsigned long com_diag_codex_platform_boringssl = 0;
-
 		TEST();
 
 #if defined(COM_DIAG_CODEX_PLATFORM)
-		com_diag_codex_platform = COM_DIAG_CODEX_PLATFORM;
+		ASSERT(COM_DIAG_CODEX_PLATFORM != (const char *)0);
+		COMMENT("COM_DIAG_CODEX_PLATFORM=\"%s\"\n", COM_DIAG_CODEX_PLATFORM);
+		EXPECT(COM_DIAG_CODEX_PLATFORM[0] != '\0');
 #endif
 
-#if defined(COM_DIAG_CODEX_PLATFORM_OPENSSL)
-		com_diag_codex_platform_openssl = COM_DIAG_CODEX_PLATFORM_OPENSSL;
+#ifdef COM_DIAG_CODEX_PLATFORM_OPENSSL
+		COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL defined\n");
 #endif
 
-#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
-		com_diag_codex_platform_boringssl = COM_DIAG_CODEX_PLATFORM_BORINGSSL;
+#ifdef COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2
+		COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2 defined\n");
 #endif
 
-		COMMENT("com_diag_codex_platform=\"%s\"\n", com_diag_codex_platform);
-		COMMENT("com_diag_codex_platform_openssl=0x%08x\n", com_diag_codex_platform_openssl);
-		COMMENT("com_diag_codex_platform_boringssl=0x%08x\n", com_diag_codex_platform_boringssl);
+#ifdef OPENSSL_IS_BORINGSS
+		COMMENT("OPENSSL_IS_BORINGSS defined\n");
+#endif
 
-		EXPECT(*com_diag_codex_platform != '\0');
-		EXPECT((com_diag_codex_platform_openssl == 0) || (com_diag_codex_platform_boringssl == 0));
-		EXPECT((com_diag_codex_platform_openssl != 0) || (com_diag_codex_platform_boringssl != 0));
+#ifdef COM_DIAG_CODEX_PLATFORM_BORINGSSL
+		COMMENT("COM_DIAG_CODEX_PLATFORM_BORINGSSL defined\n");
+#endif
+
+#ifdef COM_DIAG_CODEX_PLATFORM_BORINGSSL_1_1_0
+		COMMENT("COM_DIAG_CODEX_PLATFORM_BORINGSSL_1_1_0 defined\n");
+#endif
 
 		STATUS();
 	}

@@ -1116,10 +1116,13 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 			break;
 		}
 
+#if 0
 		/*
-		 * This doesn't appear to do what I want, but at least it seems benign.
+		 * This doesn't appear to do what I want in OpenSSL 1.0.2 and it's not
+		 * implemented in BoringSSL 1.1.0.
 		 */
 		(void)BIO_set_bind_mode(bio, BIO_BIND_REUSEADDR_IF_UNUSED);
+#endif
 
 		rc = BIO_do_accept(bio);
 		if (rc > 0) {
