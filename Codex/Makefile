@@ -29,7 +29,11 @@ BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 # Disclaimer: the only target that I routinely build and test for is "host", my
 # X86_64 Ubuntu build server.
 
-TARGET				:=	host# Build for the x86_64 running Ubuntu 14.04 LTS.
+TARGET				:=	host
+
+# Only very specific versions of selected SSL libraries are supported.
+
+FLAVOR				:=	openssl-1.0.2
 
 # Some certification, defense, or intelligence agencies (e.g. the U.S. Federal
 # Aviation Administration or FAA) require that software builds for safety
@@ -124,11 +128,28 @@ TARGETMAKEFILE		:= $(CFG_DIR)/$(TARGET).mk
 
 include $(TARGETMAKEFILE)
 
+########## Flavor Configuration
+
+FLAVORMAKEFILE		:= $(CFG_DIR)/$(FLAVOR).mk
+
+include $(FLAVORMAKEFILE)
+
 ########## Project Makefile
 
 PROJECTMAKEFILE		:= $(CFG_DIR)/$(PROJECT).mk
 
 include $(PROJECTMAKEFILE)
+
+########## Diminuto Makefile
+
+DIMINUTO_TITLE		:=	Diminuto
+
+DIMINUTO_PROJECT	:=	$(shell echo $(DIMINUTO_TITLE) | tr '[A-Z]' '[a-z]')
+DIMINUTO_SYMBOL		:=	$(shell echo $(DIMINUTO_TITLE) | tr '[a-z]' '[A-Z]')
+
+DIMINUTOMAKEFILE	:= $(CFG_DIR)/$(DIMINUTO_PROJECT).mk
+
+include $(DIMINUTOMAKEFILE)
 
 ########## Codex Configuration
 
@@ -143,26 +164,6 @@ CDEFINES			+=	-DCOM_DIAG_CODEX_CERTIFICATE_DEPTH=$(SSL_DEP)
 CDEFINES			+=	-DCOM_DIAG_CODEX_SERVER_PASSWORD_ENV=\"$(SSL_SPW)\"
 CDEFINES			+=	-DCOM_DIAG_CODEX_CLIENT_PASSWORD_ENV=\"$(SSL_CPW)\"
 
-OPENSSL			:=	openssl
-C_REHASH		:=	c_rehash
-#OPENSSL_ROOT	:=	$(HOME)/src/openssl#TODO
-#OPENSSL		:=	$(OPENSSL_ROOT)/apps/openssl#TODO
-#C_REHASH		:=	$(OPENSSL_ROOT)/tools/c_rehash#TODO
-
-########## Diminuto Configuration
-
-DIMINUTO_TITLE		:=	Diminuto
-
-DIMINUTO_PROJECT	:=	$(shell echo $(DIMINUTO_TITLE) | tr '[A-Z]' '[a-z]')
-DIMINUTO_SYMBOL		:=	$(shell echo $(DIMINUTO_TITLE) | tr '[a-z]' '[A-Z]')
-
-DIMINUTO_ROOT		:=	$(THERE)/com-diag-$(DIMINUTO_PROJECT)/$(DIMINUTO_TITLE)
-DIMINUTO_HEADERS	:=	$(DIMINUTO_ROOT)/$(INC_DIR)
-DIMINUTO_LIBRARIES	:=	$(DIMINUTO_ROOT)/$(OUT)/$(LIB_DIR)
-
-DIMINUTO_CPPFLAGS	:=	-iquote $(DIMINUTO_HEADERS)
-DIMINUTO_LDFLAGS	:=	-L$(DIMINUTO_LIBRARIES) -l$(DIMINUTO_PROJECT) -lpthread -lrt -ldl
-
 ########## Commands and Option Flags
 
 PROJECT_A			:=	lib$(PROJECT).a
@@ -175,16 +176,14 @@ AR					:=	$(CROSS_COMPILE)ar
 RANLIB				:=	$(CROSS_COMPILE)ranlib
 STRIP				:=	$(CROSS_COMPILE)strip
 
-LDLIBRARIES			:=	-lssl -lcrypto
-#LDLIBRARIES		:= -L$(HOME)/src/openssl -lssl -lcrypto#TODO
+LDLIBRARIES			:=	$(SSL_LDFLAGS) $(DIMINUTO_LDFLAGS)
 
 ARFLAGS				:=	crsv
-CPPFLAGS			:=	$(CDEFINES) -iquote $(SRC_DIR) -iquote $(INC_DIR) -iquote $(OUT)/$(INC_DIR) $(DIMINUTO_CPPFLAGS) $(CPPARCH)
-#CPPFLAGS			+=	-I$(OPENSSL_ROOT)/include#TODO
+CPPFLAGS			:=	$(CDEFINES) -iquote $(SRC_DIR) -iquote $(INC_DIR) -iquote $(OUT)/$(INC_DIR) $(SSL_CPPFLAGS) $(DIMINUTO_CPPFLAGS) $(CPPARCH)
 CFLAGS				:=	$(CARCH) -g
 CPFLAGS				:=	-i
 MVFLAGS				:=	-i
-LDFLAGS				:=	$(LDARCH) -g -l$(PROJECT) $(LDLIBRARIES) $(DIMINUTO_LDFLAGS)
+LDFLAGS				:=	$(LDARCH) -g -l$(PROJECT) $(LDLIBRARIES)
 MOFLAGS				:=	$(MOARCH) -l$(PROJECT) $(LDLIBRARIES)
 SOFLAGS				:=	$(SOARCH) $(LDLIBRARIES)
 
@@ -681,8 +680,7 @@ $(OUT)/$(BIN_DIR)/setup:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $${BASH_ARGV[0]}`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
-	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
-#	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$(HOME)/src/openssl' >> $@# TODO
+	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
 	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
 	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo '. $(DIMINUTO_ROOT)/$(OUT)/$(BIN_DIR)/setup' >> $@
@@ -692,7 +690,7 @@ $(OUT)/$(SYM_DIR)/setup:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $${BASH_ARGV[0]}`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
-	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
+	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
 	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
 	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo '. $(DIMINUTO_ROOT)/$(OUT)/$(SYM_DIR)/setup' >> $@
@@ -704,7 +702,7 @@ $(OUT)/$(BIN_DIR)/generate:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'echo export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
-	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
+	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(BIN_DIR)/setup' >> $@
@@ -714,7 +712,7 @@ $(OUT)/$(SYM_DIR)/generate:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
 	echo 'echo export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
-	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR)' >> $@
+	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(SYM_DIR)/setup' >> $@

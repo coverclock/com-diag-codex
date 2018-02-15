@@ -16,7 +16,6 @@
 #include "unittest-codex.h"
 #include <string.h>
 #include <stdio.h>
-#include <openssl/opensslv.h>
 
 int main(char * argc, char ** argv)
 {
@@ -43,12 +42,42 @@ int main(char * argc, char ** argv)
 		major  = (openssl_version_number & 0xf0000000) >> 28;
 		minor  = (openssl_version_number & 0x0ff00000) >> 20;
 		fix    = (openssl_version_number & 0x000ff000) >> 12;
-		patch  = (openssl_version_number & 0x00000ff0) >>  8;
+		patch  = (openssl_version_number & 0x00000ff0) >>  4;
 		status = (openssl_version_number & 0x0000000f) >>  0;
 
 		COMMENT("openssl_version_number=0x%08x\n", openssl_version_number);
 		COMMENT("openssl_version_text=\"%s\"\n", openssl_version_text);
 		COMMENT("openssl_version_decode=%u.%u.%u.%u.%u\n", major, minor, fix, patch, status);
+
+		STATUS();
+	}
+
+	{
+		const char * com_diag_codex_platform = "";
+		unsigned long com_diag_codex_platform_openssl = 0;
+		unsigned long com_diag_codex_platform_boringssl = 0;
+
+		TEST();
+
+#if defined(COM_DIAG_CODEX_PLATFORM)
+		com_diag_codex_platform = COM_DIAG_CODEX_PLATFORM;
+#endif
+
+#if defined(COM_DIAG_CODEX_PLATFORM_OPENSSL)
+		com_diag_codex_platform_openssl = COM_DIAG_CODEX_PLATFORM_OPENSSL;
+#endif
+
+#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
+		com_diag_codex_platform_boringssl = COM_DIAG_CODEX_PLATFORM_BORINGSSL;
+#endif
+
+		COMMENT("com_diag_codex_platform=\"%s\"\n", com_diag_codex_platform);
+		COMMENT("com_diag_codex_platform_openssl=0x%08x\n", com_diag_codex_platform_openssl);
+		COMMENT("com_diag_codex_platform_boringssl=0x%08x\n", com_diag_codex_platform_boringssl);
+
+		EXPECT(*com_diag_codex_platform != '\0');
+		EXPECT((com_diag_codex_platform_openssl == 0) || (com_diag_codex_platform_boringssl == 0));
+		EXPECT((com_diag_codex_platform_openssl != 0) || (com_diag_codex_platform_boringssl != 0));
 
 		STATUS();
 	}

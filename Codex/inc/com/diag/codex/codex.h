@@ -20,6 +20,25 @@
 #include <stddef.h>
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
+#include <openssl/crypto.h>
+
+/*******************************************************************************
+ * VERSION
+ ******************************************************************************/
+
+
+#if defined(OPENSSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER == 0x1000207f)
+#	define COM_DIAG_CODEX_PLATFORM "OpenSSL 1.0.2.0"
+#	define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x1000207f
+#elif defined(OPENSSL_VERSION_NUMBER) && defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER == 0x1010007f)
+#	define COM_DIAG_CODEX_PLATFORM "BoringSSL 1.1.0.7"
+#	define COM_DIAG_CODEX_PLATFORM_BORINGSSL 0x1010007f
+#else
+#	warning This is not a supported SSL library!
+#	undef COM_DIAG_CODEX_PLATFORM
+#	undef COM_DIAG_CODEX_PLATFORM_OPENSSL
+#	undef COM_DIAG_CODEX_PLATFORM_BORINGSSL
+#endif
 
 /*******************************************************************************
  * TYPES
