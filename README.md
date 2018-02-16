@@ -135,23 +135,13 @@ Intel Core i7-5557U @ 3.10GHz x 8
 
 ## Building
 
-(None of these snippets of commands actually install the software on your
-computer in the production directories; hence, nothing is run as root.)
+If you want to use OpenSSL 1.0.2, which is the default version for the release
+of Ubuntu I use, install it using the Aptitude package manager.
 
-(OpenSSL 1.0.2 is the current version installed by default by the Ubuntu
-package manager on the system I use.)
+    sudo apt-get install openssl libssl-dev libssl-doc
 
-Clone and build Diminuto 48.1.0.
-
-    cd
-    mkdir -p src
-    cd src
-    git clone https://github.com/coverclock/com-diag-diminuto
-    cd com-diag-diminuto/Diminuto
-    git checkout 48.1.0
-    make pristine depend all
-
-Clone and build BoringSSL 1.1.0 (if you're using BoringSSL).
+If you want to use BoringSSL 1.1.0, which is the current version of Google's
+fork of OpenSSL, clone and build it.
 
     cd
     mkdir -p src
@@ -163,7 +153,8 @@ Clone and build BoringSSL 1.1.0 (if you're using BoringSSL).
     cmake -DBUILD_SHARED_LIBS=1 -DBORINGSSL_SHARED_LIBRARY=1 -DBORING_IMPLEMENTATION=1 ..
     make
     
-Clone and build OpenSSL 1.1.1 (if you're using OpenSSL 1.1.1).
+If you want to use OpenSSL 1.1.1, which is the current version from the OpenSSL
+project, clone and build it.
 
     cd
     mkdir -p src
@@ -173,7 +164,18 @@ Clone and build OpenSSL 1.1.1 (if you're using OpenSSL 1.1.1).
     ./config
     make
 
-Clone and build Codex (change FLAVOR in Makefile if you're using BoringSSL).
+Clone and build Diminuto 48.1.0, a library I wrote that Codex is built upon.
+
+    cd
+    mkdir -p src
+    cd src
+    git clone https://github.com/coverclock/com-diag-diminuto
+    cd com-diag-diminuto/Diminuto
+    git checkout 48.1.0
+    make pristine depend all
+
+Clone and build Codex, a library I wrote, choosing the flavor of OpenSSL
+library you want to use.
 
     cd
     mkdir -p src
