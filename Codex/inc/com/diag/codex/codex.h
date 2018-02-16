@@ -16,7 +16,7 @@
  ******************************************************************************/
 
 /* Hopefully benign if not BoringSSL. */
-#define BORINGSSL_SHARED_LIBRARY
+#define BORINGSSL_SHARED_LIBRARY 1
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -29,17 +29,19 @@
  * PLATFORM
  ******************************************************************************/
 
-#if defined(OPENSSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER == 0x1000207f)
+#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x1000207f) && !defined(OPENSSL_IS_BORINGSSL)
 #	define COM_DIAG_CODEX_PLATFORM "OpenSSL 1.0.2"
 #	define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x1000207f
 #	define COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2 1
-#elif defined(OPENSSL_VERSION_NUMBER) && defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER == 0x1010007f)
+#elif defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x1010007f) && defined(OPENSSL_IS_BORINGSSL)
 #	define COM_DIAG_CODEX_PLATFORM "BoringSSL 1.1.0"
 #	define COM_DIAG_CODEX_PLATFORM_BORINGSSL 0x1010007f
 #	define COM_DIAG_CODEX_PLATFORM_BORINGSSL_1_1_0 1
+#elif defined(OPENSSL_IS_BORINGSSL)
+#	warning This is not a supported BoringSSL version.
+#	define COM_DIAG_CODEX_PLATFORM_BORINGSSL 0
 #else
-#	warning This is not a supported SSL library!
-#	undef COM_DIAG_CODEX_PLATFORM
+#	warning This is not a supported OpenSSL version.
 #endif
 
 /*******************************************************************************

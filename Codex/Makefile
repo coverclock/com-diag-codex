@@ -231,10 +231,10 @@ clean:
 
 pristine:
 	rm -rf $(OUT_DIR)
-	rm -rf *.gcda *.gcno *.gcov
 
 clobber:	pristine
 	rm -f .cscope.lst .cscope.out .cscope.out.in .cscope.out.po
+	rm -rf *.gcda *.gcno *.gcov
 
 ########## Certificate and Key Generation (primarily for unit testing)
 
@@ -678,27 +678,6 @@ $(OUT)/$(SYM_DIR)/vintage:	$(OUT)/$(GEN_DIR)/vintage.c
 	D=`dirname $@`; mkdir -p $$D
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
-# For sourcing into a bash shell (for example, ". out/host/gin/setup").
-$(OUT)/$(BIN_DIR)/setup:	Makefile
-	D=`dirname $@`; mkdir -p $$D
-	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $${BASH_ARGV[0]}`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
-	echo 'export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
-	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
-	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
-	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
-	echo '. $(DIMINUTO_ROOT)/$(OUT)/$(BIN_DIR)/setup' >> $@
-	chmod 644 $@
-
-$(OUT)/$(SYM_DIR)/setup:	Makefile
-	D=`dirname $@`; mkdir -p $$D
-	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $${BASH_ARGV[0]}`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
-	echo 'export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
-	echo 'export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
-	echo 'export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
-	echo 'export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
-	echo '. $(DIMINUTO_ROOT)/$(OUT)/$(SYM_DIR)/setup' >> $@
-	chmod 644 $@
-
 # For generating a setup script for a bash shell (for example, "bash generate > setup").
 # (Because the Android bash doesn't seem to implement BASH_ARGV.)
 $(OUT)/$(BIN_DIR)/generate:	Makefile
@@ -709,8 +688,10 @@ $(OUT)/$(BIN_DIR)/generate:	Makefile
 	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(BIN_DIR)/setup' >> $@
-	chmod 755 $@
+	chmod 775 $@
 
+# For generating a setup script for a bash shell (for example, "bash generate > setup").
+# (Because the Android bash doesn't seem to implement BASH_ARGV.)
 $(OUT)/$(SYM_DIR)/generate:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
@@ -719,7 +700,17 @@ $(OUT)/$(SYM_DIR)/generate:	Makefile
 	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(SYM_DIR)/setup' >> $@
-	chmod 755 $@
+	chmod 775 $@
+
+# For sourcing into a bash shell (for example, ". out/host/bin/setup").
+$(OUT)/$(BIN_DIR)/setup:	$(OUT)/$(BIN_DIR)/generate
+	$< > $@
+	chmod 664 $@
+
+# For sourcing into a bash shell (for example, ". out/host/sym/setup").
+$(OUT)/$(SYM_DIR)/setup:	$(OUT)/$(SYM_DIR)/generate
+	$< > $@
+	chmod 664 $@
 
 ########## Helpers
 
