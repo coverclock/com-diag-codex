@@ -399,9 +399,13 @@ int main(int argc, char ** argv)
 
 			DIMINUTO_LOG_INFORMATION("%s: NEAREND\n", program);
 
+			/*
+			 * N.B. BoringSSL prohibits clients from initiating renegotiations,
+			 *      so this will always fail on that flavor of Codex.
+			 */
+
 			rc = codex_handshake_renegotiate(ssl);
 			if (rc < 0) {
-COMMENT();
 				break;
 			}
 
@@ -412,7 +416,6 @@ COMMENT();
 				states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
 			} while ((states[WRITER] != CODEX_STATE_FINAL) && (states[WRITER] != CODEX_STATE_COMPLETE));
 			if (states[WRITER] == CODEX_STATE_FINAL) {
-COMMENT();
 				break;
 			}
 

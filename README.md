@@ -24,16 +24,16 @@ excuse to learn how to use the OpenSSL C API for both authentication and
 encryption for the kinds of low-level, usually C or C++, code that I typically
 am asked to develop.
 
-**Important safety tip**: the OpenSSL API is a quickly moving target. There are
-no guarantee that successive versions do not break the OpenSSL API. For example,
-Codex builds against OpenSSL 1.0.2, but will not build against 1.0.0, nor
-against 1.1.1, because of changes in the API..
+I recently ported this library to work under BoringSSL 1.1.0, Google's fork
+of OpenSSL. I don't have renegotiation (which BoringSSL only supports when
+initiated by the server-side) working yet. But otherwise the unit tests all
+pass.
 
-*Note*: I continue to noodle around with other SSL implementations, like
-OpenSSL 1.0.0 (used on Raspbian), OpenSSL 1.1.1 (the most current version),
-and BoringSSL 1.1.0 (Google's fork of OpenSSL), all so far without success.
-Ignore any breadcrumbs that might suggest that anything other then OpenSSL
-1.0.2 works (or even builds).
+**Important safety tip**: the OpenSSL API is a quickly moving target. There are
+no guarantee that successive versions do not break the OpenSSL API. I continue
+to noodle around with other SSL implementations, mostly so far without success.
+Ignore any breadcrumbs that might suggest that anything other then OpenSSL 1.0.2
+or BoringSSL 1.1.0 works (or even builds).
 
 ## Contact
 
@@ -112,6 +112,8 @@ full-duplex communication must take this into account.
 **Important safety tip**: I haven't tried to make the Handshake unit test robust
 against a client and a server simultaneously requesting a renegotiation. But
 that's a legitimate concern that a real-world application should worry about.
+Also, in BoringSSL, a client cannot request a renegotiation, so this always
+fails.
 
 ## Dependencies
 
@@ -122,7 +124,7 @@ Linux nickel 4.10.0-28-generic #32~16.04.2-Ubuntu SMP Thu Jul 20 10:19:48 UTC
 
 gcc (Ubuntu 5.4.0-6ubuntu1~16.04.5) 5.4.0 20160609
 
-OpenSSL 1.0.2g  1 Mar 2016
+OpenSSL 1.0.2g *or* BoringSSL 1.1.0
 
 Diminuto 48.1.0
 
@@ -183,7 +185,8 @@ connection by sending the server process or a client process a "hangup" signal
 a.k.a. SIGHUP. You can find the process identifiers (PID) for the processes in
 the log output to standard error. You can use the kill(1) command to send
 a SIGHUP to the process you want to instigate a renegotiation with its
-peer.
+peer. (Remember that BoringSSL only supports negotiation when requested by
+the server.)
 
     unittest-handshake
     

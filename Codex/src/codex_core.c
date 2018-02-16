@@ -1049,6 +1049,12 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 
 		SSL_set_bio(ssl, bio, bio);
 
+#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
+
+		SSL_set_renegotiate_mode(ssl, ssl_renegotiate_freely);
+
+#endif
+
 		rc = SSL_connect(ssl);
 		if (rc > 0) {
 			break;
@@ -1245,6 +1251,12 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 		 */
 
 		SSL_set_bio(ssl, tmp, tmp);
+
+#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
+
+		SSL_set_renegotiate_mode(ssl, ssl_renegotiate_freely);
+
+#endif
 
 	} while (false);
 

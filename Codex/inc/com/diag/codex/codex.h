@@ -455,13 +455,13 @@ static inline codex_state_t codex_machine_reader(codex_state_t state, const char
  * @param ssl points to the SSL.
  * @param header points to where the header will be stored.
  * @param buffer points to where the payload will be stored.
- * @param size is the size of the payload buffer in bytes.
+ * @param size is the size of the payload buffer in bytes (or if negative an indication).
  * @param here points to where the current buffer pointer will be stored.
  * @param length points to where the remaining buffer length will be stored.
  * @param serror points to the variable into which an OpenSSL error is returned.
  * @return the new state.
  */
-extern codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, codex_serror_t * serror);
+extern codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length, codex_serror_t * serror);
 
 /**
  * Implement a state machine for writing packet data to an SSL, handling
@@ -472,12 +472,12 @@ extern codex_state_t codex_machine_writer_generic(codex_state_t state, const cha
  * @param ssl points to the SSL.
  * @param header points to where the header will be stored.
  * @param buffer points to where the payload will be stored.
- * @param size is the size of the payload buffer in bytes.
+ * @param size is the size of the payload buffer in bytes (or if negative an indication).
  * @param here points to where the current buffer pointer will be stored.
  * @param length points to where the remaining buffer length will be stored.
  * @return the new state.
  */
-static inline codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length)
+static inline codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length)
 {
 	return codex_machine_writer_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0);
 }
