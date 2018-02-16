@@ -25,7 +25,7 @@
 #include "com/diag/diminuto/diminuto_log.h"
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_token.h"
-#include "com/diag/diminuto/diminuto_ipc.h"
+#include "com/diag/diminuto/diminuto_ipc4.h"
 #include "codex.h"
 
 /*******************************************************************************
@@ -1110,25 +1110,34 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 
 	do {
 
+#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
+
+		fd = diminuto_ipc4_stream_provider(atoi(nearend));
+		if (fd < 0) {
+			break;
+		}
+
+		bio = BIO_new_socket(fd, !0);
+		if (bio != (BIO *)0) {
+			break;
+		}
+		codex_perror("BIO_new_socket");
+
+#else
+
 		bio = BIO_new_accept(nearend);
 		if (bio == (BIO *)0) {
 			codex_perror("BIO_new_accept");
 			break;
 		}
 
-#if 0
-		/*
-		 * This doesn't appear to do what I want in OpenSSL 1.0.2 and it's not
-		 * implemented in BoringSSL 1.1.0.
-		 */
-		(void)BIO_set_bind_mode(bio, BIO_BIND_REUSEADDR_IF_UNUSED);
-#endif
-
 		rc = BIO_do_accept(bio);
 		if (rc > 0) {
 			break;
 		}
 		codex_perror("BIO_do_accept");
+
+#endif
 
 		rc = BIO_free(bio);
 		if (rc != 1) {
@@ -1179,6 +1188,28 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 
 	do {
 
+#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
+
+		rc = BIO_get_fd(bio, (int *)0);
+		if (rc < 0) {
+			errno = EINVAL;
+			diminuto_perror("BIO_get_fd");
+			break;
+		}
+
+		rc = diminuto_ipc4_stream_accept(rc);
+		if (rc < 0) {
+			break;
+		}
+
+		tmp = BIO_new_socket(rc, !0);
+		if (tmp == (BIO *)0) {
+			codex_perror("BIO_new_socket");
+			break;
+		}
+
+#else
+
 		tmp = BIO_pop(bio);
 		if (tmp == (BIO *)0) {
 
@@ -1194,6 +1225,8 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 			}
 
 		}
+
+#endif
 
 		ssl = SSL_new(ctx);
 		if (ssl == (SSL *)0) {
@@ -1220,7 +1253,7 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 	} else if (tmp == (BIO *)0) {
 		/* Do nothing. */
 	} else {
-		rc = BIO_free(bio);
+		rc = BIO_free(tmp);
 		if (rc != 1) {
 			codex_perror("BIO_free");
 		}

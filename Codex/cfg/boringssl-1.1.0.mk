@@ -1,10 +1,10 @@
-SSL_ROOT		:=	$(HOME)/src/boringssl
+SSL_ROOT		:=	$(THERE)/boringssl
 
-SSL_LIBRARIES	:=
+SSL_LIBRARIES	:=	$(SSL_ROOT)/build/ssl:$(SSL_ROOT)/build/crypto
 
 SSL_CPPFLAGS	:=	-I$(SSL_ROOT)/include
-SSL_SOFLAGS		:=	$(SSL_ROOT)/build/ssl/libssl.a $(SSL_ROOT)/build/crypto/libcrypto.a
-SSL_LDFLAGS		:=	$(SSL_ROOT)/build/ssl/libssl.a $(SSL_ROOT)/build/crypto/libcrypto.a
+SSL_SOFLAGS		:=	-L$(SSL_ROOT)/build/ssl -lssl -L$(SSL_ROOT)/build/crypto -lcrypto
+SSL_LDFLAGS		:=	-L$(SSL_ROOT)/build/ssl -lssl -L$(SSL_ROOT)/build/crypto -lcrypto
 
 OPENSSL			:=	openssl
 C_REHASH		:=	c_rehash

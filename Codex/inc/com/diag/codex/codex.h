@@ -15,6 +15,9 @@
  * HEADERS
  ******************************************************************************/
 
+/* Hopefully benign if not BoringSSL. */
+#define BORINGSSL_SHARED_LIBRARY
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -23,9 +26,8 @@
 #include <openssl/crypto.h>
 
 /*******************************************************************************
- * VERSION
+ * PLATFORM
  ******************************************************************************/
-
 
 #if defined(OPENSSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL) && (OPENSSL_VERSION_NUMBER == 0x1000207f)
 #	define COM_DIAG_CODEX_PLATFORM "OpenSSL 1.0.2"

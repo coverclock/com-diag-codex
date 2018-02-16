@@ -1,4 +1,4 @@
-SSL_ROOT		:=	$(HOME)/src/openssl
+SSL_ROOT		:=	$(THERE)/openssl
 
 SSL_CPPFLAGS	:=	-I$(SSL_ROOT)/include
 

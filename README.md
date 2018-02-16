@@ -27,15 +27,9 @@ am asked to develop.
 **Important safety tip**: the OpenSSL API is a quickly moving target. There are
 no guarantee that successive versions do not break the OpenSSL API. For example,
 Codex builds against OpenSSL 1.0.2, but will not build against 1.0.0, nor
-against 1.1.1, because of changes in the API. A quick web search will reveal
-that I am hardly the only developer dealing with this. *This does not fill me
-with confidence.* It has discouraged me from testing it on other targets I
-have laying around, like a Raspberry Pi running Raspbian. Any application of
-Codex on a client system will likely result in a pretty significant porting
-and testing effort on my part. I'd like to think this repo still puts me ahead
-of starting from scratch, but I'm not completely convinced.
+against 1.1.1, because of changes in the API..
 
-Note: I continue to noodle around with other SSL implementations, like
+*Note*: I continue to noodle around with other SSL implementations, like
 OpenSSL 1.0.0 (used on Raspbian), OpenSSL 1.1.1 (the most current version),
 and BoringSSL 1.1.0 (Google's fork of OpenSSL), all so far without success.
 Ignore any breadcrumbs that might suggest that anything other then OpenSSL
@@ -130,7 +124,7 @@ gcc (Ubuntu 5.4.0-6ubuntu1~16.04.5) 5.4.0 20160609
 
 OpenSSL 1.0.2g  1 Mar 2016
 
-Diminuto 48.0.0 35bd7e6cd0e5f80e3095223940c005ee0676f921
+Diminuto 48.1.0
 
 ## Targets
 
@@ -140,24 +134,37 @@ Intel Core i7-5557U @ 3.10GHz x 8
 
 ## Building
 
-Clone and build Diminuto 48.0.0.
+Clone and build Diminuto 48.1.0.
 
     cd
     mkdir -p src
     cd src
     git clone https://github.com/coverclock/com-diag-diminuto
     cd com-diag-diminuto/Diminuto
-    git checkout 376e3bb623d3cbb76b17995803eaaedaec486a5c
+    git checkout 48.1.0
     make pristine depend all
     # sudo make install # Optional to install in /usr/local .
 
-Clone and build Codex.
+Clone and build BoringSSL 1.1.0 (if you're using BoringSSL).
+
+    cd
+    mkdir -p src
+    cd src
+    git clone https://boringssl.googlesource.com/boringssl
+    cd boringssl
+    mkdir build
+    cd build
+    cmake -DBUILD_SHARED_LIBS=1 -DBORINGSSL_SHARED_LIBRARY=1 -DBORING_IMPLEMENTATION=1 ..
+    make
+
+Clone and build Codex (change FLAVOR in Makefile if you're using BoringSSL).
 
     cd
     mkdir -p src
     cd src
     git clone https://github.com/coverclock/com-diag-codex
     cd com-diag-codex/Codex
+    $(EDITOR) Makefile
     make pristine depend all
     # sudo make install # Optional to install in /usr/local .
 
@@ -195,6 +202,8 @@ client fails to authenticate).
 <https://github.com/coverclock/com-diag-diminuto>
 
 <https://github.com/openssl/openssl>
+
+<https://boringssl.googlesource.com/boringssl>
 
 ## References
 
@@ -252,3 +261,6 @@ J. Viega, M. Messier, _Secure Programming Cookbook_, O'Reilly, 2003
 Special thanks to Doug Gibbons, my long-time friend, occasional colleague, and
 one-time office mate, who was extraordinarily generous with his special
 expertise in this area.
+
+## Notes
+
