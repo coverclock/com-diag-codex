@@ -28,15 +28,12 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 
 	do {
 
-#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
+#if !defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2)
 
-		if (!SSL_is_server(ssl)) {
-			DIMINUTO_LOG_NOTICE("codex_handshake_renegotiate: unsupported\n");
-			rc = -1;
-			break;
-		}
+		DIMINUTO_LOG_NOTICE("codex_handshake_renegotiate: unsupported\n");
+		break;
 
-#endif
+#else
 
 		rc = SSL_renegotiate(ssl);
 		if (rc != 1) {
@@ -52,20 +49,12 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 			break;
 		}
 
-#if !defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
-
 		if (!SSL_is_server(ssl)) {
 			rc = 0;
 			break;
 		}
 
-#endif
-
-#if defined (COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2)
-
 		ssl->state = SSL_ST_ACCEPT;
-
-#endif
 
 		rc = SSL_do_handshake(ssl);
 		if (rc != 1) {
@@ -73,6 +62,8 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 			rc = -1;
 			break;
 		}
+
+#endif
 
 		rc = 0;
 

@@ -213,7 +213,7 @@ static client_t * destroy(client_t * client)
 
 static bool renegotiate(client_t * client)
 {
-	bool success = false;
+	int errors = 0;
 	int rc = -1;
 	codex_header_t header = 0;
 	codex_state_t state = CODEX_STATE_IDLE;
@@ -233,7 +233,7 @@ static bool renegotiate(client_t * client)
 
 		rc = codex_handshake_renegotiate(client->ssl);
 		if (rc < 0) {
-			break;
+			++errors;
 		}
 
 		/*
@@ -252,6 +252,7 @@ static bool renegotiate(client_t * client)
 
 		if (state == CODEX_STATE_FINAL) {
 			client->source.state = CODEX_STATE_FINAL;
+			++errors;
 			break;
 		}
 
@@ -259,7 +260,6 @@ static bool renegotiate(client_t * client)
 		client->sink.state = CODEX_STATE_COMPLETE;
 		client->indication = CODEX_INDICATION_NONE;
 
-		success = true;
 		break;
 
 	case CODEX_INDICATION_FAREND:
@@ -282,6 +282,7 @@ static bool renegotiate(client_t * client)
 
 		if (state == CODEX_STATE_FINAL) {
 			client->sink.state = CODEX_STATE_FINAL;
+			++errors;
 			break;
 		}
 
@@ -301,6 +302,7 @@ static bool renegotiate(client_t * client)
 
 		if (state == CODEX_STATE_FINAL) {
 			client->source.state = CODEX_STATE_FINAL;
+			++errors;
 			break;
 		}
 
@@ -308,6 +310,7 @@ static bool renegotiate(client_t * client)
 
 		if (header != CODEX_INDICATION_DONE) {
 			client->source.state = CODEX_STATE_FINAL;
+			++errors;
 			break;
 		}
 
@@ -315,17 +318,16 @@ static bool renegotiate(client_t * client)
 		client->sink.state = CODEX_STATE_COMPLETE;
 		client->indication = CODEX_INDICATION_NONE;
 
-		success = true;
 		break;
 
 	default:
-		DIMINUTO_LOG_ERROR("%s: FATAL client=%p indication=%d\n", program, client, client->indication);
-		FATAL();
+		DIMINUTO_LOG_ERROR("%s: UNEXPECTED client=%p indication=%d\n", program, client, client->indication);
+		++errors;
 		break;
 
 	}
 
-	return success;
+	return (errors == 0);
 }
 
 int main(int argc, char ** argv)
@@ -333,6 +335,7 @@ int main(int argc, char ** argv)
 	int rc = -1;
 	ssize_t count = 0;
 	char * endptr = (char *)0;
+	bool success = false;
     int opt = '\0';
     extern char * optarg;
 
@@ -570,13 +573,10 @@ int main(int argc, char ** argv)
 
 				if (client->sink.state != CODEX_STATE_IDLE) {
 					/* Do nothing. */
-				} else if (renegotiate(client)) {
+				} else if ((success = renegotiate(client))) {
 					/* Do nothing. */
 				} else {
-
-					DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p\n", program, client);
-					client = destroy(client);
-
+					EXPECT(success);
 				}
 
 			}
@@ -664,13 +664,10 @@ int main(int argc, char ** argv)
 
 				if (client->source.state != CODEX_STATE_IDLE) {
 					/* Do nothing. */
-				} else if (renegotiate(client)) {
+				} else if ((success = renegotiate(client))) {
 					/* Do nothing. */
 				} else {
-
-					DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p\n", program, client);
-					client = destroy(client);
-
+					EXPECT(success);
 				}
 
 			}

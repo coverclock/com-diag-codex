@@ -405,9 +405,7 @@ int main(int argc, char ** argv)
 			 */
 
 			rc = codex_handshake_renegotiate(ssl);
-			if (rc < 0) {
-				break;
-			}
+			EXPECT(rc >= 0);
 
 			headers[WRITER] = CODEX_INDICATION_DONE;
 			states[WRITER] = CODEX_STATE_RESTART;
