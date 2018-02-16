@@ -59,6 +59,10 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 			break;
 		}
 
+#endif
+
+#if defined (COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2)
+
 		ssl->state = SSL_ST_ACCEPT;
 
 #endif

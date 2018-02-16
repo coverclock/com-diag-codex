@@ -29,11 +29,12 @@ of OpenSSL. I don't have renegotiation (which BoringSSL only supports when
 initiated by the server-side) working yet. But otherwise the unit tests all
 pass.
 
+That work in turn made it fairly easy to get this library to work under
+OpenSSL 1.1.1, similarly without renegotiation working.
+
 **Important safety tip**: the OpenSSL API is a quickly moving target. There are
-no guarantee that successive versions do not break the OpenSSL API. I continue
-to noodle around with other SSL implementations, mostly so far without success.
-Ignore any breadcrumbs that might suggest that anything other then OpenSSL 1.0.2
-or BoringSSL 1.1.0 works (or even builds).
+no guarantee that successive (or prior) versions do not break Codex. I continue
+to noodle around with other SSL implementations and versions.
 
 ## Contact
 
@@ -124,7 +125,7 @@ Linux nickel 4.10.0-28-generic #32~16.04.2-Ubuntu SMP Thu Jul 20 10:19:48 UTC
 
 gcc (Ubuntu 5.4.0-6ubuntu1~16.04.5) 5.4.0 20160609
 
-OpenSSL 1.0.2g *or* BoringSSL 1.1.0
+OpenSSL 1.0.2g *or* BoringSSL 1.1.0 *or* OpenSSL 1.1.1-pre2-dev
 
 Diminuto 48.1.0
 
@@ -136,6 +137,12 @@ Intel Core i7-5557U @ 3.10GHz x 8
 
 ## Building
 
+(None of these snippets of commands actually install the software on your
+computer in the production directories; hence, nothing is run as root.)
+
+(OpenSSL 1.0.2 is the current version installed by default by the Ubuntu
+package manager on the system I use.)
+
 Clone and build Diminuto 48.1.0.
 
     cd
@@ -145,7 +152,6 @@ Clone and build Diminuto 48.1.0.
     cd com-diag-diminuto/Diminuto
     git checkout 48.1.0
     make pristine depend all
-    # sudo make install # Optional to install in /usr/local .
 
 Clone and build BoringSSL 1.1.0 (if you're using BoringSSL).
 
@@ -158,6 +164,16 @@ Clone and build BoringSSL 1.1.0 (if you're using BoringSSL).
     cd build
     cmake -DBUILD_SHARED_LIBS=1 -DBORINGSSL_SHARED_LIBRARY=1 -DBORING_IMPLEMENTATION=1 ..
     make
+    
+Clone and build OpenSSL 1.1.1 (if you're using OpenSSL 1.1.1).
+
+    cd
+    mkdir -p src
+    cd src
+    git clone https://github.com/openssl/openssl
+    cd openssl
+    ./config
+    make
 
 Clone and build Codex (change FLAVOR in Makefile if you're using BoringSSL).
 
@@ -168,7 +184,6 @@ Clone and build Codex (change FLAVOR in Makefile if you're using BoringSSL).
     cd com-diag-codex/Codex
     $(EDITOR) Makefile
     make pristine depend all
-    # sudo make install # Optional to install in /usr/local .
 
 ## Testing
 
