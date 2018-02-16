@@ -113,8 +113,6 @@ full-duplex communication must take this into account.
 **Important safety tip**: I haven't tried to make the Handshake unit test robust
 against a client and a server simultaneously requesting a renegotiation. But
 that's a legitimate concern that a real-world application should worry about.
-Also, in BoringSSL, a client cannot request a renegotiation, so this always
-fails.
 
 ## Dependencies
 
@@ -203,8 +201,7 @@ connection by sending the server process or a client process a "hangup" signal
 a.k.a. SIGHUP. You can find the process identifiers (PID) for the processes in
 the log output to standard error. You can use the kill(1) command to send
 a SIGHUP to the process you want to instigate a renegotiation with its
-peer. (Remember that BoringSSL only supports negotiation when requested by
-the server.)
+peer.
 
     unittest-handshake
     
