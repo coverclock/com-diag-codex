@@ -182,8 +182,11 @@ Clone and build Codex (change FLAVOR in Makefile if you're using BoringSSL).
     cd src
     git clone https://github.com/coverclock/com-diag-codex
     cd com-diag-codex/Codex
-    $(EDITOR) Makefile
-    make pristine depend all
+    make pristine depend all FLAVOR=openssl-1.0.2
+    # *or*
+    make pristine depend all FLAVOR=boringssl-1.1.0
+    # *or*
+    make pristine depend all FLAVOR=openssl-1.0.2
 
 ## Testing
 
