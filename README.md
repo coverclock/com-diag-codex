@@ -125,7 +125,7 @@ gcc (Ubuntu 5.4.0-6ubuntu1~16.04.5) 5.4.0 20160609
 
 OpenSSL 1.0.2g *or* BoringSSL 1.1.0 *or* OpenSSL 1.1.1-pre2-dev
 
-Diminuto 48.1.0
+Diminuto 48.3.1
 
 ## Targets
 
@@ -164,14 +164,16 @@ project, clone and build it.
     ./config
     make
 
-Clone and build Diminuto 48.1.0, a library I wrote that Codex is built upon.
+Clone and build Diminuto 48.3.1, a library I wrote that Codex is built upon.
+(Later versions of Diminuto may work providing I haven't altered the portions
+of the API on which Codex depends.)
 
     cd
     mkdir -p src
     cd src
     git clone https://github.com/coverclock/com-diag-diminuto
     cd com-diag-diminuto/Diminuto
-    git checkout 48.1.0
+    git checkout 48.3.1
     make pristine depend all
 
 Clone and build Codex, a library I wrote, choosing the flavor of OpenSSL

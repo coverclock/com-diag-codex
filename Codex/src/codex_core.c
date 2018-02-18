@@ -26,6 +26,7 @@
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_token.h"
 #include "com/diag/diminuto/diminuto_ipc4.h"
+#include "com/diag/diminuto/diminuto_ipc6.h"
 #include "codex.h"
 
 /*******************************************************************************
@@ -1115,10 +1116,20 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 	int fd = -1;
 
 	do {
-
 #if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
+		diminuto_ipc_endpoint_t endpoint;
 
-		fd = diminuto_ipc4_stream_provider(atoi(nearend));
+		rc = diminuto_ipc_endpoint(nearend, &endpoint);
+		if (rc < 0) {
+			DIMINUTO_LOG_WARNING("diminuto_ipc_endpoint: \"%s\"\n", nearend);
+			break;
+		}
+
+		if (diminuto_ipc6_is_unspecified(&endpoint.ipv6)) {
+			fd = diminuto_ipc4_stream_provider_generic(endpoint.ipv4, endpoint.tcp, (const char *)0, -1);
+		} else {
+			fd = diminuto_ipc6_stream_provider_generic(endpoint.ipv6, endpoint.tcp, (const char *)0, -1);
+		}
 		if (fd < 0) {
 			break;
 		}
