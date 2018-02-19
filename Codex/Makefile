@@ -22,16 +22,18 @@ TITLE				:=	Codex
 PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
-MAJOR				:=	3# API changes that may require that applications be modified.
-MINOR				:=	2# Only functionality or features added with no legacy API changes.
-BUILD				:=	1# Only bugs fixed with no API changes or new functionality.
+MAJOR				:=	4# API changes that may require that applications be modified.
+MINOR				:=	0# Only functionality or features added with no legacy API changes.
+BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
 # X86_64 Ubuntu build server.
 
 TARGET				:=	host
 
-# Only very specific versions of selected SSL libraries are supported.
+# Only very specific versions of selected SSL libraries are supported. You can
+# change the default here, or pass the FLAVOR in as a parameter to make: e.g.
+# make pristine depend all FLAVOR=boringssl-1.1.0 .
 
 FLAVOR				:=	openssl-1.0.2
 #FLAVOR				:=	openssl-1.1.1

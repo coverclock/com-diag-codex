@@ -75,22 +75,6 @@ static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static bool initialized = false;
 
 /*******************************************************************************
- * GETTORS/SETTORS
- ******************************************************************************/
-
-CODEX_SET(method, codex_method_t, 0);
-
-CODEX_SET(client_password_env, const char *, 0);
-
-CODEX_SET(server_password_env, const char *, 0);
-
-CODEX_SET(cipher_list, const char *, 0);
-
-CODEX_SET(session_id_context, const char *, 0);
-
-CODEX_SET(certificate_depth, int, -1);
-
-/*******************************************************************************
  * DEBUGGING
  ******************************************************************************/
 
@@ -407,26 +391,42 @@ int codex_parameters(const char * dhf)
 }
 
 /*******************************************************************************
+ * GETTORS/SETTORS
+ ******************************************************************************/
+
+CODEX_SET(method, codex_method_t, 0);
+
+CODEX_SET(client_password_env, const char *, 0);
+
+CODEX_SET(server_password_env, const char *, 0);
+
+CODEX_SET(cipher_list, const char *, 0);
+
+CODEX_SET(session_id_context, const char *, 0);
+
+CODEX_SET(certificate_depth, int, -1);
+
+/*******************************************************************************
  * CONTEXT
  ******************************************************************************/
 
-codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * key, int flags, int depth, int options)
+codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * key, int flags, int depth, int options, codex_method_t method, const char * list, const char * context)
 {
 	SSL_CTX * result = (SSL_CTX *)0;
-	const SSL_METHOD * method = (SSL_METHOD *)0;
+	const SSL_METHOD * table = (SSL_METHOD *)0;
 	SSL_CTX * ctx = (SSL_CTX *)0;
 	char * password = (char *)0;
 	int rc = -1;
 
 	do {
 
-		method = (*codex_method)();
-		if (method == (SSL_METHOD *)0) {
-			codex_perror("SSLv23_method");
+		table = (*method)();
+		if (table == (SSL_METHOD *)0) {
+			codex_perror("(*method)");
 			break;
 		}
 
-		ctx = SSL_CTX_new(method);
+		ctx = SSL_CTX_new(table);
 		if (ctx == (SSL_CTX *)0) {
 			codex_perror("SSL_CTX_new");
 			break;
@@ -472,10 +472,21 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 
 		SSL_CTX_set_tmp_dh_callback(ctx, codex_parameters_callback);
 
-		rc = SSL_CTX_set_cipher_list(ctx, codex_cipher_list);
+		rc = SSL_CTX_set_cipher_list(ctx, list);
 		if (rc != 1) {
 			codex_perror("SSL_CTX_set_cipher_list");
 			break;
+		}
+
+		if (context != (const char *)0) {
+			rc = SSL_CTX_set_session_id_context(ctx, context, strlen(context));
+			if (rc != 1) {
+				/*
+				 * Not fatal but will probably break renegotiation handshake from
+				 * the server side.
+				 */
+				DIMINUTO_LOG_ERROR("codex_context_new: SSL_CTX_set_session_id_context\n");
+			}
 		}
 
 		result = ctx;
@@ -1019,7 +1030,7 @@ int codex_connection_descriptor(codex_connection_t * ssl)
 
 codex_context_t * codex_client_context_new(const char * caf, const char * cap, const char * crt, const char * key)
 {
-	return codex_context_new(codex_client_password_env, caf, cap, crt, key, SSL_VERIFY_PEER, codex_certificate_depth, SSL_OP_ALL | SSL_OP_NO_SSLv2);
+	return codex_context_new(codex_client_password_env, caf, cap, crt, key, SSL_VERIFY_PEER, codex_certificate_depth, SSL_OP_ALL | SSL_OP_NO_SSLv2, codex_method, codex_cipher_list, (const char *)0);
 }
 
 codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const char * farend)
@@ -1090,23 +1101,7 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 
 codex_context_t * codex_server_context_new(const char * caf, const char * cap, const char * crt, const char * key)
 {
-	codex_context_t * ctx = (codex_context_t *)0;
-	int rc = -1;
-
-	ctx = codex_context_new(codex_server_password_env, caf, cap, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, codex_certificate_depth, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE);
-
-	if (ctx != (codex_context_t *)0) {
-		rc = SSL_CTX_set_session_id_context(ctx, codex_session_id_context, strlen(codex_session_id_context));
-		if (rc != 1) {
-			/*
-			 * Not fatal but will probably break renegotiation handshake from
-			 * the server side.
-			 */
-			DIMINUTO_LOG_ERROR("codex_server_context_new: SSL_CTX_set_session_id_context\n");
-		}
-	}
-
-	return ctx;
+	return codex_context_new(codex_server_password_env, caf, cap, crt, key, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, codex_certificate_depth, SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_SINGLE_DH_USE, codex_method, codex_cipher_list, codex_session_id_context);
 }
 
 codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)

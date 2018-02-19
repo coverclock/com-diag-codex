@@ -53,6 +53,11 @@
  ******************************************************************************/
 
 /**
+ * Declares a type used by OpenSSL to define a method.
+ */
+typedef const SSL_METHOD * (*codex_method_t)(void);
+
+/**
  * Type of object that contains the context for an OpenSSL server or client.
  */
 typedef SSL_CTX codex_context_t;
@@ -188,7 +193,12 @@ extern int codex_parameters(const char * dhf);
  ******************************************************************************/
 
 /**
- * Allocate a new OpenSSL context.
+ * Allocate a new OpenSSL context. This is the generic context generating
+ * function on which the more specific (and simpler) client and server context
+ * generating functions are based. The more specific functions supply
+ * appropriate parameters based either on the role (client or server) or based
+ * on the default values established at build time and which can be set at run
+ * time by settor functions defined in the private API.
  * @param env names the environmental variable containing the password.
  * @param caf names the certificate file or NULL if none.
  * @param cap names the certificate path or NULL if none.
@@ -197,9 +207,12 @@ extern int codex_parameters(const char * dhf);
  * @param mode defines the peer verification mode.
  * @param depth defines the maximum certificate depth (9 works well).
  * @param options defines the SSL protocol options.
+ * @param method points to the selected method function.
+ * @param list is the cipher algorithm list.
+ * @param context is the session identifier context string.
  * @return a pointer to the new context if successful, NULL otherwise.
  */
-extern codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * key, int mode, int depth, int options);
+extern codex_context_t * codex_context_new(const char * env, const char * caf, const char * cap, const char * crt, const char * key, int flags, int depth, int options, codex_method_t method, const char * list, const char * context);
 
 /**
  * Free an existing OpenSSL context.

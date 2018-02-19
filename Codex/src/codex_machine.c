@@ -53,7 +53,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected-server ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected role=server ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 			break;
 		}
@@ -90,7 +90,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 				} else if (*header == 0) {
 					state = CODEX_STATE_RESTART;
 				} else if (*header > size) {
-					DIMINUTO_LOG_WARNING("codex_machine_reader_generic: embiggened ssl=%p header=0x%8.8x size=%u\n", ssl, *header, size);
+					DIMINUTO_LOG_WARNING("codex_machine_reader_generic: incompatible ssl=%p header=0x%8.8x size=%u\n", ssl, *header, size);
 					*here = (uint8_t *)buffer;
 					*length = size;
 					state = CODEX_STATE_PAYLOAD;
@@ -118,7 +118,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected-client ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected role=client ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 		}
 
@@ -226,7 +226,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected-server ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected role=server ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 			break;
 		}
@@ -286,7 +286,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected-client ssl=%p\n", ssl);
+			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected role=client ssl=%p\n", ssl);
 			state = CODEX_STATE_FINAL;
 		}
 
