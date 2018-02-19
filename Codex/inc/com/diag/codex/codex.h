@@ -33,6 +33,10 @@
 #	define COM_DIAG_CODEX_PLATFORM "OpenSSL 1.0.2"
 #	define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x1000207f
 #	define COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2 1
+#elif defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x1000114fL) && !defined(OPENSSL_IS_BORINGSSL)
+#	define COM_DIAG_CODEX_PLATFORM "OpenSSL 1.0.1"
+#	define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x1000114fL
+#	define COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1 1
 #elif defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x10101002L) && !defined(OPENSSL_IS_BORINGSSL)
 #	define COM_DIAG_CODEX_PLATFORM "OpenSSL 1.1.1"
 #	define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x10101002L
@@ -258,6 +262,11 @@ extern codex_connection_t * codex_connection_free(codex_connection_t * ssl);
 
 /**
  * Return true if the connection is a server, false if it is a client.
+ * N.B. For OpenSSL implementations that do not support the SSL_is_server()
+ * query (e.g. OpenSSL 1.0.1), this function always returns true. This
+ * prevents the verification code as used in the reader and writer state
+ * machines from breaking, but prevents the client from being able to
+ * verify the server after connecting but before an initial read or write.
  * @param ssl points to the connection.
  * @return true if the connection is a server, false if it is a client.
  */

@@ -73,7 +73,7 @@ static client_t * allocate(void)
 
 	clientp->ssl = codex_server_connection_new(ctx, bio);
 	ASSERT(clientp->ssl != (codex_connection_t *)0);
-	ASSERT(codex_connection_is_server(clientp->ssl));
+	ADVISE(codex_connection_is_server(clientp->ssl));
 	clientp->size = bufsize;
 
 	clientp->indication = CODEX_INDICATION_NONE;

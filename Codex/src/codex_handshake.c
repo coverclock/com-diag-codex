@@ -49,7 +49,7 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 			break;
 		}
 
-		if (!SSL_is_server(ssl)) {
+		if (!codex_connection_is_server(ssl)) {
 			rc = 0;
 			break;
 		}

@@ -849,11 +849,20 @@ codex_connection_t * codex_connection_free(codex_connection_t * ssl)
 
 bool codex_connection_is_server(const codex_connection_t * ssl)
 {
+#if defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1)
+
+	return true;
+
+#else
+
 	/*
 	 * Parameter to SSL_is_server() can and should be const.
 	 */
 	return !!SSL_is_server((codex_connection_t *)ssl);
+
+#endif
 }
+
 
 /*******************************************************************************
  * INPUT/OUTPUT
@@ -1040,12 +1049,40 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 	int rc = -1;
 
 	do {
+#if defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1)
+		char * mutable = (char *)0;
+
+		/*
+		 * OpenSSL-1.0.1 doesn't declare the string passed into
+		 * BIO_new_connect() as const. I haven't examined the implementation,
+		 * but it's entirely possible it alters it, since I had to deal with a
+		 * similar issue in the diminuto_ipc_endpoint() code.
+		 */
+
+		mutable = strdup(farend);
+		if (mutable == (char *)0) {
+			diminuto_perror("strdup");
+			break;
+		}
+
+		bio = BIO_new_connect(mutable);
+		if (bio == (BIO *)0) {
+			codex_perror("BIO_new_connect");
+			free(mutable);
+			break;
+		}
+
+		free(mutable);
+
+#else
 
 		bio = BIO_new_connect(farend);
 		if (bio == (BIO *)0) {
 			codex_perror("BIO_new_connect");
 			break;
 		}
+
+#endif
 
 		rc = BIO_do_connect(bio);
 		if (rc <= 0) {
@@ -1134,6 +1171,38 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 			break;
 		}
 		codex_perror("BIO_new_socket");
+
+#elif defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1)
+		char * mutable = (char *)0;
+
+		/*
+		 * OpenSSL-1.0.1 doesn't declare the string passed into
+		 * BIO_new_accept() as const. I haven't examined the implementation,
+		 * but it's entirely possible it alters it, since I had to deal with a
+		 * similar issue in the diminuto_ipc_endpoint() code.
+		 */
+
+		mutable = strdup(nearend);
+		if (mutable == (char *)0) {
+			diminuto_perror("strdup");
+			break;
+		}
+
+		bio = BIO_new_accept(mutable);
+		if (bio == (BIO *)0) {
+			codex_perror("BIO_new_accept");
+			free(mutable);
+			break;
+		}
+
+		rc = BIO_do_accept(bio);
+		if (rc > 0) {
+			free(mutable);
+			break;
+		}
+		codex_perror("BIO_do_accept");
+
+		free(mutable);
 
 #else
 

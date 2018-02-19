@@ -19,22 +19,17 @@ Licensed under the terms in LICENSE.txt.
 ## Abstract
 
 Codex provides a slightly simpler higher-level C-based application programming
-interface to the Open Secure Socket Layer (OpenSSL) 1.0.2 API. Mostly it's my
+interface to the Open Secure Socket Layer (OpenSSL) API. Mostly it's my
 excuse to learn how to use the OpenSSL C API for both authentication and
 encryption for the kinds of low-level, usually C or C++, code that I typically
 am asked to develop.
 
-I recently ported this library to work under BoringSSL 1.1.0, Google's fork
-of OpenSSL. I don't have renegotiation (which BoringSSL only supports when
-initiated by the server-side) working yet. But otherwise the unit tests all
-pass.
-
-That work in turn made it fairly easy to get this library to work under
-OpenSSL 1.1.1, similarly without renegotiation working.
-
-**Important safety tip**: the OpenSSL API is a quickly moving target. There are
-no guarantee that successive (or prior) versions do not break Codex. I continue
-to noodle around with other SSL implementations and versions.
+I first developed Codex under OpenSSL 1.0.2 (the default version under
+Ubuntu "xenial"). I later ported it to OpenSSL 1.1.1 (the development version
+at the time I did this work), OpenSSL 1.0.1 (the default version under Raspbian
+"jessie" on the Raspberry Pi 2 and 3), and BoringSSL 1.1.0 (Google's fork of
+OpenSSL 1.1.0). The renegotiation feature in Codex only works under OpenSSL
+1.0.2.
 
 ## Contact
 
@@ -116,29 +111,47 @@ that's a legitimate concern that a real-world application should worry about.
 
 ## Dependencies
 
-Ubuntu 16.04.3 LTS "xenial"
-
-Linux nickel 4.10.0-28-generic #32~16.04.2-Ubuntu SMP Thu Jul 20 10:19:48 UTC
-2017 x86_64 x86_64 x86_64 GNU/Linux
-
-gcc (Ubuntu 5.4.0-6ubuntu1~16.04.5) 5.4.0 20160609
-
-OpenSSL 1.0.2g *or* BoringSSL 1.1.0 *or* OpenSSL 1.1.1-pre2-dev
+OpenSSL 1.0.2g *or* BoringSSL 1.1.0 *or* OpenSSL 1.1.1-pre2-dev *or* OpenSSL 1.0.1t
 
 Diminuto 48.3.3
 
 ## Targets
 
-"nickel"    
+"Nickel"    
 Intel NUC5i7RYH    
 Intel Core i7-5557U @ 3.10GHz x 8    
+Ubuntu 16.04.3 LTS "xenial"    
+Linux nickel 4.10.0-28-generic #32~16.04.2-Ubuntu SMP Thu Jul 20 10:19:48 UTC
+2017 x86_64 x86_64 x86_64 GNU/Linux    
+gcc (Ubuntu 5.4.0-6ubuntu1~16.04.5) 5.4.0 20160609    
+
+"Lead"    
+Raspberry Pi 3 Model B (64-bit ARM)    
+Broadcom BCM2837 Cortex-A53 ARMv7 @ 1.2GHz x 4    
+aspbian GNU/Linux 8.0 "jessie"    
+Linux 4.4.34    
+gcc 4.9.2    
 
 ## Building
 
-If you want to use OpenSSL 1.0.2, which is the default version for the release
-of Ubuntu I use, install it using the Aptitude package manager.
+If you want to use OpenSSL 1.0.2, which is the default version for Ubuntu
+"xenial", install it using the Aptitude package manager. Similarly, this
+will install OpenSSL 1.0.1 for Raspbian "jessie", minus libssl-doc.
 
     sudo apt-get install openssl libssl-dev libssl-doc
+
+If you want to use OpenSSL 1.0.1t, which is the version used by the current
+Raspbian (jessie) on the Raspberry Pi 2 and 3, clone and build it.
+
+    cd
+    mkdir -p src
+    cd src
+    git clone https://github.com/openssl/openssl openssl-1.0.1t
+    cd openssl-1.0.1t
+    git checkout OpenSSL_1_0_1t
+    ./config -shared
+    make depend
+    make
 
 If you want to use BoringSSL 1.1.0, which is the current version of Google's
 fork of OpenSSL, clone and build it.
@@ -188,7 +201,9 @@ library you want to use.
     # *or*
     make pristine depend all FLAVOR=boringssl-1.1.0
     # *or*
-    make pristine depend all FLAVOR=openssl-1.0.2
+    make pristine depend all FLAVOR=openssl-1.1.1
+    # *or*
+    make pristine depend all FLAVOR=openssl-1.0.1
 
 ## Testing
 
@@ -215,7 +230,6 @@ client fails to authenticate).
 
     unittest-verification-client
     unittest-verification-server
-
 
 ## Repositories
 
@@ -283,6 +297,3 @@ J. Viega, M. Messier, _Secure Programming Cookbook_, O'Reilly, 2003
 Special thanks to Doug Gibbons, my long-time friend, occasional colleague, and
 one-time office mate, who was extraordinarily generous with his special
 expertise in this area.
-
-## Notes
-

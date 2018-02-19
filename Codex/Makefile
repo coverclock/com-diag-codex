@@ -38,6 +38,7 @@ TARGET				:=	host
 FLAVOR				:=	openssl-1.0.2
 #FLAVOR				:=	openssl-1.1.1
 #FLAVOR				:=	boringssl-1.1.0
+#FLAVOR				:=	openssl-1.0.1
 
 # Some certification, defense, or intelligence agencies (e.g. the U.S. Federal
 # Aviation Administration or FAA) require that software builds for safety
