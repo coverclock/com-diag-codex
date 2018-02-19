@@ -23,7 +23,7 @@ PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	3# API changes that may require that applications be modified.
-MINOR				:=	1# Only functionality or features added with no legacy API changes.
+MINOR				:=	2# Only functionality or features added with no legacy API changes.
 BUILD				:=	1# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
@@ -102,7 +102,7 @@ ROOT_DIR			:=	$(HOME_DIR)/$(TARGET)
 
 GITURL				:=	https://github.com/coverclock/com-diag-$(PROJECT).git
 
-GENERATED			:=	vintage setup generate
+GENERATED			:=	vintage generate setup
 SYNTHESIZED			:=	$(PROJECT)_release.h $(PROJECT)_vintage.h $(PROJECT)_revision.h
 
 ALIASES				:=	
@@ -683,10 +683,10 @@ $(OUT)/$(SYM_DIR)/vintage:	$(OUT)/$(GEN_DIR)/vintage.c
 $(OUT)/$(BIN_DIR)/generate:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
-	echo 'echo export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
-	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
-	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
-	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
+	echo 'echo export PATH=\\$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
+	echo 'echo export LD_LIBRARY_PATH=\\$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd\`' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd\`' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(BIN_DIR)/setup' >> $@
 	chmod 775 $@
 
@@ -695,10 +695,10 @@ $(OUT)/$(BIN_DIR)/generate:	Makefile
 $(OUT)/$(SYM_DIR)/generate:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
-	echo 'echo export PATH=$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
-	echo 'echo export LD_LIBRARY_PATH=$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
-	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd`' >> $@
-	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd`' >> $@
+	echo 'echo export PATH=\\$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
+	echo 'echo export LD_LIBRARY_PATH=\\$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd\`' >> $@
+	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd\`' >> $@
 	echo 'echo . $(DIMINUTO_ROOT)/$(OUT)/$(SYM_DIR)/setup' >> $@
 	chmod 775 $@
 
