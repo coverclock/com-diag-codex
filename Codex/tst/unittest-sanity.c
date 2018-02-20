@@ -55,30 +55,38 @@ int main(char * argc, char ** argv)
 	{
 		TEST();
 
-#if defined(COM_DIAG_CODEX_PLATFORM)
+#ifdef COM_DIAG_CODEX_PLATFORM
 		ASSERT(COM_DIAG_CODEX_PLATFORM != (const char *)0);
 		COMMENT("COM_DIAG_CODEX_PLATFORM=\"%s\"\n", COM_DIAG_CODEX_PLATFORM);
 		EXPECT(COM_DIAG_CODEX_PLATFORM[0] != '\0');
 #endif
 
 #ifdef COM_DIAG_CODEX_PLATFORM_OPENSSL
-		COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL defined\n");
+		COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL=0x%8.8x\n", COM_DIAG_CODEX_PLATFORM_OPENSSL);
+#endif
+
+#ifdef COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1
+		COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1=%d\n", COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1);
 #endif
 
 #ifdef COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2
-		COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2 defined\n");
+		COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2=%d\n", COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_2);
+#endif
+
+#ifdef COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_1
+		COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_1=%d\n", COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_1);
 #endif
 
 #ifdef OPENSSL_IS_BORINGSS
-		COMMENT("OPENSSL_IS_BORINGSS defined\n");
+		COMMENT("OPENSSL_IS_BORINGSS=(defined)\n");
 #endif
 
 #ifdef COM_DIAG_CODEX_PLATFORM_BORINGSSL
-		COMMENT("COM_DIAG_CODEX_PLATFORM_BORINGSSL defined\n");
+		COMMENT("COM_DIAG_CODEX_PLATFORM_BORINGSSL=0x%8.8x\n", COM_DIAG_CODEX_PLATFORM_BORINGSSL);
 #endif
 
 #ifdef COM_DIAG_CODEX_PLATFORM_BORINGSSL_1_1_0
-		COMMENT("COM_DIAG_CODEX_PLATFORM_BORINGSSL_1_1_0 defined\n");
+		COMMENT("COM_DIAG_CODEX_PLATFORM_BORINGSSL_1_1_0=%d\n", COM_DIAG_CODEX_PLATFORM_BORINGSSL_1_1_0);
 #endif
 
 		STATUS();
@@ -153,7 +161,7 @@ int main(char * argc, char ** argv)
 		val = getenv(was);
 		ASSERT(val != (const char *)0);
 		ADVISE(*val != '\0');
-		COMMENT("%s=\"%s\"\n", was, (val != (const char *)0) ? "(defined)" : "(UNDEFINED)");
+		COMMENT("%s=%s\n", was, (val != (const char *)0) ? "(defined)" : "(UNDEFINED)");
 		now = codex_set_server_password_env("com-pairiethorn-server");
 		EXPECT(now != (const char *)0);
 		EXPECT(*now != '\0');
@@ -170,7 +178,7 @@ int main(char * argc, char ** argv)
 		val = getenv(was);
 		ASSERT(val != (const char *)0);
 		ADVISE(*val != '\0');
-		COMMENT("%s=\"%s\"\n", was, (val != (const char *)0) ? "(defined)" : "(UNDEFINED)");
+		COMMENT("%s=%s\n", was, (val != (const char *)0) ? "(defined)" : "(UNDEFINED)");
 		now = codex_set_client_password_env("com-pairiethorn-client");
 		EXPECT(now != (const char *)0);
 		EXPECT(*now != '\0');
@@ -210,6 +218,7 @@ int main(char * argc, char ** argv)
 		EXPECT(rc == 0);
 		EXPECT(codex_dh == dh);
 
+		STATUS();
 	}
 
 	{
