@@ -131,7 +131,7 @@ Raspbian GNU/Linux 8.0 "jessie"
 Linux 4.4.34    
 gcc 4.9.2    
 
-"Bronze" 
+"Bronze"   
 Raspberry Pi 2 Model B (32-bit ARM)  
 Broadcom BCM2836 Cortex-A7 ARMv7 @ 900MHz x 4  
 Raspbian GNU/Linux 8.0 "jessie"  
