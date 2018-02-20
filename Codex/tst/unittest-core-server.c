@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 static const char * program = "unittest-core-server";
 static const char * nearend = "49162";

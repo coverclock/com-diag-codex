@@ -29,7 +29,8 @@ Ubuntu "xenial"). I later ported it to OpenSSL 1.1.1 (the development version
 at the time I did this work), OpenSSL 1.0.1 (the default version under Raspbian
 "jessie" on the Raspberry Pi 2 and 3), and BoringSSL 1.1.0 (Google's fork of
 OpenSSL 1.1.0). The renegotiation feature in Codex only works under OpenSSL
-1.0.2.
+1.0.2. The port to OpenSSL 1.0.1 works fine on x86_64 running Ubuntu "xenial",
+but is still a work in progress on Raspberry Pi 3 running Raspbian "jessie".
 
 ## Contact
 
@@ -121,27 +122,34 @@ Diminuto 48.3.3
 Intel NUC5i7RYH    
 Intel Core i7-5557U @ 3.10GHz x 8    
 Ubuntu 16.04.3 LTS "xenial"    
-Linux nickel 4.10.0-28-generic #32~16.04.2-Ubuntu SMP Thu Jul 20 10:19:48 UTC
-2017 x86_64 x86_64 x86_64 GNU/Linux    
-gcc (Ubuntu 5.4.0-6ubuntu1~16.04.5) 5.4.0 20160609    
+Linux 4.10.0    
+gcc 5.4.0    
 
-"Lead"    
+"Lead" (WORK IN PROGRESS)    
 Raspberry Pi 3 Model B (64-bit ARM)    
 Broadcom BCM2837 Cortex-A53 ARMv7 @ 1.2GHz x 4    
-aspbian GNU/Linux 8.0 "jessie"    
+Raspbian GNU/Linux 8.0 "jessie"    
 Linux 4.4.34    
 gcc 4.9.2    
 
+"Bronze" (WORK IN PROGRESS)  
+Raspberry Pi 2 Model B (32-bit ARM)  
+Broadcom BCM2836 Cortex-A7 ARMv7 @ 900MHz x 4  
+Raspbian GNU/Linux 8.0 "jessie"  
+Linux 4.4.34  
+gcc 4.9.2  
+
 ## Building
 
-If you want to use OpenSSL 1.0.2, which is the default version for Ubuntu
-"xenial", install it using the Aptitude package manager. Similarly, this
-will install OpenSSL 1.0.1 for Raspbian "jessie", minus libssl-doc.
+If you want to use OpenSSL 1.0.2 on an X86_64 running Ubuntu "xenial" system,
+you can install it using the Aptitude package manager using the command
+below. This same command, minus libssl-doc, will install OpenSSL 1.0.1 for
+Raspbian "jessie" on the Raspberry Pi.
 
     sudo apt-get install openssl libssl-dev libssl-doc
 
-If you want to use OpenSSL 1.0.1t, which is the version used by the current
-Raspbian (jessie) on the Raspberry Pi 2 and 3, clone and build it.
+If you want to build OpenSSL 1.0.1t, which is the version used by the current
+Raspbian (jessie) on the Raspberry Pi 2 and 3, use the commands below.
 
     cd
     mkdir -p src
@@ -153,8 +161,8 @@ Raspbian (jessie) on the Raspberry Pi 2 and 3, clone and build it.
     make depend
     make
 
-If you want to use BoringSSL 1.1.0, which is the current version of Google's
-fork of OpenSSL, clone and build it.
+If you want to build BoringSSL 1.1.0, which is the current version of Google's
+fork of OpenSSL, use the commands below.
 
     cd
     mkdir -p src
@@ -166,8 +174,8 @@ fork of OpenSSL, clone and build it.
     cmake -DBUILD_SHARED_LIBS=1 -DBORINGSSL_SHARED_LIBRARY=1 -DBORING_IMPLEMENTATION=1 ..
     make
     
-If you want to use OpenSSL 1.1.1, which is the current version from the OpenSSL
-project, clone and build it.
+If you want to build OpenSSL 1.1.1, which is the current version from the
+OpenSSL project, use the commands below.
 
     cd
     mkdir -p src
@@ -189,7 +197,7 @@ of the API on which Codex depends.)
     git checkout 48.3.2
     make pristine depend all
 
-Clone and build Codex, a library I wrote, choosing the flavor of OpenSSL
+Clone and build Codex, a library I wrote, choosing the FLAVOR of OpenSSL
 library you want to use.
 
     cd
@@ -197,13 +205,18 @@ library you want to use.
     cd src
     git clone https://github.com/coverclock/com-diag-codex
     cd com-diag-codex/Codex
-    make pristine depend all FLAVOR=openssl-1.0.2
-    # *or*
-    make pristine depend all FLAVOR=boringssl-1.1.0
-    # *or*
-    make pristine depend all FLAVOR=openssl-1.1.1
-    # *or*
-    make pristine depend all FLAVOR=openssl-1.0.1
+    make pristine depend all FLAVOR=!FLAVOR!
+
+Here !FLAVOR! is one of the following choices:
+
+    openssl
+    openssl-1.0.1
+    boringssl-1.1.0
+    openssl-1.1.1
+
+in which FLAVOR=openssl uses the default installed version on the build
+system, e.g. OpenSSL-1.0.2 on Ubuntu "xenial", OpenSSL-1.0.1 on Raspbian
+"jessie".
 
 ## Testing
 
@@ -216,11 +229,12 @@ Run the Codex unit tests.
     unittest-machine
     
 This unit test allows you to test renegotiation from either side of the
-connection by sending the server process or a client process a "hangup" signal
-a.k.a. SIGHUP. You can find the process identifiers (PID) for the processes in
-the log output to standard error. You can use the kill(1) command to send
-a SIGHUP to the process you want to instigate a renegotiation with its
-peer.
+connection on OpenSSL-1.0.2 (only) by sending the server process or a client
+process a "hangup" signal a.k.a. SIGHUP. You can find the process identifiers
+(PID) for the processes in the log output to standard error. You can use the
+kill(1) command to send a SIGHUP to the process you want to instigate a
+renegotiation with its peer. (The unit test will run on other OpenSSL flavors,
+you just won't be able to get negotiation to work.)
 
     unittest-handshake
     

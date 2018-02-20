@@ -32,8 +32,37 @@
  ******************************************************************************/
 
 /**
+ * @COM_DIAG_CODEX_OUT_CRT_PATH
  * Generates the path that points to the certificates used by the unit tests.
  */
 #define COM_DIAG_CODEX_OUT_CRT_PATH "out/host/crt"
+
+/**
+ * @SLL
+ * Cast the argument to a signed long long (used for debug printing across
+ * different hardware architectures).
+ */
+#define SLL(_THAT_) ((signed long long)(_THAT_))
+
+/**
+ * @ULL
+ * Cast the argument to a unsigned long long (used for debug printing across
+ * different hardware architectures).
+ */
+#define ULL(_THAT_) ((unsigned long long)(_THAT_))
+
+/**
+ * @SL=
+ * Cast the argument to a signed long (used for debug printing across
+ * different hardware architectures).
+ */
+#define SL(_THAT_) ((signed long)(_THAT_))
+
+/**
+ * @UL
+ * Cast the argument to a unsigned long (used for debug printing across
+ * different hardware architectures).
+ */
+#define UL(_THAT_) ((unsigned long)(_THAT_))
 
 #endif

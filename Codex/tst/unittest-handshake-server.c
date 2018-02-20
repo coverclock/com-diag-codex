@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct Buffer {
 	diminuto_list_t node;

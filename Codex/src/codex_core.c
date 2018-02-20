@@ -1322,7 +1322,7 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 		SSL_set_accept_state(ssl);
 
 		/*
-		 * and the BIO we just received is both the source and the sink.
+		 * ... and the BIO we just received is both the source and the sink.
 		 */
 
 		SSL_set_bio(ssl, tmp, tmp);

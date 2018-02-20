@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <stdint.h>
 
 static const char * program = "unittest-core-client";
 static const char * farend = "localhost:49162";
@@ -54,8 +55,8 @@ int main(int argc, char ** argv)
 	ssize_t reads = -1;
 	ssize_t writes = -1;
 	bool eof = false;
-	size_t input = 0;
-	size_t output = 0;
+	uint64_t input = 0;
+	uint64_t output = 0;
 	char * endptr = (char *)0;
 	uint16_t f16source = 0;
 	uint8_t f16sourceA = 0;
@@ -63,8 +64,6 @@ int main(int argc, char ** argv)
 	uint16_t f16sink = 0;
 	uint8_t f16sinkA = 0;
 	uint8_t f16sinkB = 0;
-	size_t sourced = 0;
-	size_t sunk = 0;
 	long count = 0;
 	diminuto_sticks_t ticks = -1;
 	long prior = -1;
@@ -206,7 +205,7 @@ int main(int argc, char ** argv)
 	while ((!eof) || (output < input)) {
 
 		if (diminuto_alarm_check()) {
-			DIMINUTO_LOG_INFORMATION("%s: SIGALRM eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, input, output, f16sink, f16source);
+			DIMINUTO_LOG_INFORMATION("%s: SIGALRM eof=%d input=%llu output=%llu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, ULL(input), ULL(output), f16sink, f16source);
 		}
 
 		if (diminuto_hangup_check()) {
@@ -286,7 +285,7 @@ int main(int argc, char ** argv)
 	ticks = diminuto_timer_periodic(0);
 	ASSERT(ticks >= 0);
 
-	DIMINUTO_LOG_INFORMATION("%s: END eof=%d input=%zu output=%zu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, input, output, f16sink, f16source);
+	DIMINUTO_LOG_INFORMATION("%s: END eof=%d input=%llu output=%llu f16source=0x%4.4x f16sink=0x%4.4x\n", program, eof, ULL(input), ULL(output), f16sink, f16source);
 	EXPECT(eof);
 	EXPECT(input == output);
 	EXPECT(f16source == f16sink);
