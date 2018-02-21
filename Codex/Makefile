@@ -165,6 +165,7 @@ CDEFINES			+=	-DCOM_DIAG_CODEX_METHOD=$(SSL_MTH)
 CDEFINES			+=	-DCOM_DIAG_CODEX_CIPHER_LIST=\"$(SSL_LST)\"
 CDEFINES			+=	-DCOM_DIAG_CODEX_SESSION_ID_CONTEXT=\"$(SSL_SID)\"
 CDEFINES			+=	-DCOM_DIAG_CODEX_CERTIFICATE_DEPTH=$(SSL_DEP)
+CDEFINES			+=	-DCOM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES=$(SSL_SSC)
 CDEFINES			+=	-DCOM_DIAG_CODEX_SERVER_PASSWORD_ENV=\"$(SSL_SPW)\"
 CDEFINES			+=	-DCOM_DIAG_CODEX_CLIENT_PASSWORD_ENV=\"$(SSL_CPW)\"
 
@@ -374,6 +375,8 @@ $(SSL_CRT)/dh.pem:
 
 ##### Helpers
 
+.PHONY:	credentials credentials-clean
+
 credentials:	$(TARGETCREDENTIALS)
 
 credentials-clean:
@@ -383,15 +386,40 @@ credentials-clean:
 	( cd $(SSL_CRT); rm -f clientkey.pem client.pem clientreq.pem )
 	( cd $(SSL_CRT); rm -f boguskey.pem bogus.pem bogusreq.pem )
 	
+.PHONY:	parameters parameters-clean
+
 parameters:	 $(TARGETPARAMETERS)
 
 parameters-clean:
 	( cd $(SSL_CRT); rm -f dh.pem )
 	
+.PHONY:	passwords passwords-clean
+
 passwords:	$(TARGETPASSWORDS)
 
 passwords-clean:
 	( cd $(SSL_PWD); rm -f root.pwd ca.pwd server.pwd client.pwd bogus.pwd )
+	
+.PHONY:	exported-credentials
+
+# The signing certificate(s) for the far end have to be something the near end
+# trusts. Otherwise the handshake between the peers fails because the far end
+# certificate is self-signed. (That's a decision made in the Codex verification
+# callback function.) The easiest way to do this for testing is to generate the
+# credentials on the near end, and propagate them to the far end *before* the
+# far end credentials are generated. This is basically what occurs when you
+# install a root certificate in your browser. This helper uses scp(1) to copy
+# the near end root certificate to the far end, where it will be used to
+# sign the far end's credentials.
+#
+# e.g. make exported-credentials FAREND="pi@lead"
+
+FAREND="root@192.0.2.0"
+
+FARPATH="src/com-diag-$(PROJECT)/$(TITLE)/$(SSL_CRT)"
+
+exported-credentials:
+	echo scp $(SSL_CRT)/{root*,ca*} $(FAREND):$(FARPATH)
 
 ########## Packaging and Distribution
 

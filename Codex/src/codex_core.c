@@ -16,6 +16,8 @@
 
 #define _GNU_SOURCE
 #include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
@@ -65,6 +67,8 @@ static const char * codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
 static const char * codex_session_id_context = COM_DIAG_CODEX_SESSION_ID_CONTEXT;
 
 static int codex_certificate_depth = COM_DIAG_CODEX_CERTIFICATE_DEPTH;
+
+static int codex_self_signed_certificates = COM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES;
 
 /*******************************************************************************
  * STATICS
@@ -315,7 +319,25 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 
 		error = X509_STORE_CTX_get_error(ctx);
 		text = X509_verify_cert_error_string(error);
-		DIMINUTO_LOG_WARNING("codex_verification_callback: ctx=%p error=%d=\"%s\"\n", ctx, error, (text != (const char *)0) ? text : "");
+		DIMINUTO_LOG_NOTICE("codex_verification_callback: ctx=%p error=%d=\"%s\"\n", ctx, error, (text != (const char *)0) ? text : "");
+
+		switch (error) {
+
+		case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
+			if (codex_self_signed_certificates) {
+				ok = 1;
+			}
+			break;
+
+		/*
+		 * Maybe some other X.509 verification errors here in the future?
+		 */
+
+		default:
+			/* Do nothing. */
+			break;
+
+		}
 
 	}
 
@@ -403,6 +425,8 @@ CODEX_SET(server_password_env, const char *, 0);
 CODEX_SET(cipher_list, const char *, 0);
 
 CODEX_SET(session_id_context, const char *, 0);
+
+CODEX_SET(self_signed_certificates, int, -1);
 
 CODEX_SET(certificate_depth, int, -1);
 

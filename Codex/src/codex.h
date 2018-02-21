@@ -61,6 +61,11 @@
 #	define COM_DIAG_CODEX_CERTIFICATE_DEPTH 0
 #endif
 
+#if !defined(COM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES)
+#	warning COM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES undefined!
+#	define COM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES 0
+#endif
+
 #if !defined(COM_DIAG_CODEX_SERVER_PASSWORD_ENV)
 #	warning COM_DIAG_CODEX_SERVER_PASSWORD_ENV undefined!
 #	define COM_DIAG_CODEX_SERVER_PASSWORD_ENV ""
@@ -167,6 +172,14 @@ extern const char * codex_set_session_id_context(const char * now);
  * @return the prior or current value.
  */
 extern int codex_set_certificate_depth(int now);
+
+/**
+ * Get the existing self-signed certificate setting and optionally set a new
+ * one used for subsequent calls to codex_verification_callback().
+ * @param now if not -1 is the new boolean value.
+ * @return the prior or current value.
+ */
+extern int codex_set_self_signed_certificates(int now);
 
 /*******************************************************************************
  * CALLBACKS

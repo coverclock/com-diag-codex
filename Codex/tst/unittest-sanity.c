@@ -119,7 +119,7 @@ int main(char * argc, char ** argv)
 
 		iwas = codex_set_certificate_depth(-1);
 		COMMENT("codex_certificate_depth=%d\n", iwas);
-		EXPECT(iwas > 0);
+		EXPECT(iwas >= 0);
 		inow = codex_set_certificate_depth(iwas + 1);
 		EXPECT(inow == iwas);
 		inow = codex_set_certificate_depth(-1);
@@ -127,6 +127,18 @@ int main(char * argc, char ** argv)
 		inow = codex_set_certificate_depth(iwas);
 		EXPECT(inow == (iwas + 1));
 		inow = codex_set_certificate_depth(-1);
+		EXPECT(inow == iwas);
+
+		iwas = codex_set_self_signed_certificates(-1);
+		COMMENT("codex_self_signed_certificates=%d\n", iwas);
+		EXPECT(iwas >= 0);
+		inow = codex_set_self_signed_certificates(1);
+		EXPECT(inow == iwas);
+		inow = codex_set_self_signed_certificates(-1);
+		EXPECT(inow == 1);
+		inow = codex_set_self_signed_certificates(iwas);
+		EXPECT(inow == 1);
+		inow = codex_set_self_signed_certificates(-1);
 		EXPECT(inow == iwas);
 
 		was = codex_set_cipher_list(NULL);

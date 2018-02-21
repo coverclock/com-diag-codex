@@ -18,6 +18,7 @@
 # SSL_LST:		list of acceptable cryptographic choices
 # SSL_SID:		session identifier
 # SSL_DEP:		maximum certificate depth
+# SSL_SSC:		if true then accept self-signed certificates
 # SSL_DHK:		Diffie Hellman key size
 # SSL_EXP:		expiration period in days
 # SSL_SPW:		server unit test certificate password environmental variable name
@@ -32,6 +33,8 @@ SSL_MTH			:=	TLSv1_2_method
 SSL_LST			:=	TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL
 SSL_SID			:=	com-diag-codex
 SSL_DEP			:=	9
+SSL_SSC			:=	0
+#SSL_SSC		:=	1
 SSL_DHK			:=	2048
 SSL_EXP			:=	365
 SSL_SPW			:=	COM_DIAG_CODEX_SERVER_PASSWORD
