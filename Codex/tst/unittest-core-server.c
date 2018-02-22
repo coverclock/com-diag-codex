@@ -237,48 +237,57 @@ int main(int argc, char ** argv)
 			}
 			ssl = (codex_connection_t *)temp;
 
-			bytes = codex_connection_read(ssl, buffer, bufsize);
-			DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, ssl, bytes);
+			do {
 
-			if (tripwire) {
+				bytes = codex_connection_read(ssl, buffer, bufsize);
+				DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, ssl, bytes);
 
-				rc = codex_connection_verify(ssl, expected);
-				if (rc == CODEX_CONNECTION_VERIFY_CN) {
-					/* Do nothing. */
-				} else if (!enforce) {
-					/* Do nothing. */
-				} else {
-					bytes = 0;
+				if (tripwire) {
+
+					rc = codex_connection_verify(ssl, expected);
+					if (rc == CODEX_CONNECTION_VERIFY_CN) {
+						/* Do nothing. */
+					} else if (!enforce) {
+						/* Do nothing. */
+					} else {
+						bytes = 0;
+					}
+
 				}
 
-			}
+				if (bytes > 0) {
 
-			if (bytes > 0) {
+					for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
+						bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
+						DIMINUTO_LOG_DEBUG("%s: WRITE connection=%p bytes=%d\n", program, ssl, bytes);
+						if (bytes <= 0) {
+							break;
+						}
+					}
 
-				for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
-					bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
-					DIMINUTO_LOG_DEBUG("%s: WRITE connection=%p bytes=%d\n", program, ssl, bytes);
 					if (bytes <= 0) {
 						break;
 					}
+
+				} else {
+
+					DIMINUTO_LOG_INFORMATION("%s: FINISH connection=%p\n", program, ssl);
+
+					rc = diminuto_mux_unregister_read(&mux, fd);
+					ASSERT(rc >= 0);
+
+					rc = codex_connection_close(ssl);
+					ASSERT(rc >= 0);
+
+					ssl = codex_connection_free(ssl);
+					ASSERT(ssl == (codex_connection_t *)0);
+
+					*here = (void *)0;
+
+					break;
 				}
 
-			} else {
-
-				DIMINUTO_LOG_INFORMATION("%s: FINISH connection=%p\n", program, ssl);
-
-				rc = diminuto_mux_unregister_read(&mux, fd);
-				ASSERT(rc >= 0);
-
-				rc = codex_connection_close(ssl);
-				ASSERT(rc >= 0);
-
-				ssl = codex_connection_free(ssl);
-				ASSERT(ssl == (codex_connection_t *)0);
-
-				*here = (void *)0;
-
-			}
+			} while (codex_connection_is_ready(ssl));
 
 		}
 

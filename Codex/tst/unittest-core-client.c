@@ -229,21 +229,25 @@ int main(int argc, char ** argv)
 
 			} else if (fd == codex_connection_descriptor(ssl)) {
 
-				bytes = codex_connection_read(ssl, buffer, bufsize);
-				DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, ssl, bytes);
-				if (bytes <= 0) {
-					rc = diminuto_mux_unregister_read(&mux, fd);
-					ASSERT(rc >= 0);
-					break;
-				}
+				do {
 
-				bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffer, bytes, bytes);
-				if (bytes <= 0) {
-					break;
-				}
+					bytes = codex_connection_read(ssl, buffer, bufsize);
+					DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, ssl, bytes);
+					if (bytes <= 0) {
+						rc = diminuto_mux_unregister_read(&mux, fd);
+						ASSERT(rc >= 0);
+						break;
+					}
 
-				f16sink = diminuto_fletcher_16(buffer, bytes, &f16sinkA, &f16sinkB);
-				output += bytes;
+					bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffer, bytes, bytes);
+					if (bytes <= 0) {
+						break;
+					}
+
+					f16sink = diminuto_fletcher_16(buffer, bytes, &f16sinkA, &f16sinkB);
+					output += bytes;
+
+				} while (codex_connection_is_ready(ssl));
 
 			} else if (fd == STDIN_FILENO) {
 

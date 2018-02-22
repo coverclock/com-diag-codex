@@ -909,19 +909,19 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 			error = codex_serror("SSL_read", ssl, rc);
 			switch (error) {
 			case CODEX_SERROR_NONE:
-				retry = true; /* Maybe an EINTR? */
+				retry = true;
 				break;
 			case CODEX_SERROR_SSL:
 				rc = -1;
 				break;
 			case CODEX_SERROR_READ:
-				if (retry) { rc = -1; } else { retry = true; }
+				retry = true;
 				break;
 			case CODEX_SERROR_WRITE:
-				if (retry) { rc = -1; } else { retry = true; }
+				rc = -1;
 				break;
 			case CODEX_SERROR_LOOKUP:
-				rc = -1; /* TODO */
+				rc = -1;
 				break;
 			case CODEX_SERROR_SYSCALL:
 				rc = -1;
@@ -930,14 +930,14 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 				rc = 0;
 				break;
 			case CODEX_SERROR_CONNECT:
-				rc = -1; /* Should never happen. */
+				rc = -1;
 				break;
 			case CODEX_SERROR_ACCEPT:
-				rc = -1; /* Should never happen. */
+				rc = -1;
 				break;
 			case CODEX_SERROR_OTHER:
 			default:
-				rc = -1; /* Might happen if OpenSSL is updated. */
+				rc = -1;
 				break;
 			}
 
@@ -974,19 +974,19 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
 			error = codex_serror("SSL_write", ssl, rc);
 			switch (error) {
 			case CODEX_SERROR_NONE:
-				retry = true; /* Maybe an EINTR? */
+				retry = true;
 				break;
 			case CODEX_SERROR_SSL:
 				rc = -1;
 				break;
 			case CODEX_SERROR_READ:
-				if (retry) { rc = -1; } else { retry = true; }
+				rc = -1;
 				break;
 			case CODEX_SERROR_WRITE:
-				if (retry) { rc = -1; } else { retry = true; }
+				retry = true;
 				break;
 			case CODEX_SERROR_LOOKUP:
-				rc = -1; /* TODO */
+				rc = -1;
 				break;
 			case CODEX_SERROR_SYSCALL:
 				rc = -1;
@@ -995,14 +995,14 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
 				rc = 0;
 				break;
 			case CODEX_SERROR_CONNECT:
-				rc = -1; /* Should never happen. */
+				rc = -1;
 				break;
 			case CODEX_SERROR_ACCEPT:
-				rc = -1; /* Should never happen. */
+				rc = -1;
 				break;
 			case CODEX_SERROR_OTHER:
 			default:
-				rc = -1; /* Might happen if OpenSSL is updated. */
+				rc = -1;
 				break;
 			}
 

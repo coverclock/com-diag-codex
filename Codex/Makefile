@@ -402,24 +402,23 @@ passwords-clean:
 	
 .PHONY:	exported-credentials
 
-# The signing certificate(s) for the far end have to be something the near end
-# trusts. Otherwise the handshake between the peers fails because the far end
-# certificate is self-signed. (That's a decision made in the Codex verification
-# callback function.) The easiest way to do this for testing is to generate the
-# credentials on the near end, and propagate them to the far end *before* the
-# far end credentials are generated. This is basically what occurs when you
-# install a root certificate in your browser. This helper uses scp(1) to copy
-# the near end root certificate to the far end, where it will be used to
-# sign the far end's credentials.
-#
-# e.g. make exported-credentials FAREND="pi@lead"
+# The certificate authorities for the far end have to be something the near end
+# trusts. Otherwise the handshake between the peers fails. The easiest way to do
+# this for testing is to generate the credentials on the near end, and propagate
+# them to the far end *before* the far end credentials are generated. This is
+# basically what occurs when you install a root certificate using your browser.
+# This helper uses scp(1) to copy the near end root certificate to the far end,
+# where it will be used to sign the far end's credentials.
+# E.g. make exported FAREND="pi@lead"
 
 FAREND="root@192.0.2.0"
 
-FARPATH="src/com-diag-$(PROJECT)/$(TITLE)/$(SSL_CRT)"
+FARPATH=$(shell eval D=`realpath $(SSL_CRT)`; eval H="$(HOME)/"; eval P=$${D#$$H}; echo $$P)
 
-exported-credentials:
-	echo scp $(SSL_CRT)/{root*,ca*} $(FAREND):$(FARPATH)
+exported:	$(SSL_CRT)/rootcert.pem $(SSL_CRT)/rootkey.pem $(SSL_CRT)/root.pem $(SSL_CRT)/rootreq.pem $(SSL_CRT)/root.srl $(SSL_CRT)/cacert.pem $(SSL_CRT)/cakey.pem $(SSL_CRT)/ca.pem $(SSL_CRT)/careq.pem $(SSL_CRT)/ca.srl
+	D=`realpath $(SSL_CRT)`; H="$(HOME)/"; P=$${D#$$H}; \
+	ssh $(FAREND) mkdir -p $$P; \
+	scp $(SSL_CRT)/root* ${SSL_CRT}/ca* $(FAREND):$$P
 
 ########## Packaging and Distribution
 

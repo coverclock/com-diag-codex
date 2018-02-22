@@ -1,6 +1,6 @@
 # com-diag-codex
 
-Slightly Simpler Open Secure Socket Layer (OpenSSL) API in C.
+Slightly Simpler Open Secure Socket Layer (OpenSSL) API in C (work in progress).
 
 ## Copyright
 
@@ -108,6 +108,21 @@ full-duplex communication must take this into account.
 **Important safety tip**: I haven't tried to make the Handshake unit test robust
 against a client and a server simultaneously requesting a renegotiation. But
 that's a legitimate concern that a real-world application should worry about.
+
+When testing by running the unit tests between two different computers, the
+certificate authorities for the far end have to be something the near end
+trusts. Otherwise the SSL handshake between the near end and the far end fails.
+The easiest way to do this is to generate the credentials on the near end, and
+propagate them to the far end *before* the far end credentials are generated.
+This is basically what occurs when you install a root certificate using your
+browser. The Makefile has a helper target that uses ssh(1) and scp(1) to copy
+the near end signing certificates to the far end where they will be used to
+sign the far end's credentials when you build the far end. This helper target
+makes some assumptions about the far end directory tree looking something like
+the near end directory tree, at least relative to the home directory on either
+ends. For example:
+
+    make exported FAREND="pi@lead"
 
 ## Dependencies
 
@@ -281,6 +296,9 @@ O'Reilly, 2005
 
 J. Davies, _Implementing SSL/TLS_, Wiley, 2011
 
+V. Geraskin, "OpenSSL and select()", 2014-02-21,
+<http://www.past5.com/tutorials/2014/02/21/openssl-and-select/>
+
 D. Gibbons, personal communication, 2018-01-17
 
 D. Gibbons, personal communication, 2018-02-12
@@ -301,7 +319,25 @@ Ticket #2481, 2011-03-26,
 
 OpenSSL, documentation, <https://www.openssl.org/docs/>
 
-OpenSSL Wiki, "FIPS mode and TLS", <https://wiki.openssl.org/index.php/FIPS_mode_and_TLS>
+OpenSSL, "HOWTO keys", ```openssl/doc/HOWTO/keys.txt```
+
+OpenSSL, "HOWTO proxy certificates",
+```openssl/doc/HOWTO/proxy_certificates.txt```
+
+OpenSSL, "HOWTO certificates", ```openssl/doc/HOWTO/certificates.txt```
+
+OpenSSL, "Fingerprints for Signing Releases", ```openssl/doc/fingerprints.txt```
+
+OpenSSL Wiki, "FIPS mode and TLS",
+<https://wiki.openssl.org/index.php/FIPS_mode_and_TLS>
+
+E. Rescorla, "An Introduction to OpenSSL Programming (Part I)", Version 1.0,
+2001-10-05, <http://www.past5.com/assets/post_docs/openssl1.pdf> (also
+Linux Journal, September 2001)
+
+E. Rescorla, "An Introduction to OpenSSL Programming (Part II)", Version 1.0,
+2002-01-09, <http://www.past5.com/assets/post_docs/openssl2.pdf> (also
+Linux Journal, September 2001)
 
 I. Ristic, _OpenSSL Cookbook_, Feisty Duck,
 <https://www.feistyduck.com/books/openssl-cookbook/>

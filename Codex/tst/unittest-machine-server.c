@@ -364,52 +364,57 @@ int main(int argc, char ** argv)
 				continue;
 			}
 
-			state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length));
+			do {
 
-			if (state == CODEX_STATE_FINAL) {
+				state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length));
 
-				DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
-				client = release(client);
-				continue;
+				if (state == CODEX_STATE_FINAL) {
 
-			}
-
-			if (state == client->source.state) {
-				/* Do nothing. */
-			} else if (state != CODEX_STATE_COMPLETE) {
-				/* Do nothing. */
-			} else if (client->source.header == CODEX_INDICATION_FAREND) {
-
-				DIMINUTO_LOG_INFORMATION("%s: INDICATION client=%p indication=%d\n", program, client, client->source.header);
-				client->indication = CODEX_INDICATION_FAREND;
-				state = CODEX_STATE_IDLE;
-
-			} else {
-
-				DIMINUTO_LOG_DEBUG("%s: READ client=%p bytes=%d\n", program, client, client->source.header);
-				state = CODEX_STATE_IDLE;
-
-			}
-
-			client->source.state = state;
-
-			if (client->sink.state != CODEX_STATE_IDLE) {
-				/* Do nothing. */
-			} else if (client->source.state != CODEX_STATE_IDLE) {
-				/* Do nothing. */
-			} else if (!client->indication) {
-
-				swap(client);
-
-			} else {
-
-				DIMINUTO_LOG_INFORMATION("%s: INDICATING client=%p\n", program, client);
-				if (!indicate(client)) {
 					DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
 					client = release(client);
+					break;
+
 				}
 
-			}
+				if (state == client->source.state) {
+					/* Do nothing. */
+				} else if (state != CODEX_STATE_COMPLETE) {
+					/* Do nothing. */
+				} else if (client->source.header == CODEX_INDICATION_FAREND) {
+
+					DIMINUTO_LOG_INFORMATION("%s: INDICATION client=%p indication=%d\n", program, client, client->source.header);
+					client->indication = CODEX_INDICATION_FAREND;
+					state = CODEX_STATE_IDLE;
+
+				} else {
+
+					DIMINUTO_LOG_DEBUG("%s: READ client=%p bytes=%d\n", program, client, client->source.header);
+					state = CODEX_STATE_IDLE;
+
+				}
+
+				client->source.state = state;
+
+				if (client->sink.state != CODEX_STATE_IDLE) {
+					break;
+				} else if (client->source.state != CODEX_STATE_IDLE) {
+					/* Do nothing. */
+				} else if (client->indication == CODEX_INDICATION_NONE) {
+
+					swap(client);
+
+				} else {
+
+					DIMINUTO_LOG_INFORMATION("%s: INDICATING client=%p\n", program, client);
+					if (!indicate(client)) {
+						DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
+						client = release(client);
+						break;
+					}
+
+				}
+
+			} while (codex_connection_is_ready(client->ssl));
 
 		}
 

@@ -266,43 +266,54 @@ int main(int argc, char ** argv)
 				/* Do nothing. */
 			} else {
 
-				state = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
+				do {
 
-				if (state == CODEX_STATE_FINAL) {
-					break;
-				} else if (state != CODEX_STATE_COMPLETE) {
-					/* Do nothing. */
-				} else if (headers[READER] == CODEX_INDICATION_FAREND) {
+					state = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
 
-					DIMINUTO_LOG_INFORMATION("%s: INDICATION fd=%d indication=%d\n", program, fd, headers[READER]);
+					if (state == CODEX_STATE_FINAL) {
+						/* Do nothing. */
+					} else if (state != CODEX_STATE_COMPLETE) {
+						/* Do nothing. */
+					} else if (headers[READER] == CODEX_INDICATION_FAREND) {
 
-					indication = CODEX_INDICATION_FAREND;
+						DIMINUTO_LOG_INFORMATION("%s: INDICATION fd=%d indication=%d\n", program, fd, headers[READER]);
 
-					state = CODEX_STATE_IDLE;
+						indication = CODEX_INDICATION_FAREND;
 
+						state = CODEX_STATE_IDLE;
 
-				} else {
+					} else {
 
-					DIMINUTO_LOG_DEBUG("%s: READ fd=%d bytes=%d\n", program, fd, headers[READER]);
+						DIMINUTO_LOG_DEBUG("%s: READ fd=%d bytes=%d\n", program, fd, headers[READER]);
 
-					f16sink = diminuto_fletcher_16(buffers[READER], headers[READER], &f16sinkA, &f16sinkB);
-					output += headers[READER];
+						f16sink = diminuto_fletcher_16(buffers[READER], headers[READER], &f16sinkA, &f16sinkB);
+						output += headers[READER];
 
-					bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
-					if (bytes <= 0) {
+						bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
+						if (bytes <= 0) {
+							break;
+						}
+
+						state = indication? CODEX_STATE_IDLE : CODEX_STATE_RESTART;
+
+						if (pending)  {
+							states[WRITER] = CODEX_STATE_START;
+							pending = false;
+						}
+
+					}
+
+					states[READER] = state;
+
+					if (state == CODEX_STATE_IDLE) {
 						break;
+					} else if (state == CODEX_STATE_FINAL) {
+						break;
+					} else {
+						/* Do nothing. */
 					}
 
-					state = indication? CODEX_STATE_IDLE : CODEX_STATE_RESTART;
-
-					if (pending)  {
-						states[WRITER] = CODEX_STATE_START;
-						pending = false;
-					}
-
-				}
-
-				states[READER] = state;
+				} while (codex_connection_is_ready(ssl));
 
 			}
 

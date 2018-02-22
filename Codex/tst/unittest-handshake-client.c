@@ -302,51 +302,57 @@ int main(int argc, char ** argv)
 
 				if (states[READER] != CODEX_STATE_IDLE) {
 
-					states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
+					do {
 
-					if (states[READER] == CODEX_STATE_FINAL) {
+						states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
 
-						DIMINUTO_LOG_INFORMATION("%s: FINAL\n", program);
-						break;
+						if (states[READER] == CODEX_STATE_FINAL) {
 
-					}
-
-					if (states[READER] == CODEX_STATE_COMPLETE) {
-
-						DIMINUTO_LOG_DEBUG("%s: READ DATA header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
-
-						if (headers[READER] >= 0) {
-
-							f16sink = diminuto_fletcher_16(buffers[READER], headers[READER], &f16sinkA, &f16sinkB);
-							output += headers[READER];
-
-							bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
-							if (bytes <= 0) {
-								DIMINUTO_LOG_INFORMATION("%s: EOF fd=%d\n", program, STDOUT_FILENO);
-								break;
-							}
-
-							states[READER] = CODEX_STATE_RESTART;
-
-						} else if ((headers[READER] == CODEX_INDICATION_FAREND) && (indication == CODEX_INDICATION_NONE)) {
-
-							DIMINUTO_LOG_INFORMATION("%s: READ FAREND header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
-							states[READER] = CODEX_STATE_IDLE;
-							indication = CODEX_INDICATION_FAREND;
-
-						} else if ((headers[READER] == CODEX_INDICATION_READY) && (indication == CODEX_INDICATION_NEAREND)) {
-
-							DIMINUTO_LOG_INFORMATION("%s: READ READY header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
-							states[READER] = CODEX_STATE_IDLE;
-							indication = CODEX_INDICATION_READY;
-
-						} else {
-
-							states[READER] = CODEX_STATE_RESTART;
+							DIMINUTO_LOG_INFORMATION("%s: FINAL\n", program);
+							break;
 
 						}
 
-					}
+						if (states[READER] == CODEX_STATE_COMPLETE) {
+
+							DIMINUTO_LOG_DEBUG("%s: READ DATA header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
+
+							if (headers[READER] >= 0) {
+
+								f16sink = diminuto_fletcher_16(buffers[READER], headers[READER], &f16sinkA, &f16sinkB);
+								output += headers[READER];
+
+								bytes = diminuto_fd_write_generic(STDOUT_FILENO, buffers[READER], headers[READER], headers[READER]);
+								if (bytes <= 0) {
+									DIMINUTO_LOG_INFORMATION("%s: EOF fd=%d\n", program, STDOUT_FILENO);
+									break;
+								}
+
+								states[READER] = CODEX_STATE_RESTART;
+
+							} else if ((headers[READER] == CODEX_INDICATION_FAREND) && (indication == CODEX_INDICATION_NONE)) {
+
+								DIMINUTO_LOG_INFORMATION("%s: READ FAREND header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
+								states[READER] = CODEX_STATE_IDLE;
+								indication = CODEX_INDICATION_FAREND;
+								break;
+
+							} else if ((headers[READER] == CODEX_INDICATION_READY) && (indication == CODEX_INDICATION_NEAREND)) {
+
+								DIMINUTO_LOG_INFORMATION("%s: READ READY header=%d state=`%c` indication=%d\n", program, headers[READER], states[READER], indication);
+								states[READER] = CODEX_STATE_IDLE;
+								indication = CODEX_INDICATION_READY;
+								break;
+
+							} else {
+
+								states[READER] = CODEX_STATE_RESTART;
+
+							}
+
+						}
+
+					} while (codex_connection_is_ready(ssl));
 
 				}
 
