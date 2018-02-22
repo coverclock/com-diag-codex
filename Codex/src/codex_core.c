@@ -900,9 +900,7 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 {
 	int rc = -1;
 	codex_serror_t error = CODEX_SERROR_OKAY;
-	long queued = -1;
 	bool retry = false;
-	uint8_t empty[0];
 
 	do {
 
@@ -967,7 +965,6 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
 	int rc = -1;
 	codex_serror_t error = CODEX_SERROR_OKAY;
 	bool retry = false;
-	uint8_t empty[0];
 
 	do {
 
@@ -1025,40 +1022,6 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
 	}
 
 	return rc;
-}
-
-bool codex_connection_is_ready(codex_connection_t * ssl)
-{
-	return !!SSL_pending(ssl);
-}
-
-/*******************************************************************************
- * MULTIPLEXING
- ******************************************************************************/
-
-/*
- * I've successfully multiplexed multiple SSL connections using select(2) via
- * the Diminuto mux feature. But in SSL there is a *lot* going on under the
- * hood. The byte stream the application reads and writes is an artifact of
- * all the authentication and crypto going on in libssl and libcrypto. The
- * Linux socket and multiplexing implementation in the kernel lies below all
- * of this and knows *nothing* about it. So the fact that there's data to be
- * read on the socket doesn't mean there's _application_ data to be read. A lot
- * of application reads and writes may merely be driving the underlying protocol
- * and associated state machines in the SSL implementation. Hence multiplexing
- * isn't as useful as it might seem. A multi-threaded server approach, which
- * uses blocking reads and writes, albeit less scalable, might ultimately be
- * more useful.
- */
-
-int codex_rendezvous_descriptor(codex_rendezvous_t * bio)
-{
-	return BIO_get_fd(bio, (int *)0);
-}
-
-int codex_connection_descriptor(codex_connection_t * ssl)
-{
-	return SSL_get_fd(ssl);
 }
 
 /*******************************************************************************

@@ -326,11 +326,31 @@ static inline ssize_t codex_connection_write(codex_connection_t * ssl, const voi
  * @param ssl points to the connection (an SSL).
  * @return true if there is data waiting to be read.
  */
-extern bool codex_connection_is_ready(codex_connection_t * ssl);
+static inline bool codex_connection_is_ready(codex_connection_t * ssl)
+{
+	return !!SSL_pending(ssl);
+}
 
 /*******************************************************************************
  * MULTIPLEXING
  ******************************************************************************/
+
+/*
+ * I've successfully multiplexed multiple SSL connections using select(2) via
+ * the Diminuto mux feature. But in SSL there is a *lot* going on under the
+ * hood. The byte stream the application reads and writes is an artifact of
+ * all the authentication and crypto going on in libssl and libcrypto. The
+ * Linux socket and multiplexing implementation in the kernel lies below all
+ * of this and knows *nothing* about it. So the fact that there's data to be
+ * read on the socket doesn't mean there's _application_ data to be read. And
+ * the fact that the select() doesn't fire doesn't mean there isn't application
+ * data waiting to be read in a decryption buffer. A lot of application reads
+ * and writes may merely be driving the underlying protocol and associated state
+ * machines in the SSL implementation. Hence multiplexing isn't as useful as it
+ * might seem, and certainly not as easy as in non-OpenSSL applications. A
+ * multi-threaded server approach, which uses blocking reads and writes, albeit
+ * less scalable, might ultimately be more useful.
+ */
 
 /**
  * Return the file descriptor associated with a rendezvous. This should ONLY
@@ -338,7 +358,10 @@ extern bool codex_connection_is_ready(codex_connection_t * ssl);
  * @param bio points to the rendezvous (a BIO).
  * @return a file descriptor >=0, or <0 if in error.
  */
-extern int codex_rendezvous_descriptor(codex_rendezvous_t * bio);
+static inline int codex_rendezvous_descriptor(codex_rendezvous_t * bio)
+{
+	return BIO_get_fd(bio, (int *)0);
+}
 
 /**
  * Return the file descriptor associated with a connection. This should ONLY
@@ -346,7 +369,10 @@ extern int codex_rendezvous_descriptor(codex_rendezvous_t * bio);
  * @param ssl points to the connection (an SSL).
  * @return a file descriptor >=0, or <0 if in error.
  */
-extern int codex_connection_descriptor(codex_connection_t * ssl);
+static inline int codex_connection_descriptor(codex_connection_t * ssl)
+{
+	return SSL_get_fd(ssl);
+}
 
 /*******************************************************************************
  * CLIENT
