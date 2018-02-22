@@ -20,16 +20,13 @@
  * HEADERS
  ******************************************************************************/
 
-#include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
 #include <openssl/rand.h>
 #include <openssl/x509v3.h>
-#include <openssl/err.h>
 #include <openssl/x509.h>
 #include <openssl/objects.h>
 #include <openssl/conf.h>
 #include <openssl/asn1.h>
+#include <openssl/err.h>
 
 /*******************************************************************************
  * PARAMETERS
@@ -120,6 +117,18 @@ extern DH * codex_dh;
  * @param errnumber is a copy of errno.
  */
 extern void codex_wtf(const char * file, int line, const codex_connection_t * ssl, int rc, int errnumber);
+
+/*******************************************************************************
+ * ERRORS
+ ******************************************************************************/
+
+/**
+ * Clear the error queue as per SSL_get_error(3SSL).
+ */
+static inline void codex_cerror(void)
+{
+	while (ERR_get_error() != 0) { /* Do nothing. */ }
+}
 
 /*******************************************************************************
  * GETTORS/SETTORS

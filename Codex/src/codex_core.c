@@ -121,7 +121,11 @@ void codex_perror(const char * str)
 		DIMINUTO_LOG_ERROR("codex_perror: \"%s\" errno=%d index=%d error=0x%08x=\"%s\"\n", str, save, ii++, error, buffer);
 	}
 
-	if (ii == 0) {
+	if (ii > 0) {
+		/* Do nothing. */
+	} else if (save == 0) {
+		/* Do nothing. */
+	} else {
 		errno = save;
 		diminuto_perror(str);
 	}
@@ -832,6 +836,7 @@ int codex_connection_close(codex_connection_t * ssl)
 	flags = SSL_get_shutdown(ssl);
 	if ((flags & SSL_SENT_SHUTDOWN) == 0) {
 		while (true) {
+			codex_cerror();
 			rc = SSL_shutdown(ssl);
 			if (rc > 0) {
 				rc = 0;
@@ -905,6 +910,7 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 	do {
 
 		retry = false;
+		codex_cerror();
 		rc = SSL_read(ssl, buffer, size);
 		if (rc <= 0) {
 
@@ -969,6 +975,7 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
 	do {
 
 		retry = false;
+		codex_cerror();
 		rc = SSL_write(ssl, buffer, size);
 		if (rc <= 0) {
 
@@ -1095,6 +1102,7 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 
 #endif
 
+		codex_cerror();
 		rc = SSL_connect(ssl);
 		if (rc > 0) {
 			break;

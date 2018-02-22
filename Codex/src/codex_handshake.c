@@ -42,6 +42,7 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 			break;
 		}
 
+		codex_cerror();
 		rc = SSL_do_handshake(ssl);
 		if (rc != 1) {
 			(void)codex_serror("SSL_do_handshake", ssl, rc);
@@ -56,6 +57,7 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 
 		ssl->state = SSL_ST_ACCEPT;
 
+		codex_cerror();
 		rc = SSL_do_handshake(ssl);
 		if (rc != 1) {
 			(void)codex_serror("SSL_do_handshake 2", ssl, rc);

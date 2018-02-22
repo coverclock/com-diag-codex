@@ -274,13 +274,13 @@ int main(int argc, char ** argv)
 					DIMINUTO_LOG_INFORMATION("%s: FINISH connection=%p\n", program, ssl);
 
 					rc = diminuto_mux_unregister_read(&mux, fd);
-					ASSERT(rc >= 0);
+					EXPECT(rc >= 0);
 
 					rc = codex_connection_close(ssl);
-					ASSERT(rc >= 0);
+					EXPECT(rc >= 0);
 
 					ssl = codex_connection_free(ssl);
-					ASSERT(ssl == (codex_connection_t *)0);
+					EXPECT(ssl == (codex_connection_t *)0);
 
 					*here = (void *)0;
 
@@ -304,7 +304,7 @@ int main(int argc, char ** argv)
 	ASSERT(fd == rendezvous);
 
 	rc = diminuto_mux_unregister_accept(&mux, fd);
-	ASSERT(rc >= 0);
+	EXPECT(rc >= 0);
 
 	bio = codex_server_rendezvous_free(bio);
 	ASSERT(bio == (codex_rendezvous_t *)0);
@@ -319,10 +319,10 @@ int main(int argc, char ** argv)
 		ssl = (codex_connection_t *)temp;
 
 		rc = codex_connection_close(ssl);
-		ASSERT(rc >= 0);
+		EXPECT(rc >= 0);
 
 		ssl = codex_connection_free(ssl);
-		ASSERT(ssl == (codex_connection_t *)0);
+		EXPECT(ssl == (codex_connection_t *)0);
 
 		*here = (void *)0;
 
