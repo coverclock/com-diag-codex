@@ -1,6 +1,6 @@
 # com-diag-codex
 
-Slightly Simpler Open Secure Socket Layer (OpenSSL) API in C (work in progress).
+Slightly Simpler Open Secure Socket Layer (OpenSSL) API in C.
 
 ## Copyright
 
@@ -8,7 +8,7 @@ Copyright 2018 Digital Aggregates Corporation, Arvada Colorado USA
 
 ## License
 
-Licensed under the terms in LICENSE.txt.
+Licensed under the terms in LICENSE.txt (FSF LGPL 2.1).
 
 ## Trademarks
 
@@ -24,12 +24,22 @@ excuse to learn how to use the OpenSSL C API for both authentication and
 encryption for the kinds of low-level, usually C or C++, code that I typically
 am asked to develop.
 
-I first developed Codex under OpenSSL 1.0.2 (the default version under
+## What Works
+
+I first developed Codex under OpenSSL 1.0.2 (the "native" version under
 Ubuntu "xenial"). I later ported it to OpenSSL 1.1.1 (the development version
-at the time I did this work), OpenSSL 1.0.1 (the default version under Raspbian
+at the time I did this work), OpenSSL 1.0.1 (the "native" version under Raspbian
 "jessie" on the Raspberry Pi 2 and 3), and BoringSSL 1.1.0 (Google's fork of
-OpenSSL 1.1.0). The renegotiation feature in Codex only works under OpenSSL
-1.0.2.
+OpenSSL 1.1.0).
+
+The Codex renegotiation feature in Codex only works under OpenSSL 1.0.2.
+
+I have run all the unit tests on an x86_64 Ubuntu "xenial" system, and on both a
+Raspberry Pi 2 (ARM 32-bit) and 3 (ARM 64-bit) running Raspbian "jessie".
+
+I have also run the client and server unit tests programs talking between the
+x86_64 and the ARMs, each using Codex built against their "native" versions of
+OpenSSL, as a demonstration of interoperability.
 
 ## Contact
 
@@ -43,13 +53,13 @@ Wheat Ridge CO 80033 USA
 ## Remarks
 
 The API for Codex is architected in three separate layers: Core (the lowest),
-Machine, and Handshake. Each higher layer depends on the lower layers, and each
-layer can be used, depending on the application, without resorting to using the
-higher layers. Each layer has its own unit test demonstrating its use in a
-simple client server application in which multiple clients connect to a common
-server, send the server data, and expect to receive the exact same data in
-return. The client portions of each unit test checksums the data sent to and
-received from the server to verify it was the same.
+Machine, and Handshake (the highest). Each higher layer depends on the lower
+layers, and each layer can be used, depending on the application, without
+resorting to using the higher layers. Each layer has its own unit test
+demonstrating its use in a simple client server application in which multiple
+clients connect to a common server, send the server data, and expect to receive
+the exact same data in return. The client portions of each unit test checksums
+the data sent to and received from the server to verify it was the same.
 
 The Core layer allows peers to establish secure (authenticated, encrypted)
 stream connections and pass data in a full-duplex fashion.
@@ -64,8 +74,8 @@ The Handshake layer allows peers to establish secure stream connections, pass
 variable sized packets in full-duplex fashion, and use indications to coordinate
 the renegotiation of the session so that new encryption keys can be established
 and each end can be re-authenticated. This is especially important for long
-lived connections, since the longer an encryption key is used, the more likely it
-is that it will be cracked.
+lived connections, since the longer an encryption key is used, the more likely
+it is that it will be cracked.
 
 Empirical evidence suggests that regardless of what the OpenSSL documentation
 may suggest, both unidirectional byte streams of the full-duplex connection must
@@ -89,7 +99,7 @@ renegotiation with all of its clients. In any case, both uni-directional
 (read, write) streams of the full-duplex connection must be emptied for the
 handshake to succeed.
 
-The unit test implements a simple protocol consisting of a FAREND (start)
+The unit test implements a simple protocol consisting of a FAREND (a.k.a. start)
 indication sent from the requestor to the requestee while at the same time the
 requestor ceases writing data packets to the connection. The requestee responds
 with a READY indication while at the same time ceasing writing to the requestor.
