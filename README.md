@@ -41,6 +41,19 @@ I have also run the client and server unit tests programs talking between the
 x86_64 and the ARMs, each using Codex built against their "native" versions of
 OpenSSL, as a demonstration of interoperability.
 
+## Configuration
+
+Codex has a number of OpenSSL-related configuration parameters. The defaults
+can be configured at build-time via the Makefile. Many of the defaults can
+be overridden at run-time by settors defined in the private API.
+
+* RSA with 3072-bit keys
+* SHA-256 cryptographic hash function
+* TLS v1.2 methods
+* cipher string "TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL"
+* Diffie Hellman with 2048-bit keys
+* Diffie Hellman generator function 2
+
 ## Contact
 
 Chip Overclock  
