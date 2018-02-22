@@ -849,6 +849,10 @@ int codex_connection_close(codex_connection_t * ssl)
 					rc = 0;
 					break;
 				default:
+					flags = SSL_get_shutdown(ssl);
+					if ((flags & SSL_RECEIVED_SHUTDOWN) != 0) {
+						rc = 0;
+					}
 					break;
 				}
 
