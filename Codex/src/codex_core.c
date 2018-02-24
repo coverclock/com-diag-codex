@@ -1096,12 +1096,6 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 
 		SSL_set_bio(ssl, bio, bio);
 
-#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
-
-		SSL_set_renegotiate_mode(ssl, ssl_renegotiate_freely);
-
-#endif
-
 		codex_cerror();
 		rc = SSL_connect(ssl);
 		if (rc > 0) {
