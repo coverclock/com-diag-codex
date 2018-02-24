@@ -46,7 +46,8 @@ OpenSSL, as a demonstration of interoperability.
 
 Codex has a number of OpenSSL-related configuration parameters. The defaults
 can be configured at build-time via the Makefile. Many of the defaults can
-be overridden at run-time by settors defined in the private API.
+be overridden at run-time by settors defined in the private API. Here are the
+current defaults.
 
 * RSA with 3072-bit keys
 * SHA-256 cryptographic hash function
