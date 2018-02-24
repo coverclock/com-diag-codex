@@ -76,7 +76,30 @@ the exact same data in return. The client portions of each unit test checksums
 the data sent to and received from the server to verify it was the same.
 
 The Core layer allows peers to establish secure (authenticated, encrypted)
-stream connections and pass data in a full-duplex fashion.
+stream connections and pass data in a full-duplex fashion. The Core layer API
+has several sub-layers: initializing the library, creating a server or a client
+context (which defines all the encryption and authentication parameters),
+creating a server rendezvous (which is used to accept connections from clients),
+creating a client connection to a server rendezvous, creating a server
+connection from the rendezvous to accept the connection from a specific client,
+and read and write commands against a connection (either client or server).
+
+**Important safety tip**: There are also some simple helpers to assist with
+using select(2) with this library. As the unit tests demonstrate, I've
+multiplexed multiple SSL connections using select(2) via the Diminuto mux
+feature. But in SSL there is a *lot* going on under the hood. The byte stream
+the application reads and writes is an artifact of all the authentication and
+crypto going on in libssl and libcrypto. The Linux socket and multiplexing
+implementation in the kernel lies below all of this and knows *nothing* about
+it. So the fact that there's data to be read on the socket doesn't mean there's
+*application* data to be read. And the fact that the select(2) doesn't fire
+doesn't mean there isn't application data waiting to be read in a decryption
+buffer. A lot of application reads and writes may merely be driving the
+underlying protocol and associated state machines in the SSL implementation.
+Hence multiplexing isn't as useful as it might seem, and certainly not as easy
+as in non-OpenSSL applications. A multi-threaded server approach, which uses
+blocking reads and writes, albeit less scalable, might ultimately be more
+useful. But as the unit tests demonstrate, it can certainly be done.
 
 The Machine layer allows peers to establish secure stream connections and pass
 variable sized packets in a full-duplex fashion. In addition, the peers may
