@@ -208,7 +208,7 @@ extern int codex_parameters(const char * dhf);
  * @param cap names the certificate path or NULL if none.
  * @param crt names the certificate to use.
  * @param key names the private key to use.
- * @param mode defines the peer verification mode.
+ * @param flags defines the peer verification mode.
  * @param depth defines the maximum certificate depth (9 works well).
  * @param options defines the SSL protocol options.
  * @param method points to the selected method function.
@@ -380,7 +380,6 @@ static inline int codex_connection_descriptor(codex_connection_t * ssl)
 
 /**
  * Allocate a new OpenSSL client context.
- * @param env names the environmental variable containing the password.
  * @param caf names the certificate file or NULL if none.
  * @param cap names the certificate path or NULL if none.
  * @param crt names the certificate to use.
@@ -403,7 +402,6 @@ extern codex_connection_t * codex_client_connection_new(codex_context_t * ctx, c
 
 /**
  * Allocate a new OpenSSL server context.
- * @param env names the environmental variable containing the password.
  * @param caf names the certificate file or NULL if none.
  * @param cap names the certificate path or NULL if none.
  * @param crt names the certificate to use.

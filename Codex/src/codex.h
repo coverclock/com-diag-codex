@@ -78,14 +78,14 @@
  ******************************************************************************/
 
 /**
- * @COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME defines a short name we expect
- * to find in the certificate.
+ * @def COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME
+ * Defines a short name we expect to find in the certificate.
  */
 #define COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME "subjectAltName"
 
 /**
- * @COM_DIAG_CODEX_CONFNAME_DNS defines a configuration name we expect to
- * find in the certificate.
+ * @def COM_DIAG_CODEX_CONFNAME_DNS
+ * Defines a configuration name we expect to find in the certificate.
  */
 #define COM_DIAG_CODEX_CONFNAME_DNS "DNS"
 
