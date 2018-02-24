@@ -32,7 +32,8 @@ at the time I did this work), OpenSSL 1.0.1 (the "native" version under Raspbian
 "jessie" on the Raspberry Pi 2 and 3), and BoringSSL 1.1.0 (Google's fork of
 OpenSSL 1.1.0).
 
-The Codex renegotiation feature in Codex only works under OpenSSL 1.0.2.
+The Codex renegotiation feature in Codex only works under OpenSSL 1.0.2. (It's
+of questionable value anyway, but was an interesting exercise.)
 
 I have run all the unit tests on an x86_64 Ubuntu "xenial" system, and on both a
 Raspberry Pi 2 (ARM 32-bit) and 3 (ARM 64-bit) running Raspbian "jessie".
@@ -83,12 +84,16 @@ pass "indications" in-band to signal actions to the far end. This is implemented
 using finite state machines to iteratively handle the I/O streams; this also
 simplifies multiplexing the OpenSSL sockets using the select(2) system call.
 
-The Handshake layer allows peers to establish secure stream connections, pass
-variable sized packets in full-duplex fashion, and use indications to coordinate
-the renegotiation of the session so that new encryption keys can be established
-and each end can be re-authenticated. This is especially important for long
-lived connections, since the longer an encryption key is used, the more likely
-it is that it will be cracked.
+The Handshake layer - which only works in OpenSSL 1.0.2 - allows peers to
+establish secure stream connections, pass variable sized packets in full-duplex
+fashion, and use indications to coordinate the of the session so that new
+encryption keys can be established and each end can be re-authenticated. This is
+especially important for long lived connections, since the longer an encryption
+key is used, the more likely it is that it will be cracked. However, TLS 1.3,
+due to arrive when OpenSSL 1.1.1 is fully released, makes this technique
+obsolete by replacing it with a native key change capability. Never the less,
+it was an interesting intellectual exercise, and certainly led me to a better
+understanding of how the OpenSSL implementation of the SSL protocol works.
 
 Empirical evidence suggests that regardless of what the OpenSSL documentation
 may suggest, both unidirectional byte streams of the full-duplex connection must

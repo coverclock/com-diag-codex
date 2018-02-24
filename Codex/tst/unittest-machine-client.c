@@ -359,6 +359,8 @@ int main(int argc, char ** argv)
 				uint8_t * here = (uint8_t *)0;
 				size_t length = 0;
 
+				DIMINUTO_LOG_INFORMATION("%s: NEAREND\n", program);
+
 				do {
 					state = codex_machine_writer(state, (char *)0, ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length);
 				} while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
@@ -373,6 +375,8 @@ int main(int argc, char ** argv)
 				states[WRITER] = CODEX_STATE_START;
 
 			} else {
+
+				DIMINUTO_LOG_INFORMATION("%s: FAREND\n", program);
 
 				states[READER] = CODEX_STATE_RESTART;
 				states[WRITER] = CODEX_STATE_IDLE; /* (No change.) */

@@ -170,6 +170,8 @@ static bool indicate(client_t * clientp)
 		uint8_t * here = (uint8_t *)0;
 		size_t length = 0;
 
+		DIMINUTO_LOG_INFORMATION("%s: NEAREND client=%p\n", program, clientp);
+
 		do {
 			state = codex_machine_writer(state, (char *)0, clientp->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length);
 		} while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
@@ -177,8 +179,6 @@ static bool indicate(client_t * clientp)
 		if (state == CODEX_STATE_FINAL) {
 			return false;
 		}
-
-		/* TODO */
 
 		temp = clientp->sink.buffer;
 		clientp->sink.buffer = clientp->source.buffer;
@@ -189,6 +189,8 @@ static bool indicate(client_t * clientp)
 		clientp->sink.state = CODEX_STATE_START;
 
 	} else {
+
+		DIMINUTO_LOG_INFORMATION("%s: FAREND client=%p\n", program, clientp);
 
 		clientp->source.state = CODEX_STATE_START;
 		clientp->sink.state = CODEX_STATE_IDLE; /* (No change.) */

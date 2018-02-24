@@ -7,9 +7,9 @@
 # "Chip Overclock" is a registered trademark.
 # "Digital Aggregates Corporation" is a registered trademark.
 #
-#	make all TARGET=<target>		# Build libraries, unit tests, executable programs.
+#	make all [ TARGET=<target> ] [ FLAVOR=<flavor> ]	# Build libraries, unit tests, executables.
 #
-#	. out/host/bin/setup			# Sets up PATH and LD_LIBRARY_PATH after build.
+#	. out/host/bin/setup								# Sets up PATH and LD_LIBRARY_PATH for testing.
 #
 
 .PHONY:	default
@@ -24,7 +24,7 @@ SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	4# API changes that may require that applications be modified.
 MINOR				:=	3# Only functionality or features added with no legacy API changes.
-BUILD				:=	1# Only bugs fixed with no API changes or new functionality.
+BUILD				:=	2# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
 # X86_64 Ubuntu build server.
