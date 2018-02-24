@@ -164,15 +164,17 @@ that's a legitimate concern that a real-world application should worry about.
 When testing by running the unit tests between two different computers, the
 certificate authorities for the far end have to be something the near end
 trusts. Otherwise the SSL handshake between the near end and the far end fails.
-The easiest way to do this is to generate the credentials on the near end, and
-propagate them to the far end *before* the far end credentials are generated.
-This is basically what occurs when you install a root certificate using your
-browser. The Makefile has a helper target that uses ssh(1) and scp(1) to copy
-the near end signing certificates to the far end where they will be used to
-sign the far end's credentials when you build the far end. This helper target
-makes some assumptions about the far end directory tree looking something like
-the near end directory tree, at least relative to the home directory on either
-ends. For example:
+The easiest way to do this is to generate the certificate authority credentials
+on the near end, and propagate them to the far end *before* the far end
+client and server credentials are generated. Then those same CA credentials will
+be used to sign the client and server certificates on the far end, making the
+near end happy. This is basically what occurs when you install a root
+certificate using your browser. The Makefile has a helper target that uses
+ssh(1) and scp(1) to copy the near end signing certificates to the far end
+where they will be used to sign the far end's credentials when you build the
+far end. This helper target makes some assumptions about the far end directory
+tree looking something like the near end directory tree, at least relative to
+the home directory on either ends. For example:
 
     make exported FAREND="pi@lead"
 
