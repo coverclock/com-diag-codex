@@ -14,13 +14,15 @@ FAREND=${7:-"localhost:${NEAREND}"}
 
 export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
-unittest-handshake-server -n ${NEAREND} -B ${BUFSIZE} -v  &
+CRTPATH="$(realpath $(dirname $0))/../crt"
+
+unittest-handshake-server -n ${NEAREND} -B ${BUFSIZE} -C ${CRTPATH}/server.pem -D ${CRTPATH}/dh.pem -K ${CRTPATH}/server.pem -R "" -P ${CRTPATH} -v  &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do
 
     sleep 1
-    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-handshake-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} -v > /dev/null &
+    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-handshake-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} -C ${CRTPATH}/client.pem -D ${CRTPATH}/dh.pem -K ${CRTPATH}/client.pem -R ${CRTPATH}/root.pem -P "" -v > /dev/null &
     CLIENT="${CLIENT} $!"
     CLIENTS=$(( ${CLIENTS} - 1 ))
 
