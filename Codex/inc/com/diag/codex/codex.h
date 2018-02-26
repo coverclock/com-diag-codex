@@ -91,7 +91,7 @@ typedef enum CodexSerror {
 	CODEX_SERROR_CONNECT	= 'C', /* SSL_ERROR_WANT_CONNECT */
 	CODEX_SERROR_ACCEPT		= 'A', /* SSL_ERROR_WANT_ACCEPT */
 	CODEX_SERROR_OTHER		= '?',
-	CODEX_SERROR_OKAY		= '-',
+	CODEX_SERROR_UNDEFINED	= '-',
 } codex_serror_t;
 
 /**

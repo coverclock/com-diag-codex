@@ -97,11 +97,11 @@ int main(int argc, char ** argv)
         	break;
 
         case 'P':
-        	pathcap = optarg;
+        	pathcap = (*optarg != '\0') ? optarg : (const char *)0;
         	break;
 
         case 'R':
-        	pathcaf = optarg;
+        	pathcaf = (*optarg != '\0') ? optarg : (const char *)0;
         	break;
 
         case 'V':

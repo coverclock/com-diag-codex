@@ -466,6 +466,9 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 			break;
 		}
 
+		/*
+		 * Not completely convinced this is a good idea.
+		 */
 		rc = SSL_CTX_set_default_verify_paths(ctx);
 		if (rc != 1) {
 			codex_perror("SSL_CTX_load_verify_locations");
@@ -510,8 +513,8 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 			rc = SSL_CTX_set_session_id_context(ctx, context, strlen(context));
 			if (rc != 1) {
 				/*
-				 * Not fatal but will probably break renegotiation handshake from
-				 * the server side.
+				 * Not fatal but will probably break renegotiation handshake
+				 * from the server side.
 				 */
 				DIMINUTO_LOG_ERROR("codex_context_new: SSL_CTX_set_session_id_context\n");
 			}
@@ -844,13 +847,12 @@ int codex_connection_close(codex_connection_t * ssl)
 			} else if (rc == 0) {
 				diminuto_yield();
 			} else {
-				codex_serror_t serror = CODEX_SERROR_OTHER;
+				codex_serror_t serror = CODEX_SERROR_UNDEFINED;
 
 				serror = codex_serror("SSL_shutdown", ssl, rc);
 				switch (serror) {
 				case CODEX_SERROR_NONE:
 				case CODEX_SERROR_ZERO:
-				case CODEX_SERROR_OKAY:
 					rc = 0;
 					break;
 				default:
@@ -904,7 +906,7 @@ bool codex_connection_is_server(const codex_connection_t * ssl)
 ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, size_t size, codex_serror_t * serror)
 {
 	int rc = -1;
-	codex_serror_t error = CODEX_SERROR_OKAY;
+	codex_serror_t error = CODEX_SERROR_UNDEFINED;
 	bool retry = false;
 
 	do {
@@ -919,31 +921,24 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 			case CODEX_SERROR_NONE:
 				retry = true;
 				break;
-			case CODEX_SERROR_SSL:
-				rc = -1;
-				break;
 			case CODEX_SERROR_READ:
 				retry = true;
 				break;
 			case CODEX_SERROR_WRITE:
 				rc = -1;
 				break;
-			case CODEX_SERROR_LOOKUP:
-				rc = -1;
-				break;
 			case CODEX_SERROR_SYSCALL:
-				rc = -1;
+				rc = 0; /* Likely to be a premature close(2) on the socket. */
 				break;
 			case CODEX_SERROR_ZERO:
 				rc = 0;
 				break;
+			case CODEX_SERROR_SSL:
+			case CODEX_SERROR_LOOKUP:
 			case CODEX_SERROR_CONNECT:
-				rc = -1;
-				break;
 			case CODEX_SERROR_ACCEPT:
-				rc = -1;
-				break;
 			case CODEX_SERROR_OTHER:
+			case CODEX_SERROR_UNDEFINED:
 			default:
 				rc = -1;
 				break;
@@ -969,7 +964,7 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, size_t size, codex_serror_t * serror)
 {
 	int rc = -1;
-	codex_serror_t error = CODEX_SERROR_OKAY;
+	codex_serror_t error = CODEX_SERROR_UNDEFINED;
 	bool retry = false;
 
 	do {
@@ -984,31 +979,24 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
 			case CODEX_SERROR_NONE:
 				retry = true;
 				break;
-			case CODEX_SERROR_SSL:
-				rc = -1;
-				break;
 			case CODEX_SERROR_READ:
 				rc = -1;
 				break;
 			case CODEX_SERROR_WRITE:
 				retry = true;
 				break;
-			case CODEX_SERROR_LOOKUP:
-				rc = -1;
-				break;
 			case CODEX_SERROR_SYSCALL:
-				rc = -1;
+				rc = 0; /* Likely to be a premature close(2) on the socket. */
 				break;
 			case CODEX_SERROR_ZERO:
 				rc = 0;
 				break;
+			case CODEX_SERROR_SSL:
+			case CODEX_SERROR_LOOKUP:
 			case CODEX_SERROR_CONNECT:
-				rc = -1;
-				break;
 			case CODEX_SERROR_ACCEPT:
-				rc = -1;
-				break;
 			case CODEX_SERROR_OTHER:
+			case CODEX_SERROR_UNDEFINED:
 			default:
 				rc = -1;
 				break;
@@ -1308,23 +1296,19 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 			break;
 		}
 
-		/*
-		 * Indicate to SSL that this connection is the server side...
-		 */
-
-		SSL_set_accept_state(ssl);
-
-		/*
-		 * ... and the BIO we just received is both the source and the sink.
-		 */
-
 		SSL_set_bio(ssl, tmp, tmp);
 
-#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
+		rc = SSL_accept(ssl);
+		if (rc > 0) {
+			break;
+		}
 
-		SSL_set_renegotiate_mode(ssl, ssl_renegotiate_freely);
+		(void)codex_serror("SSL_accept", ssl, rc);
 
-#endif
+		SSL_free(ssl);
+
+		ssl = (SSL *)0;
+		tmp = (BIO *)0;
 
 	} while (false);
 

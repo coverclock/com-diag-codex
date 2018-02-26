@@ -22,7 +22,17 @@ Codex provides a slightly simpler higher-level C-based application programming
 interface to the Open Secure Socket Layer (OpenSSL) API. Mostly it's my
 excuse to learn how to use the OpenSSL C API for both authentication and
 encryption for the kinds of low-level, usually C or C++, code that I typically
-am asked to develop.
+am asked to develop. Codex is built on top of Diminuto, my C-based systems
+programming library I've been using for years in both personal and commercial
+development projects.
+
+## Disclaimer
+
+This is not my area of expertise, which is why nothing about the Secure Socket
+Layer or cryptography shows up on my resume. But people learn in different ways,
+and my way has always been hands-on learn-by doing. Codex has been a useful
+mechanism through which I would like to think I've learned enough to use OpenSSL
+in the kinds of product development efforts on which I get paid to work.
 
 ## What Works
 
@@ -41,20 +51,6 @@ Raspberry Pi 2 (ARM 32-bit) and 3 (ARM 64-bit) running Raspbian "jessie".
 I have also run the client and server unit tests programs talking between the
 x86_64 and the ARMs, each using Codex built against their "native" versions of
 OpenSSL, as a demonstration of interoperability.
-
-## Configuration
-
-Codex has a number of OpenSSL-related configuration parameters. The defaults
-can be configured at build-time via the Makefile. Many of the defaults can
-be overridden at run-time by settors defined in the private API. Here are the
-current defaults.
-
-* RSA with 3072-bit keys
-* SHA-256 cryptographic hash function
-* TLS v1.2 methods
-* cipher string "TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL"
-* Diffie Hellman with 2048-bit keys
-* Diffie Hellman generator function 2
 
 ## Contact
 
@@ -174,16 +170,6 @@ OpenSSL 1.0.1t
 
 Diminuto 48.3.3 (later releases may work as well)
 
-## Directories
- 
-* bin - utility source files
-* cfg - makefile configuration files
-* etc - certificate configuration files
-* inc - public header files
-* out - build artifacts
-* src - implementation source files and private header files
-* tst - unit test source files and scripts
-
 ## Targets
 
 "Nickel"    
@@ -241,6 +227,30 @@ systems "lead" and "bronze", prior to the build of Codex on those systems.
 
     make exported FAREND="pi@lead"
     make exported FAREND="pi@bronze"
+
+## Configuration
+
+Codex has a number of OpenSSL-related configuration parameters. The defaults
+can be configured at build-time via the Makefile. Many of the defaults can
+be overridden at run-time by settors defined in the private API. Here are the
+current defaults.
+
+* RSA with 3072-bit keys
+* SHA-256 cryptographic hash function
+* TLS v1.2 methods
+* cipher string "TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL"
+* Diffie Hellman with 2048-bit keys
+* Diffie Hellman generator function 2
+
+## Directories
+ 
+* bin - utility source files
+* cfg - makefile configuration files
+* etc - certificate configuration files
+* inc - public header files
+* out - build artifacts
+* src - implementation source files and private header files
+* tst - unit test source files and scripts
 
 ## Building
 
@@ -300,7 +310,7 @@ of the API on which Codex depends.)
     git checkout 48.4.0
     make pristine depend all
 
-Clone and build Codex, a library I wrote, choosing the FLAVOR of OpenSSL
+Clone and build Codex, a library I wrote, choosing the !FLAVOR! of OpenSSL
 library you want to use.
 
     cd
