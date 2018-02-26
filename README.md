@@ -161,7 +161,7 @@ full-duplex communication must take this into account.
 **Important safety tip**: I haven't tried to make the Handshake unit test robust
 against a client and a server simultaneously requesting a renegotiation. But
 that's a legitimate concern that a real-world application should worry about.
-000000000
+
 ## Dependencies
 
 OpenSSL 1.0.2g
@@ -173,6 +173,16 @@ OpenSSL 1.1.1-pre2-dev
 OpenSSL 1.0.1t
 
 Diminuto 48.3.3 (later releases may work as well)
+
+## Directories
+ 
+* bin - utility source files
+* cfg - makefile configuration files
+* etc - certificate configuration files
+* inc - public header files
+* out - build artifacts
+* src - implementation source files and private header files
+* tst - unit test source files and scripts
 
 ## Targets
 
@@ -300,7 +310,8 @@ directory on either ends. For example:
 
 ## Testing
 
-Run the Codex unit tests.
+Run the Codex unit tests without having to install anything in, for example,
+/usr/local.
 
     cd ~/src/com-diag-codex/Codex
     . out/host/bin/setup # Sets PATH, LD_LIBRARY_PATH, etc. in environment.
@@ -324,6 +335,14 @@ client fails to authenticate).
 
     unittest-verification-client
     unittest-verification-server
+    
+There are also unit test scripts that have my network host names baked in,
+but which you can trivially modify so that you can easily run tests between
+computers.
+
+    unittest-server-nickel
+    unittest-client-lead
+    unittest-client-bronze
 
 ## Repositories
 
