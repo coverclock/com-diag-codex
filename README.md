@@ -370,6 +370,19 @@ computers.
     unittest-client-lead
     unittest-client-bronze
 
+## Documentation
+
+Codex, like Diminuto, has embedded Doxygen comments in the header files that
+define the public API. If you have the the Doxygen and TeX packages installed,
+you can generate HTML and man page documentation.
+
+    make documentation
+
+If you the full enormous TeX system installed, plus some standard PDF utilities,
+you can generate PDF manuals.
+
+    make documentation-ancillary
+
 ## Repositories
 
 <https://github.com/coverclock/com-diag-codex>
