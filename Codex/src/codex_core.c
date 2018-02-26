@@ -847,7 +847,7 @@ int codex_connection_close(codex_connection_t * ssl)
 			} else if (rc == 0) {
 				diminuto_yield();
 			} else {
-				codex_serror_t serror = CODEX_SERROR_UNDEFINED;
+				codex_serror_t serror = CODEX_SERROR_IGNORE;
 
 				serror = codex_serror("SSL_shutdown", ssl, rc);
 				switch (serror) {
@@ -906,7 +906,7 @@ bool codex_connection_is_server(const codex_connection_t * ssl)
 ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, size_t size, codex_serror_t * serror)
 {
 	int rc = -1;
-	codex_serror_t error = CODEX_SERROR_UNDEFINED;
+	codex_serror_t error = CODEX_SERROR_IGNORE;
 	bool retry = false;
 
 	do {
@@ -938,7 +938,7 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 			case CODEX_SERROR_CONNECT:
 			case CODEX_SERROR_ACCEPT:
 			case CODEX_SERROR_OTHER:
-			case CODEX_SERROR_UNDEFINED:
+			case CODEX_SERROR_IGNORE:
 			default:
 				rc = -1;
 				break;
@@ -964,7 +964,7 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, size_t size, codex_serror_t * serror)
 {
 	int rc = -1;
-	codex_serror_t error = CODEX_SERROR_UNDEFINED;
+	codex_serror_t error = CODEX_SERROR_IGNORE;
 	bool retry = false;
 
 	do {
@@ -996,7 +996,7 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
 			case CODEX_SERROR_CONNECT:
 			case CODEX_SERROR_ACCEPT:
 			case CODEX_SERROR_OTHER:
-			case CODEX_SERROR_UNDEFINED:
+			case CODEX_SERROR_IGNORE:
 			default:
 				rc = -1;
 				break;

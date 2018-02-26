@@ -90,8 +90,8 @@ typedef enum CodexSerror {
 	CODEX_SERROR_ZERO		= '0', /* SSL_ERROR_ZERO_RETURN */
 	CODEX_SERROR_CONNECT	= 'C', /* SSL_ERROR_WANT_CONNECT */
 	CODEX_SERROR_ACCEPT		= 'A', /* SSL_ERROR_WANT_ACCEPT */
-	CODEX_SERROR_OTHER		= '?',
-	CODEX_SERROR_UNDEFINED	= '-',
+	CODEX_SERROR_OTHER		= '?', /* Undefined SSL error. */
+	CODEX_SERROR_IGNORE		= '-', /* No SSL error occurred. */
 } codex_serror_t;
 
 /**
@@ -132,9 +132,9 @@ typedef enum CodexState {
 	CODEX_STATE_HEADER		= 'H',	/* Continue reading header. */
 	CODEX_STATE_PAYLOAD		= 'P',	/* Read payload. */
 	CODEX_STATE_SKIP		= 'K',	/* Skip payload. */
-	CODEX_STATE_COMPLETE	= 'C',	/* Payload available for application. */
+	CODEX_STATE_COMPLETE	= 'C',	/* Payload (or SSL serror) available. */
 	CODEX_STATE_IDLE		= 'I',	/* Do nothing. */
-	CODEX_STATE_FINAL		= 'F',	/* Far end closed connection. */
+	CODEX_STATE_FINAL		= 'F',	/* Connection closed. */
 } codex_state_t;
 
 /**
