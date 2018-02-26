@@ -378,8 +378,8 @@ you can generate HTML and man page documentation.
 
     make documentation
 
-If you the full enormous TeX system installed, plus some standard PDF utilities,
-you can generate PDF manuals.
+If you have the full enormous TeX system installed, plus some standard PDF
+utilities, you can generate PDF manuals.
 
     make documentation-ancillary
 
