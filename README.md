@@ -207,6 +207,41 @@ Raspbian GNU/Linux 8.0 "jessie"
 Linux 4.4.34  
 gcc 4.9.2  
 
+## Certificates
+
+The build Makefile for Codex builds root, certificate authority (CA), client,
+and server certificates anew. It is these certificates that allow clients to
+authenticate their identities to servers and vice versa. (The Makefile uses
+both root and CA certificates just to exercise certificate chaining.)
+
+When building Codex on different computers and then running the unit tests
+between those computers, the signing certificates (root, and additional CA
+if it is used) for the far end have to be something the near end trusts.
+Otherwise the SSL handshake between the near end and the far end fails.
+
+The easiest way to do this is to generate the root and CA credentials on the
+near end (for example, the server end), and propagate them to the far end
+(the client end) *before* the far end credentials are generated. Then those
+same root and CA credentials will be used to sign the certificates on the far
+end during the build, making the near end happy when they are used in the unit
+tests. This is basically what occurs when you install a root certificate using
+your browser, or generate a public/private key pair so that you can use ssh(1)
+and scp(1) without entering a password - you are installing shared credentials
+trusted by both peers.
+
+The Makefile has a helper target that uses ssh(1) and scp(1) to copy the near
+end signing certificates to the far end where they will be used to sign the far
+end's credentials when you build the far end. This helper target makes some
+assumptions about the far end directory tree looking something like the near end
+directory tree, at least relative to the home directory on either ends.
+
+For example, I exported root and CA credentials from my x86_64 Ubuntu system
+"nickel", that were generated during the build of that Codex, to my ARM Raspbian
+systems "lead" and "bronze", prior to the build of Codex on those systems.
+
+    make exported FAREND="pi@lead"
+    make exported FAREND="pi@bronze"
+
 ## Building
 
 If you want to use OpenSSL 1.0.2 on an X86_64 running Ubuntu "xenial" system,
@@ -288,29 +323,6 @@ system, e.g. OpenSSL-1.0.2 on Ubuntu "xenial", OpenSSL-1.0.1 on Raspbian
 version of OpenSSL it thinks Codex was built with; similarly, you can run
 vintage and it will display what the value of FLAVOR was when Codex was
 built.
-
-**Important safety tip**: When testing by running the unit tests between two
-different computers, the certificate authorities for the far end have to be
-something the near end trusts. Otherwise the SSL handshake between the near end
-and the far end fails. The easiest way to do this is to generate the certificate
-authority credentials on the near end (for example, the server end), and
-propagate them to the far end *before* the far end client and server credentials
-are generated. Then those same CA credentials will be used to sign the client
-and server certificates on the far end, making the near end happy. (This is
-basically what occurs when you install a root certificate using your browser,
-or generate a public/private key pair so that you can use ssh(1) and scp(1)
-without entering a password - you are exporting trusted shared credentials.)
-The Makefile has a helper target that uses ssh(1) and scp(1) to copy the near
-end signing certificates to the far end where they will be used to sign the far
-end's credentials when you build the far end. This helper target makes some
-assumptions about the far end directory tree looking something like the near end
-directory tree, at least relative to the home directory on either ends. For
-example, I exported root and CA credentials from my x86_64 Ubuntu system
-"nickel", that were generated during the build of that Codex, to my ARM Raspbian
-systems "lead" and "bronze", prior to the build of Codex on those systems.
-
-    make exported FAREND="pi@lead"
-    make exported FAREND="pi@bronze"
 
 ## Testing
 
