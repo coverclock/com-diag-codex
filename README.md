@@ -299,14 +299,18 @@ are generated. Then those same CA credentials will be used to sign the client
 and server certificates on the far end, making the near end happy. (This is
 basically what occurs when you install a root certificate using your browser,
 or generate a public/private key pair so that you can use ssh(1) and scp(1)
-without entering a password.) The Makefile has a helper target that uses ssh(1)
-and scp(1) to copy the near end signing certificates to the far end where they
-will be used to sign the far end's credentials when you build the far end. This
-helper target makes some assumptions about the far end directory tree looking
-something like the near end directory tree, at least relative to the home
-directory on either ends. For example:
+without entering a password - you are exporting trusted shared credentials.)
+The Makefile has a helper target that uses ssh(1) and scp(1) to copy the near
+end signing certificates to the far end where they will be used to sign the far
+end's credentials when you build the far end. This helper target makes some
+assumptions about the far end directory tree looking something like the near end
+directory tree, at least relative to the home directory on either ends. For
+example, I exported root and CA credentials from my x86_64 Ubuntu system
+"nickel", that were generated during the build of that Codex, to my ARM Raspbian
+systems "lead" and "bronze", prior to the build of Codex on those systems.
 
     make exported FAREND="pi@lead"
+    make exported FAREND="pi@bronze"
 
 ## Testing
 
