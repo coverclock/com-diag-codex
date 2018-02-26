@@ -33,7 +33,7 @@ at the time I did this work), OpenSSL 1.0.1 (the "native" version under Raspbian
 OpenSSL 1.1.0).
 
 The Codex renegotiation feature in Codex only works under OpenSSL 1.0.2. (It's
-of questionable value anyway, but was an interesting exercise.)
+of questionable value anyway, but it was an educational exercise.)
 
 I have run all the unit tests on an x86_64 Ubuntu "xenial" system, and on both a
 Raspberry Pi 2 (ARM 32-bit) and 3 (ARM 64-bit) running Raspbian "jessie".
@@ -100,7 +100,8 @@ underlying protocol and associated state machines in the SSL implementation.
 Hence multiplexing isn't as useful as it might seem, and certainly not as easy
 as in non-OpenSSL applications. A multi-threaded server approach, which uses
 blocking reads and writes, albeit less scalable, might ultimately be more
-useful. But as the unit tests demonstrate, it can certainly be done.
+useful. But as the unit tests demonstrate, multiplexing via select(2) can be
+done.
 
 The Machine layer allows peers to establish secure stream connections and pass
 variable sized packets in a full-duplex fashion. In addition, the peers may
@@ -160,24 +161,7 @@ full-duplex communication must take this into account.
 **Important safety tip**: I haven't tried to make the Handshake unit test robust
 against a client and a server simultaneously requesting a renegotiation. But
 that's a legitimate concern that a real-world application should worry about.
-
-When testing by running the unit tests between two different computers, the
-certificate authorities for the far end have to be something the near end
-trusts. Otherwise the SSL handshake between the near end and the far end fails.
-The easiest way to do this is to generate the certificate authority credentials
-on the near end, and propagate them to the far end *before* the far end
-client and server credentials are generated. Then those same CA credentials will
-be used to sign the client and server certificates on the far end, making the
-near end happy. This is basically what occurs when you install a root
-certificate using your browser. The Makefile has a helper target that uses
-ssh(1) and scp(1) to copy the near end signing certificates to the far end
-where they will be used to sign the far end's credentials when you build the
-far end. This helper target makes some assumptions about the far end directory
-tree looking something like the near end directory tree, at least relative to
-the home directory on either ends. For example:
-
-    make exported FAREND="pi@lead"
-
+000000000
 ## Dependencies
 
 OpenSSL 1.0.2g
@@ -294,6 +278,25 @@ system, e.g. OpenSSL-1.0.2 on Ubuntu "xenial", OpenSSL-1.0.1 on Raspbian
 version of OpenSSL it thinks Codex was built with; similarly, you can run
 vintage and it will display what the value of FLAVOR was when Codex was
 built.
+
+**Important safety tip**: When testing by running the unit tests between two
+different computers, the certificate authorities for the far end have to be
+something the near end trusts. Otherwise the SSL handshake between the near end
+and the far end fails. The easiest way to do this is to generate the certificate
+authority credentials on the near end (for example, the server end), and
+propagate them to the far end *before* the far end client and server credentials
+are generated. Then those same CA credentials will be used to sign the client
+and server certificates on the far end, making the near end happy. (This is
+basically what occurs when you install a root certificate using your browser,
+or generate a public/private key pair so that you can use ssh(1) and scp(1)
+without entering a password.) The Makefile has a helper target that uses ssh(1)
+and scp(1) to copy the near end signing certificates to the far end where they
+will be used to sign the far end's credentials when you build the far end. This
+helper target makes some assumptions about the far end directory tree looking
+something like the near end directory tree, at least relative to the home
+directory on either ends. For example:
+
+    make exported FAREND="pi@lead"
 
 ## Testing
 
