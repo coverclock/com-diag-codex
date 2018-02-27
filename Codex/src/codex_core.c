@@ -32,21 +32,6 @@
 #include "codex.h"
 
 /*******************************************************************************
- * GENERATORS
- ******************************************************************************/
-
-#define CODEX_SET(_NAME_, _TYPE_, _UNDEFINED_) \
-	_TYPE_ codex_set_##_NAME_(_TYPE_ now) \
-	{ \
-		_TYPE_ was = (_TYPE_)_UNDEFINED_; \
-		DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex); \
-			was = codex_##_NAME_; \
-			if (now != (_TYPE_)_UNDEFINED_) { codex_##_NAME_ = now; } \
-		DIMINUTO_CRITICAL_SECTION_END; \
-		return was; \
-	}
-
-/*******************************************************************************
  * GLOBALS
  ******************************************************************************/
 
@@ -56,19 +41,11 @@ DH * codex_dh = (DH *)0;
  * PARAMETERS
  ******************************************************************************/
 
-static codex_method_t codex_method = COM_DIAG_CODEX_METHOD;
+#undef CODEX_SETTOR
+#define CODEX_SETTOR(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
+	static _TYPE_ codex_##_NAME_ = _DEFAULT_;
 
-static const char * codex_client_password_env = COM_DIAG_CODEX_CLIENT_PASSWORD_ENV;
-
-static const char * codex_server_password_env = COM_DIAG_CODEX_SERVER_PASSWORD_ENV;
-
-static const char * codex_cipher_list = COM_DIAG_CODEX_CIPHER_LIST;
-
-static const char * codex_session_id_context = COM_DIAG_CODEX_SESSION_ID_CONTEXT;
-
-static int codex_certificate_depth = COM_DIAG_CODEX_CERTIFICATE_DEPTH;
-
-static int codex_self_signed_certificates = COM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES;
+#include "codex_settors.h"
 
 /*******************************************************************************
  * STATICS
@@ -420,19 +397,19 @@ int codex_parameters(const char * dhf)
  * GETTORS/SETTORS
  ******************************************************************************/
 
-CODEX_SET(method, codex_method_t, 0);
+#undef CODEX_SETTOR
+#define CODEX_SETTOR(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
+	_TYPE_ codex_set_##_NAME_(_TYPE_ now) \
+	{ \
+		_TYPE_ was = (_TYPE_)_UNDEFINED_; \
+		DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex); \
+			was = codex_##_NAME_; \
+			if (now != (_TYPE_)_UNDEFINED_) { codex_##_NAME_ = now; } \
+		DIMINUTO_CRITICAL_SECTION_END; \
+		return was; \
+	}
 
-CODEX_SET(client_password_env, const char *, 0);
-
-CODEX_SET(server_password_env, const char *, 0);
-
-CODEX_SET(cipher_list, const char *, 0);
-
-CODEX_SET(session_id_context, const char *, 0);
-
-CODEX_SET(self_signed_certificates, int, -1);
-
-CODEX_SET(certificate_depth, int, -1);
+#include "codex_settors.h"
 
 /*******************************************************************************
  * CONTEXT
@@ -587,6 +564,7 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 	do {
 
 		if (expected == (const char *)0) {
+			DIMINUTO_LOG_INFORMATION("codex_connection_verify: expected ssl=%p expected=%p\n", ssl, expected);
 			break;
 		}
 

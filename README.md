@@ -268,6 +268,21 @@ for a Codex client context; however, you can change these names in the
 if you roll your own context using the "generic" version of the Codex
 context API, you can name them anything you want at run-time.
 
+## Verification
+
+Besides the usual OpenSSL verification mechanism, Codex requires that either
+the Common Name (```CN```) or the Fully-Qualified Domain Name or FQDN
+(coded as a ```DNS``` value in ```subjectAltName```) match the expected name
+the application provides to the Codex API (or the expected name is null, in
+which case Codex ignores this requirement.) See the example certificate
+configuration files that Codex uses for the unit tests in the ```etc```
+directory; the server unit tests match against the CN in the client certificate,
+and the client unit tests match against the FQDN in the server certificate.
+
+Codex also rejects self-signed certificates, unless this requirement is
+explicitly disabled at build time in the ```Makefile``` or at run-time through
+a settor in the private API.
+
 ## Configuration
 
 Codex has a number of OpenSSL-related configuration parameters. The
@@ -403,10 +418,16 @@ either by the client (the server fails to authenticate) or the server
 
     unittest-verification-client
     unittest-verification-server
-    
-There are also unit test scripts that have my network host names baked
-in, but which you can trivially modify so that you can easily run tests
-between computers.
+    unittest-verification-bogus
+
+These unit tests disable verification and therefore pass.
+
+    unittest-noverification-client
+    unittest-noverification-server
+    unittest-noverification-bogus
+
+These unit test scripts that have my network host names baked in, but you
+can trivially modify them so that you can easily run tests between computers.
 
     unittest-server-nickel
     unittest-client-lead

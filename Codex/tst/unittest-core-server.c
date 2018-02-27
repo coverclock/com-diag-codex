@@ -104,7 +104,7 @@ int main(int argc, char ** argv)
         	break;
 
         case 'e':
-            expected = optarg;
+            expected = (*optarg != '\0') ? optarg : (const char *)0;
             break;
 
         case 'n':
@@ -131,7 +131,7 @@ int main(int argc, char ** argv)
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" b=%ld e=\"%s\" n=\"%s\" s=%ld v=%d fdcount=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, octets, expected, nearend, seconds, enforce, count);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" b=%ld e=\"%s\" n=\"%s\" s=%ld v=%d fdcount=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, octets, (expected == (const char *)0) ? "" : expected, nearend, seconds, enforce, count);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);

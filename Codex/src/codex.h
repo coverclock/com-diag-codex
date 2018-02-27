@@ -34,7 +34,7 @@
 
 /*
  * This is mostly done to keep the IDE (Eclipse in my case) happy because
- * nominally these preprocessor symbols are defined by the makefile at build-
+ * nominally these preprocessor symbols are defined by the Makefile at build-
  * time.
  */
 
@@ -90,10 +90,6 @@
 #define COM_DIAG_CODEX_CONFNAME_DNS "DNS"
 
 /*******************************************************************************
- * TYPES
- ******************************************************************************/
-
-/*******************************************************************************
  * GLOBALS
  ******************************************************************************/
 
@@ -134,61 +130,11 @@ static inline void codex_cerror(void)
  * GETTORS/SETTORS
  ******************************************************************************/
 
-/**
- * Get the existing method and optionally set a new one used for subsequent
- * calls to codex_context_new().
- * @param now if not NULL is the new value.
- * @return the prior or current value.
- */
-extern codex_method_t codex_set_method(codex_method_t now);
+#undef CODEX_SETTOR
+#define CODEX_SETTOR(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
+	extern _TYPE_ codex_set_##_NAME_(_TYPE_ now);
 
-/**
- * Get the existing client password environmental variable name and optionally
- * set a new one used for subsequent calls to codex_context_new().
- * @param now if not NULL is the new value.
- * @return the prior or current value.
- */
-extern const char * codex_set_client_password_env(const char * now);
-
-/**
- * Get the existing server password environmental variable name and optionally
- * set a new one used for subsequent calls to codex_context_new().
- * @param now if not NULL is the new value.
- * @return the prior or current value.
- */
-extern const char * codex_set_server_password_env(const char * now);
-
-/**
- * Get the existing cipher list and optionally set a new one used for subsequent
- * calls to codex_context_new().
- * @param now if not NULL is the new value.
- * @return the prior or current value.
- */
-extern const char * codex_set_cipher_list(const char * now);
-
-/**
- * Get the existing session identifier context and optionally set a new one used
- * for subsequent calls to codex_context_new().
- * @param now if not NULL is the new value.
- * @return the prior or current value.
- */
-extern const char * codex_set_session_id_context(const char * now);
-
-/**
- * Get the existing maximum certificate depth and optionally set a new one used
- * for subsequent calls to codex_context_new().
- * @param now if not -1 is the new value.
- * @return the prior or current value.
- */
-extern int codex_set_certificate_depth(int now);
-
-/**
- * Get the existing self-signed certificate setting and optionally set a new
- * one used for subsequent calls to codex_verification_callback().
- * @param now if not -1 is the new boolean value.
- * @return the prior or current value.
- */
-extern int codex_set_self_signed_certificates(int now);
+#include "codex_settors.h"
 
 /*******************************************************************************
  * CALLBACKS

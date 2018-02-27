@@ -1,3 +1,8 @@
+# Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+# Licensed under the terms in LICENSE.txt
+# Chip Overclock (mailto:coverclock@diag.com)
+# https://github.com/coverclock/com-diag-codex
+
 [ req ]
 prompt                 = no
 output_password        = cl13nt

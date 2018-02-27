@@ -23,7 +23,7 @@ PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	6# API changes that may require that applications be modified.
-MINOR				:=	0# Only functionality or features added with no legacy API changes.
+MINOR				:=	1# Only functionality or features added with no legacy API changes.
 BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
@@ -249,85 +249,91 @@ clobber:	pristine
 $(SSL_PWD)/%.pwd:	$(ETC_DIR)/%.cnf
 	D=`dirname $@`; mkdir -p $$D
 	grep output_password $< | sed -e 's/^.*=[ \t]*//' -e 's/#.*$$//' > $@
+	chmod 600 $@
 
 ##### Text Dumps
 
 $(SSL_TXT)/%.txt:	$(SSL_CRT)/%.pem
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) x509 -text -noout -in $< > $@
+	chmod 600 $@
 
 ##### Root
 
 $(SSL_CRT)/rootreq.pem:	$(ETC_DIR)/root.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/root.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/rootkey.pem -out $@
-	ls --full-time $(SSL_CRT)
+	chmod 600 $@
 
 $(SSL_CRT)/rootkey.pem:	$(SSL_CRT)/rootreq.pem
+	chmod 600 $@
 
 $(SSL_CRT)/rootcert.pem:	$(SSL_CRT)/rootreq.pem $(ETC_DIR)/root.cnf $(SSL_CRT)/rootkey.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/root.cnf -extensions v3_ca -signkey $(SSL_CRT)/rootkey.pem -passin file:$(SSL_PWD)/root.pwd -out $@
 	$(C_REHASH) $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
+	chmod 600 $@
 
 $(SSL_CRT)/root.pem:	$(SSL_CRT)/rootkey.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
 	$(C_REHASH) $(SSL_CRT)
-	ls --full-time $(SSL_CRT)
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
 
 ##### Certificate Authority
 
 $(SSL_CRT)/careq.pem:	$(ETC_DIR)/ca.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/ca.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/cakey.pem -out $@
-	ls --full-time $(SSL_CRT)
-	
+	chmod 600 $@
+
 $(SSL_CRT)/cakey.pem:	$(SSL_CRT)/careq.pem
+	chmod 600 $@
 
 $(SSL_CRT)/cacert.pem:	$(SSL_CRT)/careq.pem $(ETC_DIR)/ca.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/ca.cnf -extensions v3_ca -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
-	ls --full-time $(SSL_CRT)
+	chmod 600 $@
 
 $(SSL_CRT)/ca.pem:	$(SSL_CRT)/cacert.pem $(SSL_CRT)/cakey.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
 	$(C_REHASH) $(SSL_CRT)
-	ls --full-time $(SSL_CRT)
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
 
 ##### Server
 
 $(SSL_CRT)/serverreq.pem:	$(ETC_DIR)/server.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/serverkey.pem -out $@
-	ls --full-time $(SSL_CRT)
+	chmod 600 $@
 
 $(SSL_CRT)/serverkey.pem:	$(SSL_CRT)/serverreq.pem
+	chmod 600 $@
 
 $(SSL_CRT)/servercert.pem:	$(SSL_CRT)/serverreq.pem $(ETC_DIR)/server.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/server.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
-	ls --full-time $(SSL_CRT)
+	chmod 600 $@
 
 $(SSL_CRT)/server.pem:	$(SSL_CRT)/servercert.pem $(SSL_CRT)/serverkey.pem $(SSL_CRT)/cacert.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
 	$(C_REHASH) $(SSL_CRT)
-	ls --full-time $(SSL_CRT)
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
 
 ##### Client
 
 $(SSL_CRT)/clientreq.pem:	$(ETC_DIR)/client.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/client.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/clientkey.pem -out $@
-	ls --full-time $(SSL_CRT)
+	chmod 600 $@
 
 $(SSL_CRT)/clientkey.pem:	$(SSL_CRT)/clientreq.pem
 
@@ -335,43 +341,44 @@ $(SSL_CRT)/clientcert.pem:	$(SSL_CRT)/clientreq.pem $(ETC_DIR)/client.cnf $(SSL_
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/client.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
-	ls --full-time $(SSL_CRT)
+	chmod 600 $@
 
 $(SSL_CRT)/client.pem:	$(SSL_CRT)/clientcert.pem $(SSL_CRT)/clientkey.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
 	$(C_REHASH) $(SSL_CRT)
-	ls --full-time $(SSL_CRT)
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
 
 ##### Bogus
 
 $(SSL_CRT)/bogusreq.pem:	$(ETC_DIR)/bogus.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/bogus.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/boguskey.pem -out $@
-	ls --full-time $(SSL_CRT)
+	chmod 600 $@
 
 $(SSL_CRT)/boguskey.pem:	$(SSL_CRT)/bogusreq.pem
+	chmod 600 $@
 
 $(SSL_CRT)/boguscert.pem:	$(SSL_CRT)/bogusreq.pem $(ETC_DIR)/bogus.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/bogusreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/bogus.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
-	ls --full-time $(SSL_CRT)
+	chmod 600 $@
 
 $(SSL_CRT)/bogus.pem:	$(SSL_CRT)/boguscert.pem $(SSL_CRT)/boguskey.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
 	$(C_REHASH) $(SSL_CRT)
-	ls --full-time $(SSL_CRT)
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
 
 ##### Diffie Hellman Parameters
 
 $(SSL_CRT)/dh.pem:
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) dhparam -check -text -$(SSL_GEN) $(SSL_DHK) -out $@
-	ls --full-time $(SSL_CRT)
+	chmod 600 $@
 
 ##### Helpers
 
