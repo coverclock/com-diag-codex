@@ -45,15 +45,13 @@ typedef struct Client {
 static const char * program = "unittest-machine-server";
 static const char * nearend = "49182";
 static const char * expected = "client.prairiethorn.org";
-static bool enforce = true;
-static long seconds = -1; /* Unimplemented. */
-static long octets = -1; /* Unimplemented. */
 static size_t bufsize = 256;
 static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
 static const char * pathcap = (const char *)0;
 static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
 static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
 static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
+static int selfsigned = -1;
 
 static diminuto_mux_t mux = { 0 };
 static diminuto_fd_map_t * map = (diminuto_fd_map_t *)0;
@@ -221,7 +219,7 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:C:D:K:P:R:Vb:e:n:s:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:C:D:K:P:R:Se:n:s?")) >= 0) {
 
         switch (opt) {
 
@@ -249,12 +247,8 @@ int main(int argc, char ** argv)
         	pathcaf = (*optarg != '\0') ? optarg : (const char *)0;
         	break;
 
-        case 'V':
-        	enforce = false;
-        	break;
-
-        case 'b':
-        	octets = strtol(optarg, &endptr, 0);
+        case 'S':
+        	selfsigned = 0;
         	break;
 
         case 'e':
@@ -266,15 +260,11 @@ int main(int argc, char ** argv)
         	break;
 
         case 's':
-        	seconds = strtol(optarg, &endptr, 0);
-        	break;
-
-        case 'v':
-        	enforce = true;
+        	selfsigned = 1;
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -e EXPECTED ] [ -n NEAREND ] [ -s SECONDS ] [ -V | -v ]\n", program);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -e EXPECTED ] [ -n NEAREND ] [ -S | -s ]\n", program);
             return 1;
             break;
 
@@ -285,7 +275,7 @@ int main(int argc, char ** argv)
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" b=%ld e=\"%s\" n=\"%s\" s=%ld v=%d fdcount=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, octets, (expected == (const char *)0) ? "" : expected, nearend, seconds, enforce, count);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" n=\"%s\" s=%d fdcount=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, (expected == (const char *)0) ? "" : expected, nearend, selfsigned, count);
 
 	map = diminuto_fd_map_alloc(count);
 	ASSERT(map != (diminuto_fd_map_t *)0);
@@ -297,6 +287,11 @@ int main(int argc, char ** argv)
 	ASSERT(rc >= 0);
 
 	diminuto_mux_init(&mux);
+
+	if (selfsigned >= 0) {
+	    extern int codex_set_self_signed_certificates(int);
+		codex_set_self_signed_certificates(!!selfsigned);
+	}
 
 	rc = codex_initialize();
 	ASSERT(rc == 0);

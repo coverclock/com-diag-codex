@@ -13,7 +13,7 @@ distinguished_name     = req_distinguished_name
 [ req_distinguished_name ]
 C                      = US
 ST                     = Colorado
-L                      = Denver
+L                      = Boulder
 O                      = Prairie Thorn
 OU                     = CA
 CN                     = ca.prairiethorn.org

@@ -12,9 +12,9 @@
 # gcc 5.4.0    
 # OpenSSL 1.0.2g  1 Mar 2016
 
-NEAREND=${1:-"49222"}
+NEAREND=${1:-"49302"}
 BUFSIZE=${2:-"512"}
 
 export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
-exec unittest-handshake-server -n ${NEAREND} -B ${BUFSIZE} -v
+exec unittest-handshake-server -n ${NEAREND} -B ${BUFSIZE}

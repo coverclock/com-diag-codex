@@ -34,14 +34,13 @@ static const char * farend = "localhost:49162";
 static const char * expected = "server.prairiethorn.org";
 static bool enforce = true;
 static diminuto_ticks_t period = 0;
-static long seconds = -1; /* Unimplemented. */
-static long octets = -1; /* Unimplemented. */
 static size_t bufsize = 256;
 static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
 static const char * pathcap = (const char *)0;
 static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
 static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
 static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
+static int selfsigned = -1;
 
 int main(int argc, char ** argv)
 {
@@ -76,7 +75,7 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:C:D:K:P:R:Vf:b:e:p:s:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:C:D:K:P:R:SVf:e:p:sv?")) >= 0) {
 
         switch (opt) {
 
@@ -104,12 +103,12 @@ int main(int argc, char ** argv)
         	pathcaf = (*optarg != '\0') ? optarg : (const char *)0;
         	break;
 
-        case 'V':
-        	enforce = false;
+        case 'S':
+        	selfsigned = 0;
         	break;
 
-        case 'b':
-        	octets = strtol(optarg, &endptr, 0);
+        case 'V':
+        	enforce = false;
         	break;
 
         case 'e':
@@ -125,7 +124,7 @@ int main(int argc, char ** argv)
         	break;
 
         case 's':
-        	seconds = strtol(optarg, &endptr, 0);
+        	selfsigned = 1;
         	break;
 
         case 'v':
@@ -133,7 +132,7 @@ int main(int argc, char ** argv)
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -e EXPECTED ] [ -b BYTES ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -s SECONDS ] [ -V | -v ]\n", program);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -e EXPECTED ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -S | -s ] [ -V | -v ]\n", program);
             return 1;
             break;
 
@@ -141,7 +140,7 @@ int main(int argc, char ** argv)
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" b=%ld f=\"%s\" e=\"%s\" p=%llu s=%ld v=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, octets, farend, (expected == (const char *)0) ? "" : expected, period, seconds, enforce);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" f=\"%s\" e=\"%s\" p=%llu s=%d v=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, farend, (expected == (const char *)0) ? "" : expected, period, selfsigned, enforce);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);
@@ -160,6 +159,11 @@ int main(int argc, char ** argv)
 	}
 
 	diminuto_mux_init(&mux);
+
+	if (selfsigned >= 0) {
+	    extern int codex_set_self_signed_certificates(int);
+		codex_set_self_signed_certificates(!!selfsigned);
+	}
 
 	rc = codex_initialize();
 	ASSERT(rc == 0);

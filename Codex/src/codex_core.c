@@ -304,15 +304,13 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 
 		switch (error) {
 
+		case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
 		case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
 			if (codex_self_signed_certificates) {
+				DIMINUTO_LOG_NOTICE("codex_verification_callback: ctx=%p codex_self_signed_certificates=%d\n", ctx, codex_self_signed_certificates);
 				ok = 1;
 			}
 			break;
-
-		/*
-		 * Maybe some other X.509 verification errors here in the future?
-		 */
 
 		default:
 			/* Do nothing. */
@@ -789,6 +787,24 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 
 	if (crt != (X509 *)0) {
 		X509_free(crt);
+	}
+
+	/*
+	 * If the error is that the certificate is self-signed, we check the
+	 * (sadly) global option to accept self-signed certificates. If it is
+	 * set, we complain, and change the error code back to OK.
+	 */
+
+	switch (error) {
+		case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
+		case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
+			if (codex_self_signed_certificates) {
+				DIMINUTO_LOG_NOTICE("codex_connection_verify: ssl=%p codex_self_signed_certificates=%d\n", ssl, codex_self_signed_certificates);
+				error = X509_V_OK;
+			}
+			break;
+		default:
+			break;
 	}
 
 	if (error != X509_V_OK) {

@@ -14,13 +14,13 @@ FAREND=${7:-"localhost:${NEAREND}"}
 
 export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
-unittest-machine-server -n ${NEAREND} -B ${BUFSIZE} -v  &
+unittest-machine-server -n ${NEAREND} -B ${BUFSIZE} &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do
 
     sleep 1
-    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-machine-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} -v > /dev/null &
+    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-machine-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
     CLIENT="${CLIENT} $!"
     CLIENTS=$(( ${CLIENTS} - 1 ))
 

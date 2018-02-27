@@ -23,7 +23,7 @@ PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	6# API changes that may require that applications be modified.
-MINOR				:=	1# Only functionality or features added with no legacy API changes.
+MINOR				:=	2# Only functionality or features added with no legacy API changes.
 BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
@@ -210,7 +210,7 @@ TARGETSHARED		:=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
-TARGETCREDENTIALS	:=	$(OUT)/$(TXT_DIR)/root.txt $(OUT)/$(TXT_DIR)/ca.txt $(OUT)/$(TXT_DIR)/client.txt $(OUT)/$(TXT_DIR)/server.txt $(OUT)/$(TXT_DIR)/bogus.txt
+TARGETCREDENTIALS	:=	$(OUT)/$(TXT_DIR)/root.txt $(OUT)/$(TXT_DIR)/ca.txt $(OUT)/$(TXT_DIR)/client.txt $(OUT)/$(TXT_DIR)/server.txt $(OUT)/$(TXT_DIR)/bogus.txt $(OUT)/$(TXT_DIR)/self.txt
 TARGETPARAMETERS	:=	$(OUT)/$(CRT_DIR)/dh.pem
 TARGETPASSWORDS		:=	$(OUT)/$(PWD_DIR)/root.pwd $(OUT)/$(PWD_DIR)/ca.pwd $(OUT)/$(PWD_DIR)/client.pwd $(OUT)/$(PWD_DIR)/server.pwd $(OUT)/$(PWD_DIR)/bogus.pwd
 
@@ -373,6 +373,23 @@ $(SSL_CRT)/bogus.pem:	$(SSL_CRT)/boguscert.pem $(SSL_CRT)/boguskey.pem $(SSL_CRT
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
 	chmod 600 $@
 
+##### Self-signed
+
+$(SSL_CRT)/selfcert.pem:	$(ETC_DIR)/self.cnf
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) req -config $(ETC_DIR)/self.cnf -new -x509 -newkey $(SSL_KEY) -nodes -$(SSL_ALG) -keyout $(SSL_CRT)/selfkey.pem -out $@
+	chmod 600 $@
+
+$(SSL_CRT)/selfkey.pem:	$(SSL_CRT)/selfcert.pem
+	chmod 600 $@
+
+$(SSL_CRT)/self.pem:	$(SSL_CRT)/selfcert.pem $(SSL_CRT)/selfkey.pem
+	D=`dirname $@`; mkdir -p $$D
+	cat $^ > $@
+	$(C_REHASH) $(SSL_CRT)
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
+
 ##### Diffie Hellman Parameters
 
 $(SSL_CRT)/dh.pem:
@@ -392,6 +409,7 @@ credentials-clean:
 	( cd $(SSL_CRT); rm -f servercert.pem serverkey.pem server.pem serverreq.pem )
 	( cd $(SSL_CRT); rm -f clientkey.pem client.pem clientreq.pem )
 	( cd $(SSL_CRT); rm -f boguskey.pem bogus.pem bogusreq.pem )
+	( cd $(SSL_CRT); rm -f selfkey.pem self.pem selfreq.pem )
 	
 .PHONY:	parameters parameters-clean
 
