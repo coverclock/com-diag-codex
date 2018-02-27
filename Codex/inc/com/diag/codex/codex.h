@@ -91,7 +91,7 @@ typedef enum CodexSerror {
 	CODEX_SERROR_CONNECT	= 'C', /* SSL_ERROR_WANT_CONNECT */
 	CODEX_SERROR_ACCEPT		= 'A', /* SSL_ERROR_WANT_ACCEPT */
 	CODEX_SERROR_OTHER		= '?', /* Undefined SSL error. */
-	CODEX_SERROR_IGNORE		= '-', /* No SSL error occurred. */
+	CODEX_SERROR_SUCCESS	= '-', /* No SSL error occurred. */
 } codex_serror_t;
 
 /**
@@ -460,7 +460,10 @@ extern int codex_handshake_renegotiate(codex_connection_t * ssl);
  * parameters for the reader must be independent of those of the writer. If the
  * received header indicates a packet size larger than the buffer, only as much
  * of the packet as will fit in the buffer will be returned; the header will
- * still indicate the original transmitted packet size.
+ * still indicate the original transmitted packet size. If an exceptional
+ * condition occurred, a note will be passed back in the serror variable if it
+ * is supplied; otherwise the connection may be automatically shut down. If no
+ * exceptional condition occurred, serror will be set to CODEX_SERROR_SUCCESS.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
@@ -499,7 +502,11 @@ static inline codex_state_t codex_machine_reader(codex_state_t state, const char
 /**
  * Implement a state machine for writing packet data to an SSL, handling
  * verification and closing automatically. Except for ssl and size, all of the
- * parameters for the reader must be independent of those of the writer.
+ * parameters for the reader must be independent of those of the writer. If an
+ * exceptional condition occurred, a note will be passed back in the serror
+ * variable if it is supplied; otherwise the connection may be automatically
+ * shut down. If no exceptional condition occurred, serror will be set to
+ * CODEX_SERROR_SUCCESS.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.

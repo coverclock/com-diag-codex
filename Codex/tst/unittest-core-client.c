@@ -172,7 +172,7 @@ int main(int argc, char ** argv)
 
 	ssl = codex_client_connection_new(ctx, farend);
 	ASSERT(ssl != (SSL *)0);
-	ADVISE(!codex_connection_is_server(ssl));
+	EXPECT(!codex_connection_is_server(ssl));
 
 	fd = codex_connection_descriptor(ssl);
 	ASSERT(fd >= 0);

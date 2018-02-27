@@ -847,7 +847,7 @@ int codex_connection_close(codex_connection_t * ssl)
 			} else if (rc == 0) {
 				diminuto_yield();
 			} else {
-				codex_serror_t serror = CODEX_SERROR_IGNORE;
+				codex_serror_t serror = CODEX_SERROR_SUCCESS;
 
 				serror = codex_serror("SSL_shutdown", ssl, rc);
 				switch (serror) {
@@ -886,7 +886,11 @@ bool codex_connection_is_server(const codex_connection_t * ssl)
 {
 #if defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1)
 
-	return true;
+	/*
+	 * OpenSSL 1.0.1 doesn't appear to have an API call to determine whether
+	 * this is the server or the client side. We cheat.
+	 */
+	return !!ssl->server;
 
 #else
 
@@ -906,7 +910,7 @@ bool codex_connection_is_server(const codex_connection_t * ssl)
 ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, size_t size, codex_serror_t * serror)
 {
 	int rc = -1;
-	codex_serror_t error = CODEX_SERROR_IGNORE;
+	codex_serror_t error = CODEX_SERROR_SUCCESS;
 	bool retry = false;
 
 	do {
@@ -927,18 +931,10 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 			case CODEX_SERROR_WRITE:
 				rc = -1;
 				break;
-			case CODEX_SERROR_SYSCALL:
-				rc = 0; /* Likely to be a premature close(2) on the socket. */
-				break;
+			case CODEX_SERROR_SYSCALL: /* Likely to be a close(2) without a shutdown(2). */
 			case CODEX_SERROR_ZERO:
 				rc = 0;
 				break;
-			case CODEX_SERROR_SSL:
-			case CODEX_SERROR_LOOKUP:
-			case CODEX_SERROR_CONNECT:
-			case CODEX_SERROR_ACCEPT:
-			case CODEX_SERROR_OTHER:
-			case CODEX_SERROR_IGNORE:
 			default:
 				rc = -1;
 				break;
@@ -964,7 +960,7 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, size_t size, codex_serror_t * serror)
 {
 	int rc = -1;
-	codex_serror_t error = CODEX_SERROR_IGNORE;
+	codex_serror_t error = CODEX_SERROR_SUCCESS;
 	bool retry = false;
 
 	do {
@@ -985,18 +981,10 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
 			case CODEX_SERROR_WRITE:
 				retry = true;
 				break;
-			case CODEX_SERROR_SYSCALL:
-				rc = 0; /* Likely to be a premature close(2) on the socket. */
-				break;
+			case CODEX_SERROR_SYSCALL: /* Likely to be a close(2) without a shutdown(2). */
 			case CODEX_SERROR_ZERO:
 				rc = 0;
 				break;
-			case CODEX_SERROR_SSL:
-			case CODEX_SERROR_LOOKUP:
-			case CODEX_SERROR_CONNECT:
-			case CODEX_SERROR_ACCEPT:
-			case CODEX_SERROR_OTHER:
-			case CODEX_SERROR_IGNORE:
 			default:
 				rc = -1;
 				break;

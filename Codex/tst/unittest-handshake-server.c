@@ -127,7 +127,7 @@ static client_t * create(void)
 
 	client->ssl = codex_server_connection_new(ctx, bio);
 	ASSERT(client->ssl != (codex_connection_t *)0);
-	ADVISE(codex_connection_is_server(client->ssl));
+	EXPECT(codex_connection_is_server(client->ssl));
 
 	client->indication = CODEX_INDICATION_NONE;
 
