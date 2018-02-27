@@ -214,6 +214,15 @@ clients to authenticate their identities to servers and vice versa. (The
 ```Makefile``` uses both root and CA certificates just to exercise certificate
 chaining.)
 
+Here are the certificates that the build process creates for unit testing.
+
+    bogus.pem  - certificate signed by root with incorrect CN(s)
+    ca.pem     - CA certificate to test chaining
+    client.pem - certificate signed by root for client-side unit tests
+    self.pem   - self-signed certificate
+    server.pem - certificate signed by root and CA for server-side unit tests
+    root.pem   - root certificate
+
 When building Codex on different computers and then running the unit tests
 between those computers, the signing certificates (root, and additional CA
 if it is used) for the far end have to be something the near end trusts.
