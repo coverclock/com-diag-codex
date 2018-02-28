@@ -66,7 +66,35 @@ Wheat Ridge CO 80033 USA
 
 ## Remarks
 
-The API for Codex is architected in three separate layers: Core (the
+The application programming interface for Codex is split into a *public* API
+and a *private* API. The public API is defined in the header file
+
+    Codex/inc/com/diag/codex/codex.h
+    
+and is intended for application developers using the library. This header file
+would be installed in, for example, ```/usr/local``` and could be included
+using a statement like
+
+    #include <com/diag/codex/codex.h>
+
+or maybe
+
+    #include "com/diag/codex/codex.h"
+
+depending on what flags you pass to the C compiler.
+
+The private API is defined in the header file
+
+    Codex/src/codex.h
+
+and is intended for use by the Codex implementation itself and by library
+installers and maintainers. It is only visible to translation units compiled
+with access to the Codex source code. It could, for example, be included using
+a statement like
+
+   #include "../src/codex.h"
+
+The public API for Codex is architected in three separate layers: Core (the
 lowest), Machine, and Handshake (the highest). Each higher layer depends
 on the lower layers, and each layer can be used, depending on the
 application, without resorting to using the higher layers. Each layer
@@ -110,7 +138,8 @@ and pass variable sized packets in a full-duplex fashion. In addition,
 the peers may pass "indications" in-band to signal actions to the far
 end. This is implemented using finite state machines to iteratively
 handle the I/O streams; this also simplifies multiplexing the OpenSSL
-sockets using the ```select(2)``` system call.
+sockets using the ```select(2)``` system call. The Machine layer allows
+the SSL byte stream to be used in a datagram-like fashion.
 
 The Handshake layer - which only works in OpenSSL 1.0.2 - allows peers
 to establish secure stream connections, pass variable sized packets
@@ -212,16 +241,15 @@ The build ```Makefile``` for Codex builds root, certificate authority (CA),
 client, and server certificates anew. It is these certificates that allow
 clients to authenticate their identities to servers and vice versa. (The
 ```Makefile``` uses both root and CA certificates just to exercise certificate
-chaining.)
+chaining.) These are the certificates that the build process creates for unit
+testing.
 
-Here are the certificates that the build process creates for unit testing.
-
-    bogus.pem  - certificate signed by root with incorrect CN(s)
-    ca.pem     - CA certificate to test chaining
-    client.pem - certificate signed by root for client-side unit tests
-    self.pem   - self-signed certificate
-    server.pem - certificate signed by root and CA for server-side unit tests
-    root.pem   - root certificate
+* ```bogus.pem``` is a certificate signed by root with incorrect CN(s).
+* ```ca.pem``` is a CA certificate for testing chaining.
+* ```client.pem``` is a certificate signed by root for client-side unit tests.
+* ```self.pem``` is a self-signed certificate.
+* ```server.pem``` is a certificate signed by root and CA for server-side unit tests.
+* ```root.pem``` is a root certificate.
 
 When building Codex on different computers and then running the unit tests
 between those computers, the signing certificates (root, and additional CA
@@ -308,13 +336,13 @@ API. Here are the current defaults.
 
 ## Directories
  
-* bin - utility source files
-* cfg - makefile configuration files
-* etc - certificate configuration files
-* inc - public header files
-* out - build artifacts
-* src - implementation source files and private header files
-* tst - unit test source files and scripts
+* ```bin``` contains utility source files.
+* ```cfg``` contains makefile configuration files.
+* ```etc``` contains certificate configuration files.
+* ```inc``` contains public header files.
+* ```out``` contains build artifacts in a !TARGET! subdirectory.
+* ```src``` contains implementation source files and private header files.
+* ```tst``` contains unit test source files and scripts.
 
 ## Building
 
@@ -483,8 +511,17 @@ O'Reilly, 2005
 
 J. Davies, _Implementing SSL/TLS_, Wiley, 2011
 
+A. Diquet, "Everything You've Always Wanted to Know About Certificate
+Validation with OpenSSL (but Were Afraid to Ask)", iSECpartners, 2012-10-29,
+<https://github.com/iSECPartners/ssl-conservatory/blob/master/openssl/everything-you-wanted-to-know-about-openssl.pdf?raw=true>
+
 V. Geraskin, "OpenSSL and select()", 2014-02-21,
 <http://www.past5.com/tutorials/2014/02/21/openssl-and-select/>
+
+M. Georgiev et. al., "The Most Dangerous Code in the World: Validating SSL
+Certificates in Non-Browser Software", 19nd ACM Conference on Computer and
+Communication Security (*CCS'12), Raleigh NC USA, 2012-10-16..18,
+<https://www.cs.utexas.edu/~shmat/shmat_ccs12.pdf>
 
 D. Gibbons, personal communication, 2018-01-17
 

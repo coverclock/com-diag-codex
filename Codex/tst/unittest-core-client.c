@@ -32,7 +32,6 @@
 static const char * program = "unittest-core-client";
 static const char * farend = "localhost:49162";
 static const char * expected = "server.prairiethorn.org";
-static bool enforce = true;
 static diminuto_ticks_t period = 0;
 static size_t bufsize = 256;
 static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
@@ -107,10 +106,6 @@ int main(int argc, char ** argv)
         	selfsigned = 0;
         	break;
 
-        case 'V':
-        	enforce = false;
-        	break;
-
         case 'e':
             expected = (*optarg != '\0') ? optarg : (const char *)0;
             break;
@@ -127,12 +122,8 @@ int main(int argc, char ** argv)
         	selfsigned = 1;
         	break;
 
-        case 'v':
-        	enforce = true;
-        	break;
-
         case '?':
-        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -e EXPECTED ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -S | -s ] [ -V | -v ]\n", program);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -e EXPECTED ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -S | -s ]\n", program);
             return 1;
             break;
 
@@ -140,7 +131,7 @@ int main(int argc, char ** argv)
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" f=\"%s\" e=\"%s\" p=%llu s=%d v=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, farend, (expected == (const char *)0) ? "" : expected, period, selfsigned, enforce);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" f=\"%s\" e=\"%s\" p=%llu s=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, farend, (expected == (const char *)0) ? "" : expected, period, selfsigned);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);
@@ -186,7 +177,7 @@ int main(int argc, char ** argv)
 	DIMINUTO_LOG_DEBUG("%s: RUN connection=%p fd=%d\n", program, ssl, fd);
 
 	rc = codex_connection_verify(ssl, expected);
-	if (enforce && (rc != CODEX_CONNECTION_VERIFY_FQDN)) {
+	if (rc == CODEX_CONNECTION_VERIFY_FAILED) {
 
 		rc = codex_connection_close(ssl);
 		ASSERT(rc >= 0);

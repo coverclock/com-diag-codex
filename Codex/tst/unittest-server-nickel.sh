@@ -14,7 +14,8 @@
 
 NEAREND=${1:-"49302"}
 BUFSIZE=${2:-"512"}
+EXPECTED="client.prairiethorn.org"
 
 export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
-exec unittest-handshake-server -n ${NEAREND} -B ${BUFSIZE}
+exec unittest-handshake-server -e "${EXPECTED}" -n ${NEAREND} -B ${BUFSIZE}

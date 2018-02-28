@@ -24,4 +24,4 @@ basicConstraints       = CA:FALSE
 nsComment              = "OpenSSL Generated Certificate"
 subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid,issuer
-subjectAltName         = DNS:server.prairiethorn.org
+subjectAltName         = DNS:localhost, DNS:nickel

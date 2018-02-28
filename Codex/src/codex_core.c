@@ -526,14 +526,13 @@ codex_context_t * codex_context_free(codex_context_t * ctx)
 
 /*
  * This was mostly written by reverse engineering X509V3_EXT_print() in
- * crypto/x509v3/v3_prn.c from https://github.com/openssl/openssl.git. I
+ * crypto/x509v3/v3_prn.c from https://github.com/openssl/openssl. I
  * have tried to exercise all the nominal paths, but no guarantees.
  */
 codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, const char * expected)
 {
-	codex_connection_verify_t result = CODEX_CONNECTION_VERIFY_PASSED;
+	codex_connection_verify_t result = CODEX_CONNECTION_VERIFY_FAILED;
 	long error = X509_V_ERR_APPLICATION_VERIFICATION;
-	int found = 0;
 	X509 * crt = (X509 *)0;
 	X509_NAME * subject = (X509_NAME *)0;
 	int count = 0;
@@ -556,21 +555,68 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 	ASN1_OCTET_STRING * extoct = (ASN1_OCTET_STRING *)0;
 	int extlen = 0;
 	const ASN1_ITEM * it = (const ASN1_ITEM *)0;
-	const char * fqdn = "";
-	char cn[256] = { '\0' };
+	char buffer[256] = { '\0' };
+	const char * anycn = "";
+	const char * cn = (const char *)0;
+	const char * fqdn = (const char *)0;
 
 	do {
 
 		if (expected == (const char *)0) {
-			DIMINUTO_LOG_INFORMATION("codex_connection_verify: expected ssl=%p expected=%p\n", ssl, expected);
-			break;
+			DIMINUTO_LOG_INFORMATION("codex_connection_verify: expected ssl=%p crt=%p expected=%p\n", ssl, crt, expected);
 		}
+
+		/*
+		 * First we check for a match against the Common Name (CN). We extract
+		 * the CN even if we expect nothing, as a way of validity checking the
+		 * certificate. If the certificate has no CN, we reject it, even if
+		 * we don't care what the CN is.
+		 */
 
 		crt = SSL_get_peer_certificate(ssl);
 		if (crt == (X509 *)0) {
 			DIMINUTO_LOG_WARNING("codex_connection_verify: crt ssl=%p crt=%p\n", ssl, crt);
 			break;
 		}
+
+		nam = X509_get_subject_name(crt);
+		if (nam == (X509_NAME *)0) {
+			DIMINUTO_LOG_WARNING("codex_connection_verify: nam ssl=%p crt=%p cn=%p\n", ssl, crt, nam);
+			break;
+		}
+
+		buffer[0] = '\0';
+		rc = X509_NAME_get_text_by_NID(nam, NID_commonName, buffer, sizeof(buffer));
+		if (rc <= 0) {
+			DIMINUTO_LOG_WARNING("codex_connection_verify: text ssl=%p crt=%p [cn]=%d\n", ssl, crt, rc);
+			break;
+		}
+		buffer[sizeof(buffer) - 1] = '\0';
+		anycn = buffer;
+
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: nid ssl=%p \"%s\"=\"%s\"\n", ssl, SN_commonName, anycn);
+
+		if (expected == (const char *)0) {
+			/* Do nothing. */
+		} else if (strcasecmp(anycn, expected) != 0) {
+			/* Do nothing. */
+		} else {
+
+			/*
+			 * The CN matches. If that's the only verification that occurs, the
+			 * application must decide if that's sufficient.
+			 */
+
+			cn = anycn;
+			DIMINUTO_LOG_INFORMATION("codex_connection_verify: cn ssl=%p CN=\"%s\"\n", ssl, cn);
+			result = CODEX_CONNECTION_VERIFY_CN;
+
+		}
+
+		/*
+		 * Even if the CN matches, we still walk the certificate looking at the
+		 * Fully Qualified Domain Names (FQDNs).
+		 */
 
 		count = X509_get_ext_count(crt);
 		DIMINUTO_LOG_DEBUG("codex_connection_verify: count ssl=%p crt=%p extensions=%d\n", ssl, crt, count);
@@ -661,156 +707,125 @@ codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, cons
 
 			}
 
-			if (meth->i2v != (X509V3_EXT_I2V)0) {
+			if (meth->i2v == (X509V3_EXT_I2V)0) {
+				CODEX_WTF;
+				continue;
+			}
 
-				vals = meth->i2v(meth, ptr, (STACK_OF(CONF_VALUE) *)0);
-				if (vals == (STACK_OF(CONF_VALUE) *)0) {
+			vals = meth->i2v(meth, ptr, (STACK_OF(CONF_VALUE) *)0);
+			if (vals == (STACK_OF(CONF_VALUE) *)0) {
+				CODEX_WTF;
+				continue;
+			}
+
+			lim = sk_CONF_VALUE_num(vals);
+			DIMINUTO_LOG_DEBUG("codex_connection_verify: num ssl=%p crt=%p stack=%d\n", ssl, crt, lim);
+			for (jj = 0; jj < lim; ++jj) {
+
+				val = sk_CONF_VALUE_value(vals, jj);
+				if (val == (CONF_VALUE *)0) {
 					CODEX_WTF;
 					continue;
 				}
 
-				lim = sk_CONF_VALUE_num(vals);
-				DIMINUTO_LOG_DEBUG("codex_connection_verify: num ssl=%p crt=%p stack=%d\n", ssl, crt, lim);
-				for (jj = 0; jj < lim; ++jj) {
-
-					val = sk_CONF_VALUE_value(vals, jj);
-					if (val == (CONF_VALUE *)0) {
-						CODEX_WTF;
-						continue;
-					}
-
-					if (val->name == (char *)0) {
-						CODEX_WTF;
-						continue;
-					}
-
-					if (val->value == (char *)0) {
-						CODEX_WTF;
-						continue;
-					}
-
-					DIMINUTO_LOG_DEBUG("codex_connection_verify: vector ssl=%p \"%s\"=\"%s\"\n", ssl, val->name, val->value);
-
-					if (strcmp(val->name, COM_DIAG_CODEX_CONFNAME_DNS) != 0) {
-						CODEX_WTF;
-						continue;
-					}
-
-					fqdn = val->value;
-					if (strcmp(fqdn, expected) != 0) {
-						CODEX_WTF;
-						continue;
-					}
-
-					/*
-					 * Fully Qualified Domain Name (FQDN) matches.
-					 */
-
-					DIMINUTO_LOG_INFORMATION("codex_connection_verify: fqdn ssl=%p FQDN=\"%s\"\n", ssl, fqdn);
-					result = CODEX_CONNECTION_VERIFY_FQDN;
-					found = !0;
-					break;
+				if (val->name == (char *)0) {
+					CODEX_WTF;
+					continue;
 				}
 
-				if (found) {
-					break;
+				if (val->value == (char *)0) {
+					CODEX_WTF;
+					continue;
 				}
 
-			} else if (meth->i2s != (X509V3_EXT_I2S)0) {
+				DIMINUTO_LOG_DEBUG("codex_connection_verify: vector ssl=%p \"%s\"=\"%s\"\n", ssl, val->name, val->value);
 
-				value = meth->i2s(meth, ptr);
-				if (value == (char *)0) {
+				if (strcmp(val->name, COM_DIAG_CODEX_CONFNAME_DNS) != 0) {
+					CODEX_WTF;
+					continue;
+				}
+
+				if (expected == (const char *)0) {
+					CODEX_WTF;
+					continue;
+				}
+
+				if (strcmp(val->value, expected) != 0) {
 					CODEX_WTF;
 					continue;
 				}
 
 				/*
-				 * I don't actually know how this one can occur, so I skip it.
-				 * But I'm interested in what it's value might be.
+				 * A FQDN matches. We continue to look at all the other
+				 * FQDNs.
 				 */
 
-				DIMINUTO_LOG_DEBUG("codex_connection_verify: i2s ssl=%p value=\"%s\"\n", ssl, value);
-				continue;
-
-			} else {
-
-				DIMINUTO_LOG_DEBUG("codex_connection_verify: other ssl=%p p=\"%s\"\n", ssl, p);
-				continue;
+				fqdn = val->value;
+				DIMINUTO_LOG_INFORMATION("codex_connection_verify: fqdn ssl=%p FQDN=\"%s\"\n", ssl, fqdn);
+				result = CODEX_CONNECTION_VERIFY_FQDN;
 
 			}
+
 		}
-
-		if (found) {
-			break;
-		}
-
-		nam = X509_get_subject_name(crt);
-		if (nam == (X509_NAME *)0) {
-			break;
-		}
-
-		cn[0] = '\0';
-		rc = X509_NAME_get_text_by_NID(nam, NID_commonName, cn, sizeof(cn));
-		if (rc <= 0) {
-			break;
-		}
-		cn[sizeof(cn) - 1] = '\0';
-
-		DIMINUTO_LOG_DEBUG("codex_connection_verify: nid ssl=%p \"%s\"=\"%s\"\n", ssl, SN_commonName, cn);
-
-		if (strcasecmp(cn, expected) != 0) {
-			break;
-		}
-
-		/*
-		 * Common Name (CN) matches.
-		 */
-
-		DIMINUTO_LOG_INFORMATION("codex_connection_verify: cn ssl=%p CN=\"%s\"\n", ssl, cn);
-		result = CODEX_CONNECTION_VERIFY_CN;
-		found = !0;
-		break;
 
 	} while (false);
 
 	/*
-	 * If either we weren't asked to check the peer FQDN or CN, or if we were
-	 * and the result was a match against our expected FQDN or CN, then we
-	 * change the error number to what the API's own verification returned.
-	 * Otherwise we leave the error set to the Application Verification error
-	 * number to indicate we reject it regardless of what the API said.
+	 * If neither the CN nor the FQDN verified, but we didn't expect them
+	 * to, change the result to PASSED. It's up to the application to
+	 * decide if that's acceptable.
 	 */
 
-	if ((expected == (const char *)0) || found) {
-		error = SSL_get_verify_result(ssl);
-	}
-
-	if (crt != (X509 *)0) {
-		X509_free(crt);
+	if (result != CODEX_CONNECTION_VERIFY_FAILED) {
+		/* Do nothing. */
+	} else if (expected != (const char *)0) {
+		/* Do nothing. */
+	} else {
+		result = CODEX_CONNECTION_VERIFY_PASSED;
 	}
 
 	/*
-	 * If the error is that the certificate is self-signed, we check the
-	 * (sadly) global option to accept self-signed certificates. If it is
-	 * set, we complain, and change the error code back to OK.
+	 * Now we see what SSL thought of the certificate. If the error is that the
+	 * certificate is self-signed, we check the (sadly) global option to accept
+	 * self-signed certificates. If it is set, we complain, but go ahead and
+	 * change the error code back to OK. But if SSL was happy with the
+	 * certificate, but we were not, we change the error code to indicate an
+	 * application failure.
 	 */
 
+	error = SSL_get_verify_result(ssl);
 	switch (error) {
+
+		case X509_V_OK:
+			if (result == CODEX_CONNECTION_VERIFY_FAILED) {
+				error = X509_V_ERR_APPLICATION_VERIFICATION;
+			}
+			break;
+
 		case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
 		case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
 			if (codex_self_signed_certificates) {
-				DIMINUTO_LOG_NOTICE("codex_connection_verify: ssl=%p codex_self_signed_certificates=%d\n", ssl, codex_self_signed_certificates);
+				text = X509_verify_cert_error_string(error);
+				if (text == (const char *)0) { text = ""; }
+				DIMINUTO_LOG_NOTICE("codex_connection_verify: self ssl=%p cn=\"%s\" error=%d=\"%s\"\n", ssl, anycn, error, text);
 				error = X509_V_OK;
 			}
 			break;
+
 		default:
 			break;
+
 	}
 
 	if (error != X509_V_OK) {
 		text = X509_verify_cert_error_string(error);
+		if (text == (const char *)0) { text = ""; }
+		DIMINUTO_LOG_WARNING("codex_connection_verify: x509 ssl=%p cn=\"%s\" error=%d=\"%s\"\n", ssl, anycn, error, text);
 		result = CODEX_CONNECTION_VERIFY_FAILED;
-		DIMINUTO_LOG_WARNING("codex_connection_verify: failed ssl=%p expected=%p crt=%p fqdn=\"%s\" cn=\"%s\" error=%d=\"%s\" verification=%d\n", ssl, expected, crt, fqdn, cn, error, (text != (const char *)0) ? text : "", result);
+	}
+
+	if (crt != (X509 *)0) {
+		X509_free(crt);
 	}
 
 	return result;

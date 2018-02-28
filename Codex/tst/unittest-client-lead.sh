@@ -13,7 +13,8 @@
 # OpenSSL 1.0.1t  3 May 2016
 
 CLIENTS=${1:-"3"}
-FAREND=${2:-"nickel:49302"}
+EXPECTED="nickel"
+FAREND=${2:-"${EXPECTED}:49302"}
 PERIOD=${3:-"10"}
 BUFSIZE=${4:-"512"}
 BLOCKSIZE=${5:-"4096"}
@@ -23,7 +24,7 @@ export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
 while [[ ${CLIENTS} -gt 0 ]]; do
 
-    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-handshake-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
+    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-handshake-client -e "${EXPECTED}" -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
     CLIENT="${CLIENT} $!"
     CLIENTS=$(( ${CLIENTS} - 1 ))
 
