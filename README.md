@@ -92,7 +92,7 @@ installers and maintainers. It is only visible to translation units compiled
 with access to the Codex source code. It could, for example, be included using
 a statement like
 
-   #include "../src/codex.h"
+    #include "../src/codex.h"
 
 The public API for Codex is architected in three separate layers: Core (the
 lowest), Machine, and Handshake (the highest). Each higher layer depends
@@ -456,12 +456,14 @@ either by the client (the server fails to authenticate) or the server
     unittest-verification-client
     unittest-verification-server
     unittest-verification-bogus
+    unittest-verification-self
 
 These unit tests disable verification and therefore pass.
 
     unittest-noverification-client
     unittest-noverification-server
     unittest-noverification-bogus
+    unittest-noverification-self
 
 These unit test scripts that have my network host names baked in, but you
 can trivially modify them so that you can easily run tests between computers.

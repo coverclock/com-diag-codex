@@ -114,10 +114,6 @@ extern DH * codex_dh;
  */
 extern void codex_wtf(const char * file, int line, const codex_connection_t * ssl, int rc, int errnumber);
 
-/*******************************************************************************
- * ERRORS
- ******************************************************************************/
-
 /**
  * Clear the error queue as per SSL_get_error(3SSL).
  */
@@ -130,8 +126,8 @@ static inline void codex_cerror(void)
  * GETTORS/SETTORS
  ******************************************************************************/
 
-#undef CODEX_SETTOR
-#define CODEX_SETTOR(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
+#undef COM_DIAG_CODEX_SETTOR
+#define COM_DIAG_CODEX_SETTOR(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
 	extern _TYPE_ codex_set_##_NAME_(_TYPE_ now);
 
 #include "codex_settors.h"
