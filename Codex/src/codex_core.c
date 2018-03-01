@@ -806,12 +806,9 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 				/*
 				 * If the certificate contains FQDNs coded as DNS values, then
 				 * the SSL connection *must* be coming from an IPv4 or IPv6
-				 * address that matches an address resolved from any FQDN via
-				 * DNS. We don't even try to compare the FQDNs unless the SSL
-				 * connection is coming from a valid one. And we check the DNS
-				 * resolution whether or not any FQDN matches. If an FQDN has
-				 * both an IPv4 and an IPv6 address, we are paranoid and insure
-				 * both match. (An IPv4 far end will have both an IPv4 and an
+				 * address that matches an address resolved from a FQDN via
+				 * DNS. If an FQDN has both an IPv4 and an IPv6 address, both
+				 * must match. (An IPv4 far end will have both an IPv4 and an
 				 * IPv6-compatible address, but an IPv6 far end may only have
 				 * an IPv6 address.)
 				 */
@@ -851,36 +848,43 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 				}
 
 				if ((state4 < 0) || (state6 < 0)) {
+					/* Do nothing. */
+				} else if ((state4 == 0) && (state6 == 0)) {
+					/* This is impossible. */
+				} else {
+
 					/*
-					 * Either the IPv4 or the IPv6 (or both) addresses for the
-					 * far end failed to match the IP address that DNS
-					 * resolved for this FQDN. This is not the FQDN you are
-					 * looking for; move along.
+					 * The DNS resolution of this FQDN matches the IP address
+					 * associated with the far end.
 					 */
-					CODEX_WTF;
-					continue;
-				}
 
-				result |= CODEX_VERIFY_DNS;
-				DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p CN=\"%s\" FQDN=\"%s\" %s%smask=0x%x\n", ssl, crt, anycn, anyfqdn, (state4 > 0) ? "match=IPv4 " : "", (state6 > 0) ? "match=IPv6 " : "", result);
+					result |= CODEX_VERIFY_DNS;
+					DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p CN=\"%s\" FQDN=\"%s\" %s%smask=0x%x\n", ssl, crt, anycn, anyfqdn, (state4 > 0) ? "IPv4=match " : "", (state6 > 0) ? "IPv6=match " : "", result);
 
-				if (expected == (const char *)0) {
-					CODEX_WTF;
-					continue;
-				}
-
-				if (strcmp(anyfqdn, expected) != 0) {
-					CODEX_WTF;
-					continue;
 				}
 
 				/*
-				 * The FQDN matches.
+				 * Finally, we check to see if the FQDN matches our expected
+				 * value. Note that the matching FQDN doesn't have to resolve
+				 * via DNS to the IP address of the far end; merely *some* FQDN
+				 * in the certificate has to do so.
 				 */
 
-				fqdn = anyfqdn;
-				result |= CODEX_VERIFY_FQDN;
-				DIMINUTO_LOG_INFORMATION("codex_connection_verify: fqdn ssl=%p crt=%p CN=\"%s\" FQDN=\"%s\" mask=0x%x\n", ssl, crt, anycn, fqdn, result);
+				if (expected == (const char *)0) {
+					/* Do nothing. */
+				} else  if (strcmp(anyfqdn, expected) != 0) {
+					/* Do nothing. */
+				} else {
+
+					/*
+					 * The FQDN matches our expected value.
+					 */
+
+					fqdn = anyfqdn;
+					result |= CODEX_VERIFY_FQDN;
+					DIMINUTO_LOG_INFORMATION("codex_connection_verify: fqdn ssl=%p crt=%p CN=\"%s\" FQDN=\"%s\" mask=0x%x\n", ssl, crt, anycn, fqdn, result);
+
+				}
 
 			}
 

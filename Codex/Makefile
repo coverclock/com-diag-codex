@@ -377,7 +377,7 @@ $(SSL_CRT)/bogus.pem:	$(SSL_CRT)/boguscert.pem $(SSL_CRT)/boguskey.pem $(SSL_CRT
 
 $(SSL_CRT)/selfcert.pem:	$(ETC_DIR)/self.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -config $(ETC_DIR)/self.cnf -new -x509 -newkey $(SSL_KEY) -nodes -$(SSL_ALG) -keyout $(SSL_CRT)/selfkey.pem -out $@
+	$(OPENSSL) req -new -x509 -config $(ETC_DIR)/self.cnf -extensions usr_cert -newkey $(SSL_KEY) -nodes -$(SSL_ALG) -keyout $(SSL_CRT)/selfkey.pem -out $@
 	chmod 600 $@
 
 $(SSL_CRT)/selfkey.pem:	$(SSL_CRT)/selfcert.pem

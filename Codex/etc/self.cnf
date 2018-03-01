@@ -5,7 +5,6 @@
 
 [ req ]
 prompt                 = no
-output_password        = s31f
 default_bits           = 3072
 default_md             = sha256
 distinguished_name     = req_distinguished_name
@@ -24,4 +23,4 @@ basicConstraints       = CA:FALSE
 nsComment              = "OpenSSL Generated Certificate"
 subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid,issuer
-subjectAltName         = DNS:hacker.prairiethorn.org
+subjectAltName         = DNS:localhost

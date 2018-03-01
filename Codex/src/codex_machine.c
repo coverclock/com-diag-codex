@@ -262,7 +262,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		(void)codex_connection_close(ssl);
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: end ssl=%p state='%c' expected=%p bytes=%d header=0x%8.8x buffer=%p size=%u here=%p length=%u error=%c pending=%d\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, error, pending);
+	DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: end ssl=%p state='%c' expected=%p bytes=%d header=0x%8.8x buffer=%p size=%u here=%p length=%u error='%c' pending=%d\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, error, pending);
 
 	return state;
 }
@@ -442,7 +442,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 		(void)codex_connection_close(ssl);
 	}
 
-	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: end ssl=%p state='%c' expected=%p bytes=%d header=0x8.8x buffer=%p size=%d here=%p length=%u error=%c\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, error);
+	DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: end ssl=%p state='%c' expected=%p bytes=%d header=0x%8.8x buffer=%p size=%d here=%p length=%u error='%c'\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, error);
 
 	return state;
 }
