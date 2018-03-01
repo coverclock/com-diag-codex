@@ -100,11 +100,11 @@ typedef enum CodexSerror {
  * what is sufficient verification.
  */
 typedef enum CodexVerify {
-	CODEX_VERIFY_FAILED	= (0     ),	/* Verification failed. */
-	CODEX_VERIFY_PASSED	= (1 << 0),	/* Nothing expected but valid. */
-	CODEX_VERIFY_CN		= (1 << 1),	/* CN matched expected. */
-	CODEX_VERIFY_DNS	= (1 << 2),	/* DNS matched IP far end. */
-	CODEX_VERIFY_FQDN	= (1 << 3),	/* FQDN matched expected. */
+	CODEX_VERIFY_FAILED	= (0     ),	/* 0x0 Verification failed. */
+	CODEX_VERIFY_PASSED	= (1 << 0),	/* 0x1 Nothing expected but valid. */
+	CODEX_VERIFY_CN		= (1 << 1),	/* 0x2 CN matched expected. */
+	CODEX_VERIFY_DNS	= (1 << 2),	/* 0x4 DNS matched IP far end. */
+	CODEX_VERIFY_FQDN	= (1 << 3),	/* 0x8 FQDN matched expected. */
 } codex_verify_t;
 
 /**
@@ -242,6 +242,17 @@ extern codex_context_t * codex_context_free(codex_context_t * ctx);
  * @return a bit mask indicating the result of the verification.
  */
 extern int codex_connection_verify(codex_connection_t * ssl, const char * expected);
+
+/**
+ * This is a helper that checks the verifier bit mask for commonly used
+ * acceptable patterns. Applications are welcome to come up with their
+ * own combinations that they like better.
+ * @param mask is the bit mask returned by the verifier.
+ * @return true if the bit mask fits some common criteria.
+ */
+static inline bool codex_connection_verified(int mask) {
+	return (((mask & CODEX_VERIFY_DNS) != 0) && ((mask & (CODEX_VERIFY_PASSED | CODEX_VERIFY_CN | CODEX_VERIFY_FQDN)) != 0));
+}
 
 /**
  * Return true if the connection has been closed by the far end.

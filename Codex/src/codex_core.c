@@ -610,7 +610,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		} else if (!diminuto_ipc6_is_unspecified(&farend6)) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_ERROR("codex_connection_verify: farend ssl=%p IPv4=%s IPv6=%s\n", ssl, buffer4, buffer6);
+			DIMINUTO_LOG_ERROR("codex_connection_verify: farend ssl=%p IPv4=%s IPv6=%s\n", ssl, buffer4, buffer6); /* Should be impossible. */
 			break;
 		}
 

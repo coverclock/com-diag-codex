@@ -498,7 +498,6 @@ int main(int argc, char ** argv)
 			while ((fd = diminuto_mux_ready_read(&mux)) >= 0) {
 				void ** here = (void **)0;
 				client_t * client = (client_t *)0;
-				codex_state_t prior = CODEX_STATE_FINAL;
 				codex_serror_t serror = CODEX_SERROR_OTHER;
 				int mask = 0;
 
@@ -518,26 +517,7 @@ int main(int argc, char ** argv)
 					}
 					ASSERT(client->source.buffer != (buffer_t *)0);
 
-					prior = client->source.state;
 					client->source.state = codex_machine_reader_generic(client->source.state, expected, client->ssl, &(client->source.buffer->header), &(client->source.buffer->payload), bufsize, &(client->source.here), &(client->source.length), &serror, &mask);
-
-					/*
-					 * The Handshake server is really picky about where its
-					 * clients are coming from. It demands that the DNS IP
-					 * resolution of the DNS FQDN entries in the client
-					 * certificate matches the far end IP address.
-					 */
-
-					if (client->source.state == prior) {
-						/* Do nothing. */
-					} else if (prior != CODEX_STATE_START) {
-						/* Do nothing. */
-					} else if ((mask & CODEX_VERIFY_DNS) == CODEX_VERIFY_DNS) {
-						/* Do nothing. */
-					} else {
-						DIMINUTO_LOG_WARNING("%s: FAILED client=%p mask=0x%x\n", program, client, mask);
-						client->source.state = CODEX_STATE_FINAL;
-					}
 
 					if (client->source.state == CODEX_STATE_FINAL) {
 
@@ -609,7 +589,6 @@ int main(int argc, char ** argv)
 			while ((fd = diminuto_mux_ready_write(&mux)) >= 0) {
 				void ** here = (void **)0;
 				client_t * client = (client_t *)0;
-				codex_state_t prior = CODEX_STATE_FINAL;
 				codex_serror_t serror = CODEX_SERROR_OTHER;
 				int mask = 0;
 
@@ -634,28 +613,7 @@ int main(int argc, char ** argv)
 
 				}
 
-				prior = client->sink.state;
 				client->sink.state = codex_machine_writer_generic(client->sink.state, expected, client->ssl, &(client->sink.buffer->header), &(client->sink.buffer->payload), client->sink.buffer->header, &(client->sink.here), &(client->sink.length), &serror, &mask);
-
-				/*
-				 * The Handshake server is really picky about where its
-				 * clients are coming from. It demands that the DNS IP
-				 * resolution of the DNS FQDN entries in the client
-				 * certificate matches the far end IP address.
-				 */
-
-				if (client->sink.state == prior) {
-					/* Do nothing. */
-				} else if (prior != CODEX_STATE_START) {
-					/* Do nothing. */
-				} else if ((mask & CODEX_VERIFY_DNS) == CODEX_VERIFY_DNS) {
-					/* Do nothing. */
-				} else {
-
-					DIMINUTO_LOG_WARNING("%s: FAILED client=%p mask=0x%x\n", program, client, mask);
-					client->sink.state = CODEX_STATE_FINAL;
-
-				}
 
 				if (client->sink.state == CODEX_STATE_FINAL) {
 

@@ -60,7 +60,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 			if (mask != (int *)0) {
 				*mask = verification;
 			}
-			if (verification == CODEX_VERIFY_FAILED) {
+			if (!codex_connection_verified(verification)) {
 				DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected farend=server ssl=%p\n", ssl);
 				state = CODEX_STATE_FINAL;
 				break;
@@ -153,7 +153,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 			if (mask != (int *)0) {
 				*mask = verification;
 			}
-			if (verification == CODEX_VERIFY_FAILED) {
+			if (!codex_connection_verified(verification)) {
 				DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected farend=client ssl=%p\n", ssl);
 				state = CODEX_STATE_FINAL;
 				break;
@@ -294,7 +294,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 			if (mask != (int *)0) {
 				*mask = verification;
 			}
-			if (verification == CODEX_VERIFY_FAILED) {
+			if (!codex_connection_verified(verification)) {
 				DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected farend=server ssl=%p\n", ssl);
 				state = CODEX_STATE_FINAL;
 				break;
@@ -382,7 +382,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 			if (mask != (int *)0) {
 				*mask = verification;
 			}
-			if (verification == CODEX_VERIFY_FAILED) {
+			if (!codex_connection_verified(verification)) {
 				DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected farend=client ssl=%p\n", ssl);
 				state = CODEX_STATE_FINAL;
 				break;
