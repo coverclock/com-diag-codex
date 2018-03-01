@@ -320,6 +320,13 @@ Codex also rejects self-signed certificates, unless this requirement is
 explicitly disabled at build time in the ```Makefile``` or at run-time through
 a settor in the private API.
 
+Finally, Codex expects a DNS name encoded in the certificate in a standards
+complaint fashion (as a ```subjectAltName```). Multiple DNS names may be
+encoded. At least *one* of these DNS names must resolve to the IP address
+from which the SSL connection is coming. (It is not required that the
+FQDN that matches against the expected name be the same FQDN that resolves via
+DNS to the IP address of the SSL connection.)
+
 ## Configuration
 
 Codex has a number of OpenSSL-related configuration parameters. The
