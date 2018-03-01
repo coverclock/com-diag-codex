@@ -240,7 +240,7 @@ int main(int argc, char ** argv)
 				if (tripwire) {
 
 					rc = codex_connection_verify(ssl, expected);
-					if (rc == CODEX_CONNECTION_VERIFY_FAILED) {
+					if (rc == CODEX_VERIFY_FAILED) {
 						bytes = 0;
 					}
 

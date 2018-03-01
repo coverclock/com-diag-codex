@@ -95,15 +95,17 @@ typedef enum CodexSerror {
 } codex_serror_t;
 
 /**
- * These are the values that the enumeration returned by
- * codex_connection_verify() may assume.
+ * These are the bits that may be set in the value that
+ * codex_connection_verify() may return. It is up to the application to decide
+ * what is sufficient verification.
  */
-typedef enum CodexConnectionVerify {
-	CODEX_CONNECTION_VERIFY_FAILED	= -1,	/* Verification failed. */
-	CODEX_CONNECTION_VERIFY_PASSED	=  0,	/* Verification passed with nothing expected. */
-	CODEX_CONNECTION_VERIFY_CN		=  1,	/* Verification passed matching CN. */
-	CODEX_CONNECTION_VERIFY_FQDN	=  2,	/* Verification passed matching FQDN. */
-} codex_connection_verify_t;
+typedef enum CodexVerify {
+	CODEX_VERIFY_FAILED	= (0     ),	/* Verification failed. */
+	CODEX_VERIFY_PASSED	= (1 << 0),	/* Nothing expected but valid. */
+	CODEX_VERIFY_CN		= (1 << 1),	/* CN matched expected. */
+	CODEX_VERIFY_DNS	= (1 << 2),	/* DNS matched IP far end. */
+	CODEX_VERIFY_FQDN	= (1 << 3),	/* FQDN matched expected. */
+} codex_verify_t;
 
 /**
  * This defines the type of the header word that precedes every payload block
@@ -232,12 +234,14 @@ extern codex_context_t * codex_context_free(codex_context_t * ctx);
 /**
  * Walk the peer X309 certificate and verify that it came from the expected host
  * by comparing the provided string against the FQDN or the CN, and furthermore
- * examine the OpenSSL verification status.
+ * examine the OpenSSL verification status. A bit mask is returned containing
+ * bits defined in CodexConnectionVerify; it is up to the application to
+ * determine what bits are important.
  * @param ssl points to the connection.
  * @param expected names the expected host FQDN or CN or NULL if none.
- * @return an enumeration indicating the result of the verification.
+ * @return a bit mask indicating the result of the verification.
  */
-extern codex_connection_verify_t codex_connection_verify(codex_connection_t * ssl, const char * expected);
+extern int codex_connection_verify(codex_connection_t * ssl, const char * expected);
 
 /**
  * Return true if the connection has been closed by the far end.
@@ -365,7 +369,7 @@ static inline int codex_rendezvous_descriptor(codex_rendezvous_t * bio)
 
 /**
  * Return the file descriptor associated with a connection. This should ONLY
- * be used for multiplexing.
+ * be used for multiplexing or similar socket management, *never* for I/O.
  * @param ssl points to the connection (an SSL).
  * @return a file descriptor >=0, or <0 if in error.
  */
@@ -464,6 +468,10 @@ extern int codex_handshake_renegotiate(codex_connection_t * ssl);
  * condition occurred, a note will be passed back in the serror variable if it
  * is supplied; otherwise the connection may be automatically shut down. If no
  * exceptional condition occurred, serror will be set to CODEX_SERROR_SUCCESS.
+ * Basic verification is performed on the connection in the START state, and if
+ * it fails, the connection is closed and transitions immediately to FINAL.
+ * The verification mask is returned to the caller if so desired, upon transition
+ * from the START state, where it can be further examined.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
@@ -473,9 +481,10 @@ extern int codex_handshake_renegotiate(codex_connection_t * ssl);
  * @param here points to where the current buffer pointer will be stored.
  * @param length points to where the remaining buffer length will be stored.
  * @param serror points to the variable into which an OpenSSL error is returned.
+ * @param mask points to the variable into which the verification mask is returned.
  * @return the new state.
  */
-extern codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, codex_serror_t * serror);
+extern codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, codex_serror_t * serror, int * mask);
 
 /**
  * Implement a state machine for reading packet data from an SSL, handling
@@ -484,6 +493,8 @@ extern codex_state_t codex_machine_reader_generic(codex_state_t state, const cha
  * received header indicates a packet size larger than the buffer, only as much
  * of the packet as will fit in the buffer will be returned; the header will
  * still indicate the original received packet size.
+ * Basic verification is performed on the connection in the START state, and if
+ * it fails, the connection is closed and transitions immediately to FINAL.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
@@ -496,7 +507,7 @@ extern codex_state_t codex_machine_reader_generic(codex_state_t state, const cha
  */
 static inline codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length)
 {
-	return codex_machine_reader_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0);
+	return codex_machine_reader_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0, (int *)0);
 }
 
 /**
@@ -507,6 +518,10 @@ static inline codex_state_t codex_machine_reader(codex_state_t state, const char
  * variable if it is supplied; otherwise the connection may be automatically
  * shut down. If no exceptional condition occurred, serror will be set to
  * CODEX_SERROR_SUCCESS.
+ * Basic verification is performed on the connection in the START state, and if
+ * it fails, the connection is closed and transitions immediately to FINAL.
+ * The verification mask is returned to the caller if so desired, upon transition
+ * from the START state, where it can be further examined.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
@@ -516,14 +531,17 @@ static inline codex_state_t codex_machine_reader(codex_state_t state, const char
  * @param here points to where the current buffer pointer will be stored.
  * @param length points to where the remaining buffer length will be stored.
  * @param serror points to the variable into which an OpenSSL error is returned.
+ * @param mask points to the variable into which the verification mask is returned.
  * @return the new state.
  */
-extern codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length, codex_serror_t * serror);
+extern codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length, codex_serror_t * serror, int * mask);
 
 /**
  * Implement a state machine for writing packet data to an SSL, handling
  * verification and closing automatically. Except for ssl and size, all of the
  * parameters for the reader must be independent of those of the writer.
+ * Basic verification is performed on the connection in the START state, and if
+ * it fails, the connection is closed and transitions immediately to FINAL.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
@@ -536,7 +554,7 @@ extern codex_state_t codex_machine_writer_generic(codex_state_t state, const cha
  */
 static inline codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length)
 {
-	return codex_machine_writer_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0);
+	return codex_machine_writer_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0, (int *)0);
 }
 
 #endif

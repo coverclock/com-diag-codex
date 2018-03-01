@@ -30,9 +30,10 @@
  * MACHINES
  ******************************************************************************/
 
-codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, codex_serror_t * serror)
+codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, codex_serror_t * serror, int * mask)
 {
 	codex_state_t prior = state;
+	int verification = ~0;
 	ssize_t bytes = -1;
 	int pending = -1;
 	codex_serror_t error = CODEX_SERROR_SUCCESS;
@@ -54,12 +55,16 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 
 		if (codex_connection_is_server(ssl)) {
 			/* Do nothing. */
-		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
-			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected role=server ssl=%p\n", ssl);
-			state = CODEX_STATE_FINAL;
-			break;
+			verification = codex_connection_verify(ssl, expected);
+			if (mask != (int *)0) {
+				*mask = verification;
+			}
+			if (verification == CODEX_VERIFY_FAILED) {
+				DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected farend=server ssl=%p\n", ssl);
+				state = CODEX_STATE_FINAL;
+				break;
+			}
 		}
 
 		/* no break */
@@ -143,11 +148,16 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 			/* Do nothing. */
 		} else if (state == CODEX_STATE_FINAL) {
 			/* Do nothing. */
-		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
-			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected role=client ssl=%p\n", ssl);
-			state = CODEX_STATE_FINAL;
+			verification = codex_connection_verify(ssl, expected);
+			if (mask != (int *)0) {
+				*mask = verification;
+			}
+			if (verification == CODEX_VERIFY_FAILED) {
+				DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected farend=client ssl=%p\n", ssl);
+				state = CODEX_STATE_FINAL;
+				break;
+			}
 		}
 
 		break;
@@ -257,9 +267,10 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 	return state;
 }
 
-codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length, codex_serror_t * serror)
+codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length, codex_serror_t * serror, int * mask)
 {
 	codex_state_t prior = state;
+	int verification = ~0;
 	ssize_t bytes = -1;
 	codex_serror_t error = CODEX_SERROR_SUCCESS;
 
@@ -278,12 +289,16 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 
 		if (codex_connection_is_server(ssl)) {
 			/* Do nothing. */
-		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
-			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected role=server ssl=%p\n", ssl);
-			state = CODEX_STATE_FINAL;
-			break;
+			verification = codex_connection_verify(ssl, expected);
+			if (mask != (int *)0) {
+				*mask = verification;
+			}
+			if (verification == CODEX_VERIFY_FAILED) {
+				DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected farend=server ssl=%p\n", ssl);
+				state = CODEX_STATE_FINAL;
+				break;
+			}
 		}
 
 		/* no break */
@@ -362,11 +377,16 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
 			/* Do nothing. */
 		} else if (state == CODEX_STATE_FINAL) {
 			/* Do nothing. */
-		} else if (codex_connection_verify(ssl, expected) != CODEX_CONNECTION_VERIFY_FAILED) {
-			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected role=client ssl=%p\n", ssl);
-			state = CODEX_STATE_FINAL;
+			verification = codex_connection_verify(ssl, expected);
+			if (mask != (int *)0) {
+				*mask = verification;
+			}
+			if (verification == CODEX_VERIFY_FAILED) {
+				DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected farend=client ssl=%p\n", ssl);
+				state = CODEX_STATE_FINAL;
+				break;
+			}
 		}
 
 		break;
