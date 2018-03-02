@@ -474,6 +474,9 @@ These unit tests disable verification and therefore pass.
 
 These unit test scripts that have my network host names baked in, but you
 can trivially modify them so that you can easily run tests between computers.
+You will also have to edit the configuration files for the certificates used
+by these unit tests since the host names are also baked into the certificates
+and Codex requires that they match to authenticate both sides in the connection.
 
     unittest-server-nickel
     unittest-client-lead
