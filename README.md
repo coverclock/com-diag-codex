@@ -210,7 +210,7 @@ OpenSSL 1.1.1-pre2-dev
 *or*
 OpenSSL 1.0.1t
 
-Diminuto 48.3.3 (later releases may work as well)
+Diminuto 48.4.1 (later releases may work as well)
 
 ## Targets
 
@@ -398,7 +398,7 @@ the OpenSSL project, use the commands below.
     ./config
     make
 
-Clone and build Diminuto 48.4.0, a library I wrote that Codex is built
+Clone and build Diminuto 48.4.1, a library I wrote that Codex is built
 upon.  (Later versions of Diminuto may work providing I haven't altered
 the portions of the API on which Codex depends.)
 
@@ -407,7 +407,7 @@ the portions of the API on which Codex depends.)
     cd src
     git clone https://github.com/coverclock/com-diag-diminuto
     cd com-diag-diminuto/Diminuto
-    git checkout 48.4.0
+    git checkout 48.4.1
     make pristine depend all
 
 Clone and build Codex, a library I wrote, choosing the !FLAVOR! of
