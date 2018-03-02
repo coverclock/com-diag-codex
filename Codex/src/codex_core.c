@@ -565,8 +565,8 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 	diminuto_ipv6_t * addresses6 = (diminuto_ipv6_t *)0;
 	diminuto_ipv4_buffer_t buffer4 = { '\0' };
 	diminuto_ipv6_buffer_t buffer6 = { '\0' };
-	int state4 = 0;
-	int state6 = 0;
+	diminuto_ipv4_buffer_t debug4 = { '\0' };
+	diminuto_ipv6_buffer_t debug6 = { '\0' };
 	const char * anycn = "";
 	const char * anyfqdn = "";
 	const char * cn = (const char *)0;
@@ -807,60 +807,64 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 				 * If the certificate contains FQDNs coded as DNS values, then
 				 * the SSL connection *must* be coming from an IPv4 or IPv6
 				 * address that matches an address resolved from a FQDN via
-				 * DNS. If an FQDN has both an IPv4 and an IPv6 address, both
-				 * must match. (An IPv4 far end will have both an IPv4 and an
-				 * IPv6-compatible address, but an IPv6 far end may only have
-				 * an IPv6 address.)
+				 * DNS. If an FQDN has both an IPv4 and an IPv6 address, only
+				 * ONE of them must match. Here's an example of why this is the
+				 * case. Depending on how a host is configured, its IPv4 DNS
+				 * address for "localhost" could be 127.0.0.1 and its IPv6 DNS
+				 * address can legitimately be either ::ffff:127.0.0.1 or ::1.
+				 * The former is an IPv4 address cast in IPv6-compatible form,
+				 * and the latter is the standard IPv6 address for "localhost".
+				 * Either is valid. If the host on "localhost" connects via
+				 * IPv4, its far end IPv4 address will be 127.0.0.1 and its
+				 * IPv6 address will be ::ffff:127.0.0.1. If it connects via
+				 * IPv6, they may be 0.0.0.0 (because there is no IPv4-
+				 * compatible form of its IPv6 address) and ::1.
 				 */
 
 				anyfqdn = val->value;
 
-				state4 = 0;
 				if (!diminuto_ipc4_is_unspecified(&farend4)) {
-					state4 = -1;
 					addresses4 = diminuto_ipc4_addresses(anyfqdn);
 					if (addresses4 != (diminuto_ipv4_t *)0) {
 						for (address4 = addresses4; !diminuto_ipc4_is_unspecified(address4); ++address4) {
-							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns4 ssl=%p crt=%p FQDN=\"%s\" IPv4=%s\n", ssl, crt, anyfqdn, diminuto_ipc4_address2string(*address4, buffer4, sizeof(buffer4)), result);
+							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns4 ssl=%p crt=%p FQDN=\"%s\" IPv4=%s\n", ssl, crt, anyfqdn, diminuto_ipc4_address2string(*address4, debug4, sizeof(debug4)), result);
 							if (diminuto_ipc4_compare(address4, &farend4) == 0) {
-								state4 = 1;
+
+								/*
+								 * The DNS resolution of this FQDN matches the
+								 * IPv4 address associated with the far end.
+								 */
+
+								result |= (CODEX_VERIFY_IPV4 | CODEX_VERIFY_DNS);
+								DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p CN=\"%s\" FQDN=\"%s\" IPv4=%s mask=0x%x\n", ssl, crt, anycn, anyfqdn, buffer4, result);
 								break;
+
 							}
 						}
 						free(addresses4);
 					}
 				}
 
-				state6 = 0;
 				if (!diminuto_ipc6_is_unspecified(&farend6)) {
-					state6 = -1;
 					addresses6 = diminuto_ipc6_addresses(anyfqdn);
 					if (addresses6 != (diminuto_ipv6_t *)0) {
 						for (address6 = addresses6; !diminuto_ipc6_is_unspecified(address6); ++address6) {
-							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns6 ssl=%p crt=%p FQDN=\"%s\" IPv6=%s\n", ssl, crt, anyfqdn, diminuto_ipc6_address2string(*address6, buffer6, sizeof(buffer6)), result);
+							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns6 ssl=%p crt=%p FQDN=\"%s\" IPv6=%s\n", ssl, crt, anyfqdn, diminuto_ipc6_address2string(*address6, debug6, sizeof(debug6)), result);
 							if (diminuto_ipc6_compare(address6, &farend6) == 0) {
-								state6 = 1;
+
+								/*
+								 * The DNS resolution of this FQDN matches the
+								 * IPv6 address associated with the far end.
+								 */
+
+								result |= (CODEX_VERIFY_IPV6 | CODEX_VERIFY_DNS);
+								DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p CN=\"%s\" FQDN=\"%s\" IPv6=%s mask=0x%x\n", ssl, crt, anycn, anyfqdn, buffer6, result);
 								break;
+
 							}
 						}
 						free(addresses6);
 					}
-				}
-
-				if ((state4 < 0) || (state6 < 0)) {
-					/* Do nothing. */
-				} else if ((state4 == 0) && (state6 == 0)) {
-					/* This is impossible. */
-				} else {
-
-					/*
-					 * The DNS resolution of this FQDN matches the IP address
-					 * associated with the far end.
-					 */
-
-					result |= CODEX_VERIFY_DNS;
-					DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p CN=\"%s\" FQDN=\"%s\" %s%smask=0x%x\n", ssl, crt, anycn, anyfqdn, (state4 > 0) ? "IPv4=match " : "", (state6 > 0) ? "IPv6=match " : "", result);
-
 				}
 
 				/*

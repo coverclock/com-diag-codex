@@ -323,9 +323,37 @@ a settor in the private API.
 Finally, Codex expects a DNS name encoded in the certificate in a standards
 complaint fashion (as a ```subjectAltName```). Multiple DNS names may be
 encoded. At least *one* of these DNS names must resolve to the IP address
-from which the SSL connection is coming. (It is not required that the
-FQDN that matches against the expected name be the same FQDN that resolves via
-DNS to the IP address of the SSL connection.)
+from which the SSL connection is coming.
+
+It is not required that the FQDN that matches against the expected name be the
+*same* FQDN that resolves via DNS to the IP address of the SSL connection. The
+reason for this is that, for example, the server may expect
+"*.prairiethorn.org", which could be either the CN or a FQDN entry in the
+client certificate, but the certificate will also have multiple actual
+DNS-resolvable FQDNs like "alpha.prairiethorn.org", "beta.priariethorn.org",
+etc.
+
+It is also not required that if a peer connects with both an IPv4 and an IPv6
+address that they match the *same* FQDN specified in the certificate, or that
+*both* of them match. Here's an example of why this is the case. Depending on
+how ```/etc/host``` is configured, a host's IPv4 DNS address for "localhost"
+could be 127.0.0.1, and its IPv6 DNS address for "localhost" can legitimately
+be either ::ffff:127.0.0.1 or ::1. The former is an IPv4 address cast in
+IPv6-compatible form, and the latter is the standard IPv6 address for
+"localhost". Either is valid. If the host on "localhost" connects via IPv4,
+its far end IPv4 address will be 127.0.0.1 and its IPv6 address will be
+::ffff:127.0.0.1. If it connects via IPv6, its far end IPv4 address may be
+0.0.0.0 (because there is no IPv4-compatible form of its IPv6 address) and its
+far end IPv6 address will be ::1. The ```/etc/host``` entry for "localhost"
+may be 127.0.0.1 (IPv4), or ::1 (IPv6), or both. Furthermore, peers don't always
+have control of whether they connect via IPv4 or IPv6, depending on what
+gateways they may pass through. Finally, it's not unusual for the IPv4 and IPv6
+addresses for a single host to be given different fully-qualified domain names.
+
+(I'm not entirely happy with either of this loosening of verification, but it
+seems like a practical solution. Applications using Codex are free to call the
+```codex_connection_verify()``` function and apply their own criteria to the
+bitmask it returns.)
 
 ## Configuration
 
