@@ -264,7 +264,7 @@ int main(int argc, char ** argv)
 					EXPECT(rc >= 0);
 
 					rc = codex_connection_close(ssl);
-					EXPECT(rc >= 0);
+					ADVISE(rc >= 0);
 
 					ssl = codex_connection_free(ssl);
 					EXPECT(ssl == (codex_connection_t *)0);
