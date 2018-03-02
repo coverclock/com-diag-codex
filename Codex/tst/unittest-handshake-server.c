@@ -115,41 +115,51 @@ static buffer_t * dequeue(client_t * client)
 static client_t * create(void)
 {
 	client_t * client = (client_t *)0;
+	codex_connection_t * ssl = (codex_connection_t *)0;
 	int fd = -1;
 	int rc = -1;
 	void ** here = (void **)0;
 
-	client = (client_t *)malloc(sizeof(client_t));
-	ASSERT(client != (client_t *)0);
-	memset(client, 0, sizeof(client_t));
+	do {
 
-	client->ssl = codex_server_connection_new(ctx, bio);
-	ASSERT(client->ssl != (codex_connection_t *)0);
-	EXPECT(codex_connection_is_server(client->ssl));
+		ssl = codex_server_connection_new(ctx, bio);
+		EXPECT(ssl != (codex_connection_t *)0);
+		if (ssl == (codex_connection_t *)0) {
+			break;
+		}
 
-	client->indication = CODEX_INDICATION_NONE;
+		client = (client_t *)malloc(sizeof(client_t));
+		ASSERT(client != (client_t *)0);
+		memset(client, 0, sizeof(client_t));
 
-	client->source.state = CODEX_STATE_START;
-	client->source.buffer = (buffer_t *)0;
-	/* Source always pulls from shared pool. */
+		client->ssl = ssl;
+		EXPECT(codex_connection_is_server(client->ssl));
 
-	client->sink.state = CODEX_STATE_COMPLETE;
-	client->sink.buffer = (buffer_t *)0;
-	diminuto_list_nullinit(&(client->queue));
+		client->indication = CODEX_INDICATION_NONE;
 
-	fd = codex_connection_descriptor(client->ssl);
-	ASSERT(fd >= 0);
+		client->source.state = CODEX_STATE_START;
+		client->source.buffer = (buffer_t *)0;
+		/* Source always pulls from shared pool. */
 
-	rc = diminuto_mux_register_read(&mux, fd);
-	ASSERT(rc >= 0);
+		client->sink.state = CODEX_STATE_COMPLETE;
+		client->sink.buffer = (buffer_t *)0;
+		diminuto_list_nullinit(&(client->queue));
 
-	rc = diminuto_mux_register_write(&mux, fd);
-	ASSERT(rc >= 0);
+		fd = codex_connection_descriptor(client->ssl);
+		ASSERT(fd >= 0);
 
-	here = diminuto_fd_map_ref(map, fd);
-	ASSERT(here != (void **)0);
-	ASSERT(*here == (void *)0);
-	*here = (void *)client;
+		rc = diminuto_mux_register_read(&mux, fd);
+		ASSERT(rc >= 0);
+
+		rc = diminuto_mux_register_write(&mux, fd);
+		ASSERT(rc >= 0);
+
+		here = diminuto_fd_map_ref(map, fd);
+		ASSERT(here != (void **)0);
+		ASSERT(*here == (void *)0);
+		*here = (void *)client;
+
+	} while (0);
 
 	return client;
 }
@@ -582,7 +592,7 @@ int main(int argc, char ** argv)
 						EXPECT(success);
 					}
 
-				} while (codex_connection_is_ready(client->ssl));
+				} while ((client != (client_t *)0) && codex_connection_is_ready(client->ssl));
 
 			}
 
