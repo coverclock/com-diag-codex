@@ -101,7 +101,7 @@ typedef enum CodexSerror {
  */
 typedef enum CodexVerify {
 	CODEX_VERIFY_FAILED	= (0     ),	/* 0x0 Verification failed. */
-	CODEX_VERIFY_PASSED	= (1 << 0),	/* 0x1 Nothing expected but valid. */
+	CODEX_VERIFY_PASSED	= (1 << 0),	/* 0x1 Nothing expected but otherwise valid. */
 	CODEX_VERIFY_CN		= (1 << 1),	/* 0x2 CN matched expected. */
 	CODEX_VERIFY_IPV4	= (1 << 2),	/* 0x4 DNS matched IPv4 far end. */
 	CODEX_VERIFY_IPV6	= (1 << 3),	/* 0x4 DNS matched IPv6 far end. */
@@ -116,7 +116,8 @@ typedef enum CodexVerify {
  * function instead of a payload block, and the header will be returned to the
  * application with nothing in the payload buffer and the operation will be
  * considered to be COMPLETE. Zero length payload blocks are silently ignored
- * by the reader state machine.
+ * by the reader state machine. This value is passed to the peer in network
+ * byte order.
  */
 typedef int32_t codex_header_t;
 

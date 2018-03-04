@@ -614,7 +614,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			break;
 		}
 
-		DIMINUTO_LOG_INFORMATION("codex_connection_verify: farend ssl=%p IPv4=%s IPv6=%s\n", ssl, buffer4, buffer6);
+		DIMINUTO_LOG_INFORMATION("codex_connection_verify: farend ssl=%p IPv4=%s IPv6=%s mask=0x%x\n", ssl, buffer4, buffer6, result);
 
 		/*
 		 * Next we check for a match against the Common Name (CN). We extract

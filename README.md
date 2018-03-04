@@ -30,7 +30,7 @@ for years in both personal and commercial development projects.
 
 This is not my area of expertise, which is why nothing about the Secure
 Socket Layer or cryptography shows up on my resume. But people learn in
-different ways, and my way has always been hands-on learn-by doing. Codex
+different ways, and my way has always been hands-on learn-by-doing. Codex
 has been a useful mechanism through which I would like to think I've
 learned enough to use OpenSSL in the kinds of product development efforts
 on which I get paid to work.
@@ -43,9 +43,11 @@ version at the time I did this work), OpenSSL 1.0.1 (the "native" version
 under Raspbian "jessie" on the Raspberry Pi 2 and 3), and BoringSSL 1.1.0
 (Google's fork of OpenSSL 1.1.0).
 
-The Codex renegotiation feature in Codex only works under OpenSSL
-1.0.2. (It's of questionable value anyway, but it was an educational
-exercise.)
+The Codex handshake (renegotiation) feature in Codex only works under OpenSSL
+1.0.2. It's of questionable value anyway, but it was an enlightening
+exercise. The Codex handshake unit test however remains very useful since it
+only attempts a renegotiation if either end, client or server, receives a
+hangup signal (```SIGHUP```).
 
 I have run all the unit tests on an x86_64 Ubuntu "xenial" system, and
 on both a Raspberry Pi 2 (ARM 32-bit) and 3 (ARM 64-bit) running Raspbian
@@ -53,7 +55,9 @@ on both a Raspberry Pi 2 (ARM 32-bit) and 3 (ARM 64-bit) running Raspbian
 
 I have also run the client and server unit tests programs talking between
 the x86_64 and the ARMs, each using Codex built against their "native"
-versions of OpenSSL, as a demonstration of interoperability.
+versions of OpenSSL, as a demonstration of interoperability. This use of an
+X86_64 server with ARM clients is a typical IoT configuration on the kinds of
+stuff on which I typically work.
 
 ## Contact
 
@@ -307,7 +311,10 @@ context API, you can name them anything you want at run-time.
 
 ## Verification
 
-Besides the usual OpenSSL verification mechanism, Codex requires that either
+Besides using the usual OpenSSL verification mechanisms, Codex provides a
+verification function that may be invoked by the application.
+
+When called, ```codex_connection_verify()``` requires that either
 the Common Name (```CN```) or the Fully-Qualified Domain Name or FQDN
 (coded as a ```DNS``` value in ```subjectAltName```) match the expected name
 the application provides to the Codex API (or the expected name is null, in
@@ -326,48 +333,51 @@ encoded. At least *one* of these DNS names must resolve to the IP address
 from which the SSL connection is coming.
 
 It is not required that the FQDN that matches against the expected name be the
-*same* FQDN that resolves via DNS to the IP address of the SSL connection. The
-reason for this is that, for example, the server may expect
-"*.prairiethorn.org", which could be either the CN or a FQDN entry in the
-client certificate, but the certificate will also have multiple actual
-DNS-resolvable FQDNs like "alpha.prairiethorn.org", "beta.priariethorn.org",
-etc.
+*same* FQDN that resolves via DNS to an IP address of the SSL connection. Here
+is an example of why. The server may expect "*.prairiethorn.org", which could
+be either the CN or a FQDN entry in the client certificate, but the certificate
+will also have multiple actual DNS-resolvable FQDNs like
+"alpha.prairiethorn.org", "beta.prairiethorn.org", etc.
 
 It is also not required that if a peer connects with both an IPv4 and an IPv6
-address that they match the *same* FQDN specified in the certificate, or that
-*both* of them match. Here's an example of why this is the case. Depending on
-how ```/etc/host``` is configured, a host's IPv4 DNS address for "localhost"
-could be 127.0.0.1, and its IPv6 DNS address for "localhost" can legitimately
-be either ::ffff:127.0.0.1 or ::1. The former is an IPv4 address cast in
-IPv6-compatible form, and the latter is the standard IPv6 address for
-"localhost". Either is valid. If the host on "localhost" connects via IPv4,
-its far end IPv4 address will be 127.0.0.1 and its IPv6 address will be
+address (typically it will; see below) that they match the *same* FQDN
+specified in the certificate, or that *both* of the IPv4 and the IPv6 address
+matches. Here's an example of why. Depending on how ```/etc/host``` is
+configured on a peer, its IPv4 DNS address for "localhost" could be 127.0.0.1,
+and its IPv6 DNS address for "localhost" can legitimately be either
+::ffff:127.0.0.1 or ::1. The former is an IPv4 address cast in IPv6-compatible
+form, and the latter is the standard IPv6 address for "localhost". Either is
+valid. If the peer mamed "localhost" connects via IPv4, its far end IPv4
+address as seen by the near end will be 127.0.0.1 and its IPv6 address will be
 ::ffff:127.0.0.1. If it connects via IPv6, its far end IPv4 address may be
 0.0.0.0 (because there is no IPv4-compatible form of its IPv6 address) and its
 far end IPv6 address will be ::1. The ```/etc/host``` entry for "localhost"
-may be 127.0.0.1 (IPv4), or ::1 (IPv6), or both. Furthermore, peers don't always
-have control of whether they connect via IPv4 or IPv6, depending on what
-gateways they may pass through. Finally, it's not unusual for the IPv4 and IPv6
-addresses for a single host to be given different fully-qualified domain names.
+may be 127.0.0.1 (IPv4), or ::1 (IPv6), or both. Furthermore, for non-local
+hosts, peers don't always have control of whether they connect via IPv4 or
+IPv6, depending on what gateways they may pass through. Finally, it's not
+unusual for the IPv4 and IPv6 addresses for a single host to be given different
+fully-qualified domain names in DNS, for example ```foo.prairiethorn.org```
+for IPv4 and ```foo-6.prairiethorn.org``` for IPv6; this allows hosts trying to
+connect to ```foo``` to be able to select the IP version by using a different
+host name when it is resolved via DNS.
 
-(I'm not entirely happy with either of this loosening of verification, but it
-seems like a practical solution. Applications using Codex are free to call the
-```codex_connection_verify()``` function and apply their own criteria to the
-bitmask it returns.)
+Applications using Codex are free to call the ```codex_connection_verify()```
+function and apply their own criteria to the ORed bitmask of
+```codex_verify_t``` values it returns.
 
 ## Configuration
 
 Codex has a number of OpenSSL-related configuration parameters. The
-defaults can be configured at build-time via the ```Makefile```. Many of the
-defaults can be overridden at run-time by settors defined in the private
-API. Here are the current defaults.
+defaults can be configured at build-time by changing the make variables in
+```cfg/codex.mk```. Some of the defaults can be overridden at run-time by
+settors defined in the private API. Here are the defaults.
 
-* RSA with 3072-bit keys
-* SHA-256 cryptographic hash function
-* TLS v1.2 methods
-* cipher string "TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL"
-* Diffie Hellman with 2048-bit keys
-* Diffie Hellman generator function 2
+* RSA with 3072-bit public/private keys for certificates
+* SHA-256 message digest cryptographic hash function for certificate signing
+* TLS v1.2 protocol
+* symmetric cipher selection string "TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL"
+* Diffie-Hellman with 2048-bit keys for doing key exchange
+* Diffie-Hellman generator function 2 for doing key exchange
 
 ## Directories
  
@@ -438,8 +448,9 @@ the portions of the API on which Codex depends.)
     git checkout 48.4.1
     make pristine depend all
 
-Clone and build Codex, a library I wrote, choosing the !FLAVOR! of
-OpenSSL library you want to use.
+Clone and build Codex, a library I wrote, choosing the flavor of OpenSSL
+library you want to use based on the make configuration files available in
+the directory ```cfg```.
 
     cd
     mkdir -p src
@@ -448,19 +459,25 @@ OpenSSL library you want to use.
     cd com-diag-codex/Codex
     make pristine depend all FLAVOR=!FLAVOR!
 
-Here !FLAVOR! is one of the following choices:
+Here are the FLAVORss I've tested with Codex.
 
-    openssl
-    openssl-1.0.1
-    boringssl-1.1.0
-    openssl-1.1.1
+* ```FLAVOR=openssl``` is the default installed version on the build system,
+e.g. OpenSSL 1.0.2 on Ubuntu "xenial", or OpenSSL 1.0.1 on Raspbian "jessie";
+* ```FLAVOR=openssl-1.0.1``` is OpenSSL 1.0.1 as used on Raspbian "jessie" but
+which I built for testing on Ubuntu "xenial";
+* ```FLAVOR=boringssl-1.1.0``` is Google's fork of OpenSSL;
+* ```FLAVOR=openssl-1.1.1``` is the development version of OpenSSL at the time
+I did this work.
 
-in which FLAVOR=openssl uses the default installed version on the build
-system, e.g. OpenSSL-1.0.2 on Ubuntu "xenial", OpenSSL-1.0.1 on Raspbian
-"jessie". When in doubt, run unittest-sanity and it will display what
-version of OpenSSL it thinks Codex was built with; similarly, you can
-run vintage and it will display what the value of FLAVOR was when Codex
-was built.
+When in doubt, you can ask Codex what it was built with. (Note the space
+between the dot and the path to the setup script. This script is included by
+Bash to define ```PATH```, ```LD_LIBRARY_PATH``` and other necessary variables
+in the environment, so that you can test without installing Codex or Diminuto.)
+
+    cd ~/src/com-diag-codex/Codex
+    . out/host/bin/setup
+    ./out/host/tst/unittest-sanity
+    ./out/host/bin/vintage
 
 ## Testing
 
@@ -468,7 +485,7 @@ Run the Codex unit tests without having to install anything in, for
 example,``` /usr/local```.
 
     cd ~/src/com-diag-codex/Codex
-    . out/host/bin/setup # Sets PATH, LD_LIBRARY_PATH, etc. in environment.
+    . out/host/bin/setup
     unittest-sanity
     unittest-core
     unittest-machine
@@ -504,7 +521,8 @@ These unit test scripts that have my network host names baked in, but you
 can trivially modify them so that you can easily run tests between computers.
 You will also have to edit the configuration files for the certificates used
 by these unit tests since the host names are also baked into the certificates
-and Codex requires that they match to authenticate both sides in the connection.
+and Codex requires that they match to authenticate both sides in the
+connection.
 
     unittest-server-nickel
     unittest-client-lead
@@ -610,9 +628,11 @@ L. Rumcajs, "How to perform a rehandshake (renegotiation) with OpenSSL API",
 Stack Overflow, 2015-12-04,
 <https://stackoverflow.com/questions/28944294/how-to-perform-a-rehandshake-renegotiation-with-openssl-api>
 
-J. Viega, M. Messier, P. Chandra, _Network Security with OpenSSL_, O'Reilly, 2002
+J. Viega, et al., _Network Security with OpenSSL_, O'Reilly,
+2002
 
-J. Viega, M. Messier, _Secure Programming Cookbook_, O'Reilly, 2003
+J. Viega, et al., _Secure Programming Cookbook for C and C++_, O'Reilly,
+2003
 
 ## Acknowledgements
 

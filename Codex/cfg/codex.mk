@@ -8,19 +8,19 @@
 
 # These values control how the certificates used by the unit tests are
 # generated at build-time, and how OpenSSL is configured for use at run-time.
-# Those parameters in the latter category can also be changed at run-time
+# Some parameters in the latter category can also be changed at run-time
 # using settors in the private API.
 
-# SSL_KEY:		encryption algorithm:key size in bits
-# SSL_ALG:		cryptograph hash function
-# SSL_GEN:		Diffie Hellman generator function
-# SSL_MTH:		cryptographic suite
-# SSL_LST:		list of acceptable cryptographic choices
-# SSL_SID:		session identifier
-# SSL_DEP:		maximum certificate depth
-# SSL_SSC:		if true then accept self-signed certificates
-# SSL_DHK:		Diffie Hellman key size
-# SSL_EXP:		expiration period in days
+# SSL_KEY:		asymmetric encryption algorithm:key size in bits for certificate public/private keys
+# SSL_ALG:		message digest cryptographic hash function for certificate signing
+# SSL_GEN:		Diffie-Hellman generator function for key exchange
+# SSL_MTH:		transport layer security standard to which to conform
+# SSL_LST:		list of acceptable symmetric cryptographic ciphers
+# SSL_SID:		session identifier for session renegotiation or caching
+# SSL_DEP:		maximum depth for chained certificates
+# SSL_SSC:		if true then accept self-signed certificates by default
+# SSL_DHK:		Diffie-Hellman key size in bits for key exchange
+# SSL_EXP:		certificate expiration period in days
 # SSL_SPW:		server unit test certificate password environmental variable name
 # SSL_CPW:		client unit test certificate password environmental variable name
 
@@ -29,7 +29,7 @@ SSL_ALG			:=	sha256
 SSL_GEN			:=	2
 #SSL_GEN		:=	5
 SSL_MTH			:=	TLSv1_2_method
-#SSL_MTH		:=	TLS_method#TODO
+#SSL_MTH		:=	TLS_method
 SSL_LST			:=	TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL
 SSL_SID			:=	com-diag-codex
 SSL_DEP			:=	9
