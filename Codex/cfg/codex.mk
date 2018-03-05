@@ -11,31 +11,31 @@
 # Some parameters in the latter category can also be changed at run-time
 # using settors in the private API.
 
-# SSL_KEY:		asymmetric encryption algorithm:key size in bits for certificate public/private keys
 # SSL_ALG:		message digest cryptographic hash function for certificate signing
-# SSL_GEN:		Diffie-Hellman generator function for key exchange
-# SSL_MTH:		transport layer security standard to which to conform
-# SSL_LST:		list of acceptable symmetric cryptographic ciphers
-# SSL_SID:		session identifier for session renegotiation or caching
+# SSL_CPW:		client unit test certificate password environmental variable name
 # SSL_DEP:		maximum depth for chained certificates
-# SSL_SSC:		if true then accept self-signed certificates by default
 # SSL_DHK:		Diffie-Hellman key size in bits for key exchange
 # SSL_EXP:		certificate expiration period in days
+# SSL_GEN:		Diffie-Hellman generator function for key exchange
+# SSL_KEY:		asymmetric encryption algorithm:key size in bits for certificate public/private keys
+# SSL_LST:		list of acceptable symmetric cryptographic ciphers
+# SSL_MTH:		transport layer security standard to which to conform
+# SSL_SID:		session identifier for session renegotiation or caching
 # SSL_SPW:		server unit test certificate password environmental variable name
-# SSL_CPW:		client unit test certificate password environmental variable name
+# SSL_SSC:		if true then accept self-signed certificates by default
 
-SSL_KEY 		:=	rsa:3072
 SSL_ALG			:=	sha256
-SSL_GEN			:=	2
-#SSL_GEN		:=	5
-SSL_MTH			:=	TLSv1_2_method
-#SSL_MTH		:=	TLS_method
-SSL_LST			:=	TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL
-SSL_SID			:=	com-diag-codex
+SSL_CPW			:=	COM_DIAG_CODEX_CLIENT_PASSWORD
 SSL_DEP			:=	9
-SSL_SSC			:=	0
-#SSL_SSC		:=	1
 SSL_DHK			:=	2048
 SSL_EXP			:=	365
+SSL_GEN			:=	2
+#SSL_GEN		:=	5
+SSL_KEY 		:=	rsa:3072
+SSL_LST			:=	TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL
+SSL_MTH			:=	TLSv1_2_method
+#SSL_MTH		:=	TLS_method
+SSL_SID			:=	com-diag-codex
 SSL_SPW			:=	COM_DIAG_CODEX_SERVER_PASSWORD
-SSL_CPW			:=	COM_DIAG_CODEX_CLIENT_PASSWORD
+SSL_SSC			:=	0
+#SSL_SSC		:=	1

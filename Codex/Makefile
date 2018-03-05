@@ -77,6 +77,7 @@ HOME_DIR			:=	$(HOME)/Projects
 ARC_DIR				:=	arc# Archive files for static linking
 BIN_DIR				:=	bin# Utility source files or stripped executable binaries
 CFG_DIR				:=	cfg# Build configuration files
+CRL_DIR				:=	crl# Certificate revocation lists
 CRT_DIR				:=	crt# Certificate files
 DEP_DIR				:=	dep# Generated dependencies and other make files
 DOC_DIR				:=	doc# Documentation
@@ -163,13 +164,13 @@ SSL_PWD				:=	$(OUT)/$(PWD_DIR)
 SSL_SRN				:=	$(OUT)/$(SRN_DIR)
 SSL_TXT				:=	$(OUT)/$(TXT_DIR)
 
-CDEFINES			+=	-DCOM_DIAG_CODEX_METHOD=$(SSL_MTH)
-CDEFINES			+=	-DCOM_DIAG_CODEX_CIPHER_LIST=\"$(SSL_LST)\"
-CDEFINES			+=	-DCOM_DIAG_CODEX_SESSION_ID_CONTEXT=\"$(SSL_SID)\"
 CDEFINES			+=	-DCOM_DIAG_CODEX_CERTIFICATE_DEPTH=$(SSL_DEP)
+CDEFINES			+=	-DCOM_DIAG_CODEX_CIPHER_LIST=\"$(SSL_LST)\"
+CDEFINES			+=	-DCOM_DIAG_CODEX_CLIENT_PASSWORD_ENV=\"$(SSL_CPW)\"
+CDEFINES			+=	-DCOM_DIAG_CODEX_METHOD=$(SSL_MTH)
 CDEFINES			+=	-DCOM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES=$(SSL_SSC)
 CDEFINES			+=	-DCOM_DIAG_CODEX_SERVER_PASSWORD_ENV=\"$(SSL_SPW)\"
-CDEFINES			+=	-DCOM_DIAG_CODEX_CLIENT_PASSWORD_ENV=\"$(SSL_CPW)\"
+CDEFINES			+=	-DCOM_DIAG_CODEX_SESSION_ID_CONTEXT=\"$(SSL_SID)\"
 
 ########## Commands and Option Flags
 
@@ -589,6 +590,7 @@ $(OUT)/$(GEN_DIR)/vintage.c:	Makefile
 	echo '    "Branch=\"$(BRANCH)\"\n"' >> $@
 	echo '    "Contact=\"$(CONTACT)\"\n"' >> $@
 	echo '    "Copyright=\"$(COPYRIGHT)\"\n"' >> $@
+	echo '    "Flavor=\"$(FLAVOR)\"\n"' >> $@
 	echo '    "Homepage=\"$(HOMEPAGE)\"\n"' >> $@
 	echo '    "Repository=\"$(GITURL)\"\n"' >> $@
 	echo '    "Host=\"$(HOST)\"\n"' >> $@
@@ -600,7 +602,6 @@ $(OUT)/$(GEN_DIR)/vintage.c:	Makefile
 	echo '    "Revision=\"" COM_DIAG_$(SYMBOL)_REVISION "\"\n"' >> $@
 	echo '    "Root=\"$(ROOT)\"\n"' >> $@
 	echo '    "Target=\"$(TARGET)\"\n"' >> $@
-	echo '    "Flavor=\"$(FLAVOR)\"\n"' >> $@
 	echo '    "Title=\"$(TITLE)\"\n"' >> $@
 	echo '    "Toolchain=\"$(TOOLCHAIN)\"\n"' >> $@
 	echo '    "User=\"$(USER)\"\n"' >> $@
@@ -657,6 +658,7 @@ $(OUT)/$(GEN_DIR)/vintage.c:	Makefile
 	echo '    "Branch=\\"$(BRANCH)\\"\\n"' >> $@
 	echo '    "Contact=\\"$(CONTACT)\\"\\n"' >> $@
 	echo '    "Copyright=\\"$(COPYRIGHT)\\"\\n"' >> $@
+	echo '    "Flavor=\\"$(FLAVOR)\\"\\n"' >> $@
 	echo '    "Homepage=\\"$(HOMEPAGE)\\"\\n"' >> $@
 	echo '    "Repository=\\"$(GITURL)\\"\\n"' >> $@
 	echo '    "Host=\\"$(HOST)\\"\\n"' >> $@
@@ -668,7 +670,6 @@ $(OUT)/$(GEN_DIR)/vintage.c:	Makefile
 	echo '    "Revision=\\"" COM_DIAG_$(SYMBOL)_REVISION "\\"\\n"' >> $@
 	echo '    "Root=\\"$(ROOT)\\"\\n"' >> $@
 	echo '    "Target=\\"$(TARGET)\\"\\n"' >> $@
-	echo '    "Flavor=\\"$(FLAVOR)\\"\\n"' >> $@
 	echo '    "Title=\\"$(TITLE)\\"\\n"' >> $@
 	echo '    "Toolchain=\\"$(TOOLCHAIN)\\"\\n"' >> $@
 	echo '    "User=\\"$(USER)\\"\\n"' >> $@

@@ -292,6 +292,9 @@ Codex on those systems.
     make exported FAREND="pi@lead"
     make exported FAREND="pi@bronze"
 
+Codex create just enough Public Key Infrastructure (PKI) to run the unit
+tests.
+
 ## Passwords
 
 The certificates built by the ```Makefile``` for the unit tests are password
@@ -492,8 +495,8 @@ Codex or Diminuto.
 
 Diminuto provides a logging framework that is widely used in Codex. If a
 process has a controlling terminal, log messages are displayed on standard
-error; otherwise they are sent to the system log via the standard syslog(3)
-mechanism. The logging API is defined in the
+error; otherwise they are sent to the system log via the standard
+```syslog(3)``` mechanism. The logging API is defined in the
 ```Diminuto/inc/com/diag/diminuto/diminuto_log.h``` header file in the
 Diminuto source code directory.
 
@@ -569,6 +572,15 @@ connection.
     unittest-server-nickel
     unittest-client-lead
     unittest-client-bronze
+
+You can run the ```openssl s_client``` command against the
+```unittest-server-nickel``` server-side unit test and see what Codex is
+actually telling the client.
+
+    openssl s_client -connect localhost:49302 2>&1 < /dev/null
+
+An example of the output of such a command can be found in
+```txt/unittest-server-nickel.txt``.
 
 ## Documentation
 
