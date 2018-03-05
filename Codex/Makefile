@@ -89,7 +89,6 @@ OBC_DIR				:=	obc# C object modules
 OUT_DIR				:=	out# Build artifacts
 PWD_DIR				:=	pwd# Password files
 SRC_DIR				:=	src# Library source files
-SRL_DIR				:=	srl# Serial number files
 SYM_DIR				:=	sym# Unstripped executable binaries
 TGZ_DIR				:=	tgz# Compressed tarballs
 TST_DIR				:=	tst# Unit tests
@@ -159,9 +158,9 @@ include $(DIMINUTOMAKEFILE)
 
 ########## Codex Configuration
 
+SSL_CRL				:=	$(OUT)/$(CRT_DIR)
 SSL_CRT				:=	$(OUT)/$(CRT_DIR)
 SSL_PWD				:=	$(OUT)/$(PWD_DIR)
-SSL_SRL				:=	$(OUT)/$(SRL_DIR)
 SSL_TXT				:=	$(OUT)/$(TXT_DIR)
 
 CDEFINES			+=	-DCOM_DIAG_CODEX_CERTIFICATE_DEPTH=$(SSL_DEP)
@@ -213,15 +212,14 @@ TARGETSHARED		:=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
-TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt $(SSL_TXT)/ca.txt $(SSL_TXT)/client.txt $(SSL_TXT)/server.txt $(SSL_TXT)/bogus.txt $(SSL_TXT)/self.txt
-TARGETSERIALNUMBERS	:=	$(SSL_SRL)/root.srl $(SSL_SRL)/ca.srl $(SSL_SRL)/client.srl $(SSL_SRL)/server.srl $(SSL_SRL)/bogus.srl $(SSL_SRL)/self.srl
-TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd $(SSL_PWD)/ca.pwd $(SSL_PWD)/client.pwd $(SSL_PWD)/server.pwd $(SSL_PWD)/bogus.pwd
+TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt $(SSL_TXT)/ca.txt $(SSL_TXT)/client.txt $(SSL_TXT)/server.txt $(SSL_TXT)/bogus.txt $(SSL_TXT)/self.txt $(SSL_TXT)/revoked.txt
+TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd $(SSL_PWD)/ca.pwd $(SSL_PWD)/client.pwd $(SSL_PWD)/server.pwd $(SSL_PWD)/bogus.pwd $(SSL_PWD)/revoked.pwd
 TARGETPARAMETERS	:=	$(SSL_CRT)/dh.pem
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
 TARGETPROGRAMS		:=	$(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS)
 
-TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPARAMETERS) $(TARGETPASSWORDS) $(TARGETSERIALNUMBERS)
+TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPARAMETERS) $(TARGETPASSWORDS)
 
 ########## Main Entry Points
 
@@ -260,13 +258,6 @@ $(SSL_PWD)/%.pwd:	$(ETC_DIR)/%.cnf
 $(SSL_TXT)/%.txt:	$(SSL_CRT)/%.pem
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) x509 -text -noout -in $< > $@
-	chmod 600 $@
-
-##### Serial Numbers
-
-$(SSL_SRL)/%.srl:	$(SSL_TXT)/%.txt
-	D=`dirname $@`; mkdir -p $$D
-	awk '/^[ 	]*Serial Number: / { print $$3; }' < $< > $@
 	chmod 600 $@
 
 ##### Root
@@ -401,6 +392,28 @@ $(SSL_CRT)/self.pem:	$(SSL_CRT)/selfcert.pem $(SSL_CRT)/selfkey.pem
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
 	chmod 600 $@
 
+##### Revoked (EXPERIMENTAL)
+
+$(SSL_CRT)/revokedreq.pem:	$(ETC_DIR)/revoked.cnf
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) req -config $(ETC_DIR)/revoked.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/revokedkey.pem -out $@
+	chmod 600 $@
+
+$(SSL_CRT)/revokedkey.pem:	$(SSL_CRT)/revokedreq.pem
+
+$(SSL_CRT)/revokedcert.pem:	$(SSL_CRT)/revokedreq.pem $(ETC_DIR)/revoked.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/revokedreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/revoked.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	$(C_REHASH) $(SSL_CRT)
+	chmod 600 $@
+
+$(SSL_CRT)/revoked.pem:	$(SSL_CRT)/revokedcert.pem $(SSL_CRT)/revokedkey.pem $(SSL_CRT)/rootcert.pem
+	D=`dirname $@`; mkdir -p $$D
+	cat $^ > $@
+	$(C_REHASH) $(SSL_CRT)
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
+
 ##### Diffie Hellman Parameters
 
 $(SSL_CRT)/dh.pem:
@@ -421,6 +434,7 @@ credentials-clean:
 	( cd $(SSL_CRT); rm -f clientkey.pem client.pem clientreq.pem )
 	( cd $(SSL_CRT); rm -f boguskey.pem bogus.pem bogusreq.pem )
 	( cd $(SSL_CRT); rm -f selfkey.pem self.pem selfreq.pem )
+	( cd $(SSL_CRT); rm -f revokedkey.pem revoked.pem revokedreq.pem )
 	
 .PHONY:	parameters parameters-clean
 
@@ -435,13 +449,6 @@ passwords:	$(TARGETPASSWORDS)
 
 passwords-clean:
 	( cd $(SSL_PWD); rm -f ./*.pwd )
-
-.PHONY:	serialnumbers serialnumbers-clean
-
-serialnumbers:	$(TARGETSERIALNUMBERS)
-
-serialnumbers-clean:
-	( cd $(SSL_SRL); rm -f ./*.srl )
 
 .PHONY:	exported-credentials
 

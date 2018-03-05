@@ -1,0 +1,27 @@
+# Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+# Licensed under the terms in LICENSE.txt
+# Chip Overclock (mailto:coverclock@diag.com)
+# https://github.com/coverclock/com-diag-codex
+
+[ req ]
+prompt                 = no
+output_password        = cl13nt
+default_bits           = 3072
+default_md             = sha256
+distinguished_name     = req_distinguished_name
+
+[ req_distinguished_name ]
+C                      = US
+ST                     = Colorado
+L                      = Arvada
+O                      = Prairie Thorn
+OU                     = RnD
+CN                     = client.prairiethorn.org
+emailAddress           = rnd@prairiethorn.org
+
+[ usr_cert ]
+basicConstraints       = CA:FALSE
+nsComment              = "OpenSSL Generated Certificate"
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid,issuer
+subjectAltName         = DNS:*.prairiethorn.org, DNS:localhost, DNS:lead, DNS:bronze, DNS:client1.prairiethorn.org, DNS:client2.prairiethorn.org, DNS:client3.prairiethorn.org
