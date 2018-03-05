@@ -80,7 +80,7 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 			X509_NAME_oneline(nam, name, sizeof(name));
 			name[sizeof(name) - 1] = '\0';
 		}
-		DIMINUTO_LOG_INFORMATION("codex_verification_callback: ctx=%p subject[%d]=\"%s\"\n", ctx, depth, name);
+		DIMINUTO_LOG_INFORMATION("codex_verification_callback: ctx=%p crt=%p subject[%d]=\"%s\"\n", ctx, crt, depth, name);
 
 		name[0] = '\0';
 		nam = X509_get_issuer_name(crt);
@@ -88,7 +88,7 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 			X509_NAME_oneline(nam, name, sizeof(name));
 			name[sizeof(name) - 1] = '\0';
 		}
-		DIMINUTO_LOG_INFORMATION("codex_verification_callback: ctx=%p issuer[%d]=\"%s\"\n", ctx, depth, name);
+		DIMINUTO_LOG_INFORMATION("codex_verification_callback: ctx=%p crt=%p issuer[%d]=\"%s\"\n", ctx, crt, depth, name);
 
 	}
 
@@ -96,14 +96,14 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 
 		error = X509_STORE_CTX_get_error(ctx);
 		text = X509_verify_cert_error_string(error);
-		DIMINUTO_LOG_NOTICE("codex_verification_callback: ctx=%p error=%d=\"%s\"\n", ctx, error, (text != (const char *)0) ? text : "");
+		DIMINUTO_LOG_NOTICE("codex_verification_callback: ctx=%p crt=%p error=%d=\"%s\"\n", ctx, crt, error, (text != (const char *)0) ? text : "");
 
 		switch (error) {
 
 		case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
 		case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
 			if (codex_self_signed_certificates) {
-				DIMINUTO_LOG_NOTICE("codex_verification_callback: ctx=%p self_signed_certificates=%d\n", ctx, codex_self_signed_certificates);
+				DIMINUTO_LOG_NOTICE("codex_verification_callback: ctx=%p crt=%p self_signed_certificates=%d\n", ctx, crt, codex_self_signed_certificates);
 				ok = 1;
 			}
 			break;
@@ -114,6 +114,21 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 
 		}
 
+	}
+
+	/*
+	 * Surely if the certificate pointer returned by X509_STORE is null, then
+	 * OpenSSL's own validator would not have verified it. But never the less,
+	 * we check.
+	 */
+
+	if (crt != (X509 *)0) {
+		/* Do nothing. */
+	} else if (!ok) {
+		/* Do nothing. */
+	} else {
+		DIMINUTO_LOG_NOTICE("codex_verification_callback: ctx=%p crt=%p ok=%d\n", ctx, crt, ok);
+		ok = 0;
 	}
 
 	return ok;

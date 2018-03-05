@@ -29,11 +29,18 @@ for years in both personal and commercial development projects.
 ## Disclaimer
 
 This is not my area of expertise, which is why nothing about the Secure
-Socket Layer or cryptography shows up on my resume. But people learn in
+Socket Layer or cyber-security shows up on my resume. But people learn in
 different ways, and my way has always been hands-on learn-by-doing. Codex
 has been a useful mechanism through which I would like to think I've
-learned enough to use OpenSSL in the kinds of product development efforts
-on which I get paid to work.
+learned enough to use OpenSSL in the kinds of Internet of Things product
+development efforts on which I get paid to work. However, certificate
+verification seems like an enormously complicated (and, perhaps, more than
+a little terrifying) subject to me, and I am at best just beginning to
+integrate what I'm learning about it into Codex. In particular, reliable
+Certificate Revocation List (CRL) implementations remain a puzzlement. And
+it seems like new security holes are being discovered in OpenSSL (and,
+indeed, in every other SSL framework) on a regular basis. No warranty is
+expressed or implied.
 
 ## What Works
 
@@ -373,7 +380,7 @@ defaults can be configured at build-time by changing the make variables in
 settors defined in the private API. Here are the defaults.
 
 * RSA asymmetric cipher with 3072-bit keys is used for encrypting certificates.
-* SHA-256 message digest cryptographic hash function is used for signing certificates.
+* SHA256 message digest cryptographic hash function is used for signing certificates.
 * TLS v1.2 protocol is used.
 * Diffie-Hellman generator function 2 is used to generate the DH parameters.
 * Diffie-Hellman with 2048-bit keys is used for exchanging keys.
@@ -491,7 +498,7 @@ mechanism. The logging API is defined in the
 Diminuto source code directory.
 
 Diminuto supports eight different levels of log message severity. From highest
-priority to lowest, they are.
+priority to lowest, they are:
 
 * Emergency;
 * Alert;
@@ -659,6 +666,10 @@ E. Rescorla, "An Introduction to OpenSSL Programming (Part II)", Version
 I. Ristic, _OpenSSL Cookbook_, Feisty Duck,
 <https://www.feistyduck.com/books/openssl-cookbook/>
 
+I. Ristic, "SSL and TLS Deployment Best Practices", Version 1.6-draft,
+Qualys/SSL Labs, 2017-05-13,
+<https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices>
+
 L. Rumcajs, "How to perform a rehandshake (renegotiation) with OpenSSL API",
 Stack Overflow, 2015-12-04,
 <https://stackoverflow.com/questions/28944294/how-to-perform-a-rehandshake-renegotiation-with-openssl-api>
@@ -673,4 +684,4 @@ J. Viega, et al., _Secure Programming Cookbook for C and C++_, O'Reilly,
 
 Special thanks to Doug Gibbons, my long-time friend, occasional colleague,
 and one-time office mate, who was extraordinarily generous with his
-special expertise in this area.
+deep expertise in this area.
