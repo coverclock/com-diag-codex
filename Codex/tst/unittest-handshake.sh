@@ -17,7 +17,7 @@ export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
 CRTPATH="$(realpath $(dirname $0))/../crt"
 
-unittest-handshake-server -e "${EXPECTED}" -n ${NEAREND} -B ${BUFSIZE} -C ${CRTPATH}/server.pem -D ${CRTPATH}/dh.pem -K ${CRTPATH}/server.pem -R "" -P ${CRTPATH} &
+unittest-handshake-server -n ${NEAREND} -B ${BUFSIZE} -C ${CRTPATH}/server.pem -D ${CRTPATH}/dh.pem -K ${CRTPATH}/server.pem -R "" -P ${CRTPATH} &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do

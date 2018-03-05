@@ -149,6 +149,8 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 	long error = X509_V_ERR_APPLICATION_VERIFICATION;
 	X509 * crt = (X509 *)0;
 	X509_NAME * subject = (X509_NAME *)0;
+	ASN1_INTEGER * srl = (ASN1_INTEGER *)0;
+	char srn[(20 /* RFC 5280 4.1.2.2 */ * 2) + 1] = { '\0' };
 	int count = 0;
 	X509_EXTENSION * ext = (X509_EXTENSION *)0;
 	int ii = 0;
@@ -228,13 +230,10 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			break;
 		}
 
-		DIMINUTO_LOG_INFORMATION("codex_connection_verify: farend ssl=%p IPv4=%s IPv6=%s mask=0x%x\n", ssl, buffer4, buffer6, result);
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: farend ssl=%p IPv4=%s IPv6=%s\n", ssl, buffer4, buffer6);
 
 		/*
-		 * Next we check for a match against the Common Name (CN). We extract
-		 * the CN even if we expect nothing, as a way of validity checking the
-		 * certificate. If the certificate has no CN, we reject it, even if
-		 * we don't care what the CN is.
+		 * Get the peer certificate and its serial number (at most 20 bytes).
 		 */
 
 		crt = SSL_get_peer_certificate(ssl);
@@ -242,6 +241,29 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			DIMINUTO_LOG_WARNING("codex_connection_verify: crt ssl=%p crt=%p\n", ssl, crt);
 			break;
 		}
+
+		srl = X509_get_serialNumber(crt);
+		if (srl == (ASN1_INTEGER *)0) {
+			DIMINUTO_LOG_WARNING("codex_connection_verify: srl ssl=%p crt=%p srl=%p\n", ssl, crt, srl);
+			break;
+		}
+
+		for (ii = 0; (ii < srl->length) && (ii < ((sizeof(srn) - 1) / 2)); ++ii) {
+			jj = (srl->data[ii] & 0xf0) >> 4;
+			srn[ii * 2] = (jj < 0xa) ? '0' + jj : 'A' + jj - 10;
+			jj = (srl->data[ii] & 0x0f);
+			srn[(ii * 2) + 1] = (jj < 0xa) ? '0' + jj : 'A' + jj - 10;
+		}
+		srn[ii * 2] = '\0';
+
+		DIMINUTO_LOG_DEBUG("codex_connection_verify: srl ssl=%p crt=%p SRL=%s\n", ssl, crt, srn);
+
+		/*
+		 * Next we check for a match against the Common Name (CN). We extract
+		 * the CN even if we expect nothing, as a way of validity checking the
+		 * certificate. If the certificate has no CN, we reject it, even if
+		 * we don't care what the CN is.
+		 */
 
 		nam = X509_get_subject_name(crt);
 		if (nam == (X509_NAME *)0) {
@@ -268,7 +290,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			 */
 
 			result |= CODEX_VERIFY_PASSED;
-			DIMINUTO_LOG_INFORMATION("codex_connection_verify: nil ssl=%p crt=%p CN=\"%s\" expected=%p mask=0x%x\n", ssl, crt, anycn, expected, result);
+			DIMINUTO_LOG_INFORMATION("codex_connection_verify: nil ssl=%p crt=%p SRL=%s CN=\"%s\" expected=%p mask=0x%x\n", ssl, crt, srn, anycn, expected, result);
 
 		} else if (strcasecmp(anycn, expected) == 0) {
 
@@ -279,7 +301,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 			cn = anycn;
 			result |= CODEX_VERIFY_CN;
-			DIMINUTO_LOG_INFORMATION("codex_connection_verify: cn ssl=%p crt=%p CN=\"%s\" mask=0x%x\n", ssl, crt, cn, result);
+			DIMINUTO_LOG_INFORMATION("codex_connection_verify: cn ssl=%p crt=%p SRL=%s CN=\"%s\" mask=0x%x\n", ssl, crt, srn, cn, result);
 
 		} else {
 			/* Do nothing. */
@@ -450,7 +472,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 								 */
 
 								result |= (CODEX_VERIFY_IPV4 | CODEX_VERIFY_DNS);
-								DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p CN=\"%s\" FQDN=\"%s\" IPv4=%s mask=0x%x\n", ssl, crt, anycn, anyfqdn, buffer4, result);
+								DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" IPv4=%s mask=0x%x\n", ssl, crt, srn, anycn, anyfqdn, buffer4, result);
 								break;
 
 							}
@@ -472,7 +494,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 								 */
 
 								result |= (CODEX_VERIFY_IPV6 | CODEX_VERIFY_DNS);
-								DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p CN=\"%s\" FQDN=\"%s\" IPv6=%s mask=0x%x\n", ssl, crt, anycn, anyfqdn, buffer6, result);
+								DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" IPv6=%s mask=0x%x\n", ssl, crt, srn, anycn, anyfqdn, buffer6, result);
 								break;
 
 							}
@@ -500,7 +522,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 					fqdn = anyfqdn;
 					result |= CODEX_VERIFY_FQDN;
-					DIMINUTO_LOG_INFORMATION("codex_connection_verify: fqdn ssl=%p crt=%p CN=\"%s\" FQDN=\"%s\" mask=0x%x\n", ssl, crt, anycn, fqdn, result);
+					DIMINUTO_LOG_INFORMATION("codex_connection_verify: fqdn ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" mask=0x%x\n", ssl, crt, srn, anycn, fqdn, result);
 
 				}
 
@@ -533,7 +555,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			if (codex_self_signed_certificates) {
 				text = X509_verify_cert_error_string(error);
 				if (text == (const char *)0) { text = ""; }
-				DIMINUTO_LOG_NOTICE("codex_connection_verify: self ssl=%p CN=\"%s\" error=%d=\"%s\"\n", ssl, anycn, error, text);
+				DIMINUTO_LOG_NOTICE("codex_connection_verify: self ssl=%p crt=%p SRL=%s CN=\"%s\" error=%d=\"%s\"\n", ssl, crt, srn, anycn, error, text);
 				error = X509_V_OK;
 			}
 			break;
@@ -547,7 +569,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		text = X509_verify_cert_error_string(error);
 		if (text == (const char *)0) { text = ""; }
 		result = CODEX_VERIFY_FAILED;
-		DIMINUTO_LOG_WARNING("codex_connection_verify: x509 ssl=%p crt=%p CN=\"%s\" IPv4=%s IPv6=%s error=%d=\"%s\" mask=0x%x\n", ssl, crt, anycn, diminuto_ipc4_address2string(farend4, buffer4, sizeof(buffer4)), diminuto_ipc6_address2string(farend6, buffer6, sizeof(buffer6)), text, result);
+		DIMINUTO_LOG_WARNING("codex_connection_verify: x509 ssl=%p crt=%p SRL=%s CN=\"%s\" IPv4=%s IPv6=%s error=%d=\"%s\" mask=0x%x\n", ssl, crt, srn, anycn, diminuto_ipc4_address2string(farend4, buffer4, sizeof(buffer4)), diminuto_ipc6_address2string(farend6, buffer6, sizeof(buffer6)), text, result);
 	}
 
 	if (crt != (X509 *)0) {
