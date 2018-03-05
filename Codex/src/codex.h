@@ -20,6 +20,7 @@
  * HEADERS
  ******************************************************************************/
 
+#include <pthread.h>
 #include <openssl/rand.h>
 #include <openssl/x509v3.h>
 #include <openssl/x509.h>
@@ -98,6 +99,11 @@
  */
 extern DH * codex_dh;
 
+/**
+ * Global mutual exclusion semaphore used to protect global variables.
+ */
+extern pthread_mutex_t codex_mutex;
+
 /*******************************************************************************
  * DEBUGGING
  ******************************************************************************/
@@ -130,7 +136,7 @@ static inline void codex_cerror(void)
 #define COM_DIAG_CODEX_SETTOR(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
 	extern _TYPE_ codex_set_##_NAME_(_TYPE_ now);
 
-#include "codex_settors.h"
+#include "codex_parameters.h"
 
 /*******************************************************************************
  * CALLBACKS

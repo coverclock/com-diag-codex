@@ -235,29 +235,6 @@ extern codex_context_t * codex_context_free(codex_context_t * ctx);
  ******************************************************************************/
 
 /**
- * Walk the peer X309 certificate and verify that it came from the expected host
- * by comparing the provided string against the FQDN or the CN, and furthermore
- * examine the OpenSSL verification status. A bit mask is returned containing
- * bits defined in CodexConnectionVerify; it is up to the application to
- * determine what bits are important.
- * @param ssl points to the connection.
- * @param expected names the expected host FQDN or CN or NULL if none.
- * @return a bit mask indicating the result of the verification.
- */
-extern int codex_connection_verify(codex_connection_t * ssl, const char * expected);
-
-/**
- * This is a helper that checks the verifier bit mask for commonly used
- * acceptable patterns. Applications are welcome to come up with their
- * own combinations that they like better.
- * @param mask is the bit mask returned by the verifier.
- * @return true if the bit mask fits some common criteria.
- */
-static inline bool codex_connection_verified(int mask) {
-	return (((mask & CODEX_VERIFY_DNS) != 0) && ((mask & (CODEX_VERIFY_PASSED | CODEX_VERIFY_CN | CODEX_VERIFY_FQDN)) != 0));
-}
-
-/**
  * Return true if the connection has been closed by the far end.
  * @param ssl points to the connection.
  * @return true if connection has been closed by the far end, false otherwise.
@@ -289,6 +266,33 @@ extern codex_connection_t * codex_connection_free(codex_connection_t * ssl);
  * @return true if the connection is a server, false if it is a client.
  */
 extern bool codex_connection_is_server(const codex_connection_t * ssl);
+
+/*******************************************************************************
+ * VERIFICATION
+ ******************************************************************************/
+
+/**
+ * Walk the peer X309 certificate and verify that it came from the expected host
+ * by comparing the provided string against the FQDN or the CN, and furthermore
+ * examine the OpenSSL verification status. A bit mask is returned containing
+ * bits defined in CodexConnectionVerify; it is up to the application to
+ * determine what bits are important.
+ * @param ssl points to the connection.
+ * @param expected names the expected host FQDN or CN or NULL if none.
+ * @return a bit mask indicating the result of the verification.
+ */
+extern int codex_connection_verify(codex_connection_t * ssl, const char * expected);
+
+/**
+ * This is a helper that checks the verifier bit mask for commonly used
+ * acceptable patterns. Applications are welcome to come up with their
+ * own combinations that they like better.
+ * @param mask is the bit mask returned by the verifier.
+ * @return true if the bit mask fits some common criteria.
+ */
+static inline bool codex_connection_verified(int mask) {
+	return (((mask & CODEX_VERIFY_DNS) != 0) && ((mask & (CODEX_VERIFY_PASSED | CODEX_VERIFY_CN | CODEX_VERIFY_FQDN)) != 0));
+}
 
 /*******************************************************************************
  * INPUT/OUTPUT

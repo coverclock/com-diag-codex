@@ -92,9 +92,9 @@ The private API is defined in the header file
     Codex/src/codex.h
 
 and is intended for use by the Codex implementation itself and by library
-installers and maintainers. It is only visible to translation units compiled
-with access to the Codex source code. It could, for example, be included using
-a statement like
+installers and maintainers. It is typically only visible to translation units
+compiled with access to the Codex source code. It could, for example, be
+included using a statement like
 
     #include "../src/codex.h"
 
@@ -313,21 +313,25 @@ context API, you can name them anything you want at run-time.
 
 Besides using the usual OpenSSL verification mechanisms, Codex provides a
 verification function that may be invoked by the application.
+```codex_connection_verify()``` returns a mask of bits, defined by
+```codex_verify_t```, that determines if and how the certificate associated
+with the specified connection was verified. The default criteria for accepting
+a connection from either the server or the client is specified in the function
+```codex_connection_verified()```, but applications are free to apply their
+own criteria. The default criteria is as follows.
 
-When called, ```codex_connection_verify()``` requires that either
-the Common Name (```CN```) or the Fully-Qualified Domain Name or FQDN
-(coded as a ```DNS``` value in ```subjectAltName```) match the expected name
-the application provides to the Codex API (or the expected name is null, in
-which case Codex ignores this requirement.) See the example certificate
-configuration files that Codex uses for the unit tests in the ```etc```
-directory; the server unit tests match against the CN in the client certificate,
-and the client unit tests match against the FQDN in the server certificate.
+Codex requires that either the Common Name (```CN```) or the
+Fully-Qualified Domain Name or FQDN (coded as a ```DNS``` value in
+```subjectAltName```) match the expected name the application provides to the
+Codex API (or the expected name is null, in which case Codex ignores this
+requirement.) See the example certificate configuration files that Codex uses
+for the unit tests in the ```etc``` directory.
 
-Codex also rejects self-signed certificates, unless this requirement is
-explicitly disabled at build time in the ```Makefile``` or at run-time through
-a settor in the private API.
+Codex rejects self-signed certificates, unless this requirement is explicitly
+disabled at build time in the ```Makefile``` or at run-time through a settor
+in the private API.
 
-Finally, Codex expects a DNS name encoded in the certificate in a standards
+Codex expects a DNS name encoded in the certificate in a standards
 complaint fashion (as a ```subjectAltName```). Multiple DNS names may be
 encoded. At least *one* of these DNS names must resolve to the IP address
 from which the SSL connection is coming.
@@ -356,14 +360,10 @@ may be 127.0.0.1 (IPv4), or ::1 (IPv6), or both. Furthermore, for non-local
 hosts, peers don't always have control of whether they connect via IPv4 or
 IPv6, depending on what gateways they may pass through. Finally, it's not
 unusual for the IPv4 and IPv6 addresses for a single host to be given different
-fully-qualified domain names in DNS, for example ```foo.prairiethorn.org```
-for IPv4 and ```foo-6.prairiethorn.org``` for IPv6; this allows hosts trying to
-connect to ```foo``` to be able to select the IP version by using a different
+fully-qualified domain names in DNS, for example ```alpha.prairiethorn.org```
+for IPv4 and ```alpha-6.prairiethorn.org``` for IPv6; this allows hosts trying
+to connect to ```foo``` to be able to select the IP version by using a different
 host name when it is resolved via DNS.
-
-Applications using Codex are free to call the ```codex_connection_verify()```
-function and apply their own criteria to the ORed bitmask of
-```codex_verify_t``` values it returns.
 
 ## Configuration
 
@@ -372,12 +372,12 @@ defaults can be configured at build-time by changing the make variables in
 ```cfg/codex.mk```. Some of the defaults can be overridden at run-time by
 settors defined in the private API. Here are the defaults.
 
-* RSA with 3072-bit public/private keys for certificates
-* SHA-256 message digest cryptographic hash function for certificate signing
-* TLS v1.2 protocol
-* symmetric cipher selection string "TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL"
-* Diffie-Hellman with 2048-bit keys for doing key exchange
-* Diffie-Hellman generator function 2 for doing key exchange
+* RSA asymmetric cipher with 3072-bit keys is used for encrypting certificates.
+* SHA-256 message digest cryptographic hash function is used for signing certificates.
+* TLS v1.2 protocol is used.
+* Diffie-Hellman generator function 2 is used to generate the DH parameters.
+* Diffie-Hellman with 2048-bit keys is used for exchanging keys.
+* Symmetric cipher selection string "TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL" is used for encrypting the data stream.
 
 ## Directories
  
@@ -459,7 +459,7 @@ the directory ```cfg```.
     cd com-diag-codex/Codex
     make pristine depend all FLAVOR=!FLAVOR!
 
-Here are the FLAVORss I've tested with Codex.
+Here are the FLAVORs I've tested with Codex.
 
 * ```FLAVOR=openssl``` is the default installed version on the build system,
 e.g. OpenSSL 1.0.2 on Ubuntu "xenial", or OpenSSL 1.0.1 on Raspbian "jessie";
@@ -469,15 +469,50 @@ which I built for testing on Ubuntu "xenial";
 * ```FLAVOR=openssl-1.1.1``` is the development version of OpenSSL at the time
 I did this work.
 
-When in doubt, you can ask Codex what it was built with. (Note the space
-between the dot and the path to the setup script. This script is included by
-Bash to define ```PATH```, ```LD_LIBRARY_PATH``` and other necessary variables
-in the environment, so that you can test without installing Codex or Diminuto.)
+When in doubt, you can ask Codex what how it was built.
 
     cd ~/src/com-diag-codex/Codex
     . out/host/bin/setup
     ./out/host/tst/unittest-sanity
     ./out/host/bin/vintage
+
+Note the space between the dot and the path to the setup script. This script
+is included by Bash to define ```PATH```, ```LD_LIBRARY_PATH``` and other
+necessary variables in the environment, so that you can test without installing
+Codex or Diminuto.
+
+## Logging
+
+Diminuto provides a logging framework that is widely used in Codex. If a
+process has a controlling terminal, log messages are displayed on standard
+error; otherwise they are sent to the system log via the standard syslog(3)
+mechanism. The logging API is defined in the
+```Diminuto/inc/com/diag/diminuto/diminuto_log.h``` header file in the
+Diminuto source code directory.
+
+Diminuto supports eight different levels of log message severity. From highest
+priority to lowest, they are.
+
+* Emergency;
+* Alert;
+* Critical;
+* Error;
+* Warning;
+* Notice;
+* Information; and
+* Debug.
+
+By default, log messages at Information or lower are suppressed. Codex logs
+exceptional conditions at levels above Information, possibly useful
+operational details at Information, and detailed debugging details at Debug.
+
+The Diminuto log API provides a function call to set the bit mask that
+determines which levels are logged and which are suppressed. The Codex unit
+tests import this bit mask from the value of the environmental variable
+```COM_DIAG_DIMINUTO_LOG_MASK```, which can be set to a numerical value such
+as ```0xfe``` or ```254```, with the lowest priority log levels being the
+lowest order bits. ```0xfe``` (all but Debug) is the value set by the
+```out/host/bin/setup``` script used in the unit test description below.
 
 ## Testing
 
