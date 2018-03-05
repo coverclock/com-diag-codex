@@ -88,6 +88,7 @@ OBC_DIR				:=	obc# C object modules
 OUT_DIR				:=	out# Build artifacts
 PWD_DIR				:=	pwd# Password files
 SRC_DIR				:=	src# Library source files
+SRN_DIR				:=	srn# Serial number files
 SYM_DIR				:=	sym# Unstripped executable binaries
 TGZ_DIR				:=	tgz# Compressed tarballs
 TST_DIR				:=	tst# Unit tests
@@ -159,6 +160,7 @@ include $(DIMINUTOMAKEFILE)
 
 SSL_CRT				:=	$(OUT)/$(CRT_DIR)
 SSL_PWD				:=	$(OUT)/$(PWD_DIR)
+SSL_SRN				:=	$(OUT)/$(SRN_DIR)
 SSL_TXT				:=	$(OUT)/$(TXT_DIR)
 
 CDEFINES			+=	-DCOM_DIAG_CODEX_METHOD=$(SSL_MTH)
@@ -210,14 +212,15 @@ TARGETSHARED		:=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
-TARGETCREDENTIALS	:=	$(OUT)/$(TXT_DIR)/root.txt $(OUT)/$(TXT_DIR)/ca.txt $(OUT)/$(TXT_DIR)/client.txt $(OUT)/$(TXT_DIR)/server.txt $(OUT)/$(TXT_DIR)/bogus.txt $(OUT)/$(TXT_DIR)/self.txt
-TARGETPARAMETERS	:=	$(OUT)/$(CRT_DIR)/dh.pem
-TARGETPASSWORDS		:=	$(OUT)/$(PWD_DIR)/root.pwd $(OUT)/$(PWD_DIR)/ca.pwd $(OUT)/$(PWD_DIR)/client.pwd $(OUT)/$(PWD_DIR)/server.pwd $(OUT)/$(PWD_DIR)/bogus.pwd
+TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt $(SSL_TXT)/ca.txt $(SSL_TXT)/client.txt $(SSL_TXT)/server.txt $(SSL_TXT)/bogus.txt $(SSL_TXT)/self.txt
+TARGETSERIALNUMBERS	:=	$(SSL_SRN)/root.srn $(SSL_SRN)/ca.srn $(SSL_SRN)/client.srn $(SSL_SRN)/server.srn $(SSL_SRN)/bogus.srn $(SSL_SRN)/self.srn
+TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd $(SSL_PWD)/ca.pwd $(SSL_PWD)/client.pwd $(SSL_PWD)/server.pwd $(SSL_PWD)/bogus.pwd
+TARGETPARAMETERS	:=	$(SSL_CRT)/dh.pem
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
 TARGETPROGRAMS		:=	$(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS)
 
-TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPARAMETERS) $(TARGETPASSWORDS)
+TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPARAMETERS) $(TARGETPASSWORDS) $(TARGETSERIALNUMBERS)
 
 ########## Main Entry Points
 
@@ -256,6 +259,13 @@ $(SSL_PWD)/%.pwd:	$(ETC_DIR)/%.cnf
 $(SSL_TXT)/%.txt:	$(SSL_CRT)/%.pem
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) x509 -text -noout -in $< > $@
+	chmod 600 $@
+
+##### Serial Numbers
+
+$(SSL_SRN)/%.srn:	$(SSL_TXT)/%.txt
+	D=`dirname $@`; mkdir -p $$D
+	awk '/^[ 	]*Serial Number: / { print $$3; }' < $< > $@
 	chmod 600 $@
 
 ##### Root
@@ -423,8 +433,15 @@ parameters-clean:
 passwords:	$(TARGETPASSWORDS)
 
 passwords-clean:
-	( cd $(SSL_PWD); rm -f root.pwd ca.pwd server.pwd client.pwd bogus.pwd )
-	
+	( cd $(SSL_PWD); rm -f ./*.pwd )
+
+.PHONY:	serialnumbers serialnumbers-clean
+
+serialnumbers:	$(TARGETSERIALNUMBERS)
+
+serialnumbers-clean:
+	( cd $(SSL_SRN); rm -f ./*.srn )
+
 .PHONY:	exported-credentials
 
 # The certificate authorities for the far end have to be something the near end
