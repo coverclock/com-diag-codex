@@ -55,7 +55,7 @@
  * HELPERS
  ******************************************************************************/
 
-static char * codex_format_serialnumber(ASN1_INTEGER * srl, char * buffer, size_t size)
+static char * codex_serialnumber2string(ASN1_INTEGER * srl, char * buffer, size_t size)
 {
 	int ll = 0;
 	int ii = 0;
@@ -86,45 +86,43 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 	int depth = -1;
 	X509 * crt = (X509 *)0;
 	ASN1_INTEGER * srl = (ASN1_INTEGER *)0;
-	char srn[(20 /* RFC 5280 4.1.2.2 */ * 2) + 1] = { '\0' };
 	X509_NAME * nam = (X509_NAME *)0;
 	int error = 0;
 	const char * text = (const char *)0;
-	char name[256] = { '\0' };
+	char srn[(20 /* RFC 5280 4.1.2.2 */ * 2) + 1] = { '\0' };
+	char subject[256] = { '\0' };
+	char issuer[256] = { '\0' };
 
 	depth = X509_STORE_CTX_get_error_depth(ctx);
 
 	crt = X509_STORE_CTX_get_current_cert(ctx);
 	if (crt != (X509 *)0) {
 
-		srn[0] = '\0';
 		srl = X509_get_serialNumber(crt);
 		if (srl != (ASN1_INTEGER *)0) {
-			codex_format_serialnumber(srl, srn, sizeof(srn));
+			codex_serialnumber2string(srl, srn, sizeof(srn));
 			srn[sizeof(srn) - 1] = '\0';
+			DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p SRL=%s\n", ctx, crt, srn);
 		}
-		DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p SRL=%s\n", ctx, crt, srn);
 
 		/*
 		 * These fields are deliberately displayed in the same order as when
 		 * using the "openssl x509 -subject -issuer -noout" command.
 		 */
 
-		name[0] = '\0';
 		nam = X509_get_subject_name(crt);
 		if (nam != (X509_NAME *)0) {
-			X509_NAME_oneline(nam, name, sizeof(name));
-			name[sizeof(name) - 1] = '\0';
+			X509_NAME_oneline(nam, subject, sizeof(subject));
+			subject[sizeof(subject) - 1] = '\0';
+			DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p SUBJECT[%d]=\"%s\"\n", ctx, crt, depth, subject);
 		}
-		DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p SUBJECT[%d]=\"%s\"\n", ctx, crt, depth, name);
 
-		name[0] = '\0';
 		nam = X509_get_issuer_name(crt);
 		if (nam != (X509_NAME *)0) {
-			X509_NAME_oneline(nam, name, sizeof(name));
-			name[sizeof(name) - 1] = '\0';
+			X509_NAME_oneline(nam, issuer, sizeof(issuer));
+			issuer[sizeof(issuer) - 1] = '\0';
+			DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p ISSUER[%d]=\"%s\"\n", ctx, crt, depth, issuer);
 		}
-		DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p ISSUER[%d]=\"%s\"\n", ctx, crt, depth, name);
 
 	}
 
@@ -244,6 +242,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		}
 
 		diminuto_ipc4_address2string(farend4, buffer4, sizeof(buffer4));
+		buffer4[sizeof(buffer4) - 1] = '\0';
 
 		farend6 = DIMINUTO_IPC6_UNSPECIFIED;
 		rc = diminuto_ipc6_farend(fd, &farend6, (diminuto_port_t *)0);
@@ -253,20 +252,21 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		}
 
 		diminuto_ipc6_address2string(farend6, buffer6, sizeof(buffer6));
+		buffer6[sizeof(buffer6) - 1] = '\0';
 
 		if (!diminuto_ipc4_is_unspecified(&farend4)) {
 			/* Do nothing. */
 		} else if (!diminuto_ipc6_is_unspecified(&farend6)) {
 			/* Do nothing. */
 		} else {
-			DIMINUTO_LOG_ERROR("codex_connection_verify: farend ssl=%p IPv4=%s IPv6=%s\n", ssl, buffer4, buffer6); /* Should be impossible. */
+			DIMINUTO_LOG_ERROR("codex_connection_verify: ip ssl=%p IPV4=%s IPV6=%s\n", ssl, buffer4, buffer6); /* Should be impossible. */
 			break;
 		}
 
-		DIMINUTO_LOG_DEBUG("codex_connection_verify: farend ssl=%p IPv4=%s IPv6=%s\n", ssl, buffer4, buffer6);
+		DIMINUTO_LOG_INFORMATION("codex_connection_verify: ip ssl=%p IPV4=%s IPV6=%s\n", ssl, buffer4, buffer6);
 
 		/*
-		 * Get the peer certificate and its serial number (at most 20 bytes).
+		 * Get the peer certificate and its serial number.
 		 */
 
 		crt = SSL_get_peer_certificate(ssl);
@@ -281,9 +281,10 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			break;
 		}
 
-		codex_format_serialnumber(srl, srn, sizeof(srn));
+		codex_serialnumber2string(srl, srn, sizeof(srn));
+		srn[sizeof(srn) - 1] = '\0';
 
-		DIMINUTO_LOG_DEBUG("codex_connection_verify: srl ssl=%p crt=%p SRL=%s\n", ssl, crt, srn);
+		DIMINUTO_LOG_INFORMATION("codex_connection_verify: srl ssl=%p crt=%p SRL=%s\n", ssl, crt, srn);
 
 		/*
 		 * Next we check for a match against the Common Name (CN). We extract
@@ -488,7 +489,11 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 					addresses4 = diminuto_ipc4_addresses(fqdn);
 					if (addresses4 != (diminuto_ipv4_t *)0) {
 						for (address4 = addresses4; !diminuto_ipc4_is_unspecified(address4); ++address4) {
-							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns4 ssl=%p crt=%p FQDN=\"%s\" IPv4=%s\n", ssl, crt, fqdn, diminuto_ipc4_address2string(*address4, debug4, sizeof(debug4)), result);
+
+							diminuto_ipc4_address2string(*address4, debug4, sizeof(debug4));
+							debug4[sizeof(debug4) - 1] = '\0';
+							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns4 ssl=%p crt=%p FQDN=\"%s\" IPV4=%s\n", ssl, crt, fqdn, debug4, result);
+
 							if (diminuto_ipc4_compare(address4, &farend4) == 0) {
 
 								/*
@@ -497,7 +502,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 								 */
 
 								result |= (CODEX_VERIFY_IPV4 | CODEX_VERIFY_DNS);
-								DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" IPv4=%s\n", ssl, crt, srn, cn, fqdn, buffer4);
+								DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" IPV4=%s\n", ssl, crt, srn, cn, fqdn, buffer4);
 								break;
 
 							}
@@ -510,7 +515,11 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 					addresses6 = diminuto_ipc6_addresses(fqdn);
 					if (addresses6 != (diminuto_ipv6_t *)0) {
 						for (address6 = addresses6; !diminuto_ipc6_is_unspecified(address6); ++address6) {
-							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns6 ssl=%p crt=%p FQDN=\"%s\" IPv6=%s\n", ssl, crt, fqdn, diminuto_ipc6_address2string(*address6, debug6, sizeof(debug6)), result);
+
+							diminuto_ipc6_address2string(*address6, debug6, sizeof(debug6));
+							debug6[sizeof(debug6) - 1] = '\0';
+							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns6 ssl=%p crt=%p FQDN=\"%s\" IPV6=%s\n", ssl, crt, fqdn, debug6, result);
+
 							if (diminuto_ipc6_compare(address6, &farend6) == 0) {
 
 								/*
@@ -519,7 +528,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 								 */
 
 								result |= (CODEX_VERIFY_IPV6 | CODEX_VERIFY_DNS);
-								DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" IPv6=%s\n", ssl, crt, srn, cn, fqdn, buffer6);
+								DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" IPV6=%s\n", ssl, crt, srn, cn, fqdn, buffer6);
 								break;
 
 							}
@@ -593,7 +602,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		text = X509_verify_cert_error_string(error);
 		if (text == (const char *)0) { text = ""; }
 		result = CODEX_VERIFY_FAILED;
-		DIMINUTO_LOG_WARNING("codex_connection_verify: x509 ssl=%p crt=%p SRL=%s CN=\"%s\" IPv4=%s IPv6=%s error=%d=\"%s\"\n", ssl, crt, srn, cn, diminuto_ipc4_address2string(farend4, buffer4, sizeof(buffer4)), diminuto_ipc6_address2string(farend6, buffer6, sizeof(buffer6)), text);
+		DIMINUTO_LOG_WARNING("codex_connection_verify: x509 ssl=%p crt=%p SRL=%s CN=\"%s\" IPV4=%s IPV6=%s error=%d=\"%s\"\n", ssl, crt, srn, cn, buffer4, buffer6, text);
 	}
 
 	if (crt != (X509 *)0) {

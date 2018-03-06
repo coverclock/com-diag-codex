@@ -607,19 +607,22 @@ PDF utilities, you can generate PDF manuals.
 
 ## References
 
-D. Adrian et al., "Imperfect Forward Secrecy: How Diffie-Hellman Fails
+D. Adrian, et al., "Imperfect Forward Secrecy: How Diffie-Hellman Fails
 in Practice", 22nd ACM Conference on Computer and Communication Security,
 2015-10, <https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf>
 
 K. Ballard, "Secure Programming with the OpenSSL API",
 <https://www.ibm.com/developerworks/library/l-openssl/>, IBM, 2012-06-28
 
-E. Barker et al., "Transitions: Recommendation for Transitioning the
+E. Barker, et al., "Transitions: Recommendation for Transitioning the
 Use of Cryptographic Algorithms and Key Lengths", NIST, SP 800-131A
 Rev. 1, 2015-11
 
-D. Barrett, R. Silverman, R. Byrnes, _SSH, The Secure Shell_, 2nd ed.,
+D. Barrett, et al., _SSH, The Secure Shell_, 2nd ed.,
 O'Reilly, 2005
+
+D. Cooper, et al., "Internet X.509 Public Key Infrastructure Certificate
+and Certificate Revocation List (CRL) Profile", RFC 5280, 2008-05
 
 J. Davies, _Implementing SSL/TLS_, Wiley, 2011
 
@@ -630,7 +633,7 @@ Validation with OpenSSL (but Were Afraid to Ask)", iSECpartners, 2012-10-29,
 V. Geraskin, "OpenSSL and select()", 2014-02-21,
 <http://www.past5.com/tutorials/2014/02/21/openssl-and-select/>
 
-M. Georgiev et. al., "The Most Dangerous Code in the World: Validating SSL
+M. Georgiev, et. al., "The Most Dangerous Code in the World: Validating SSL
 Certificates in Non-Browser Software", 19nd ACM Conference on Computer and
 Communication Security (*CCS'12), Raleigh NC USA, 2012-10-16..18,
 <https://www.cs.utexas.edu/~shmat/shmat_ccs12.pdf>
@@ -645,7 +648,7 @@ Transport Layer Security (TLS)", RFC 7919, 2016-08
 HP, "SSL Programming Tutorial", HP OpenVMS Systems Documentation,
 <http://h41379.www4.hpe.com/doc/83final/ba554_90007/ch04s03.html>
 
-Karthik et al., "SSL Renegotiation with Full Duplex Socket Communication",
+Karthik, et al., "SSL Renegotiation with Full Duplex Socket Communication",
 Stack Overflow, 2013-12-14,
 <https://stackoverflow.com/questions/18728355/ssl-renegotiation-with-full-duplex-socket-communication>
 
