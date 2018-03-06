@@ -395,9 +395,15 @@ settors defined in the private API. Here are the defaults.
 * ```cfg``` contains makefile configuration files.
 * ```etc``` contains certificate configuration files.
 * ```inc``` contains public header files.
-* ```out``` contains build artifacts in a !TARGET! subdirectory.
+* ```out``` contains build artifacts in a ```TARGET``` subdirectory.
 * ```src``` contains implementation source files and private header files.
 * ```tst``` contains unit test source files and scripts.
+
+```TARGET=host``` is the default, which builds Codex (or Diminuto) for the
+target system on which ```make``` is running. But the Makefile has the
+flexibility to cross-compile and generate build-artifacts into other
+```TARGET``` directories. I've used this capability for Diminuto. But I build
+Codex on the x86_64 and ARM targets on which I intend to run it.
 
 ## Building
 
@@ -580,7 +586,7 @@ actually telling the client.
     openssl s_client -connect localhost:49302 2>&1 < /dev/null
 
 An example of the output of such a command can be found in
-```txt/unittest-server-nickel.txt``.
+```txt/unittest-server-nickel.txt```.
 
 ## Documentation
 
