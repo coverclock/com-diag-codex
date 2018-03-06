@@ -195,7 +195,7 @@ int main(int argc, char ** argv)
 	EXPECT(rc == 0);
 	rc = diminuto_ipc6_farend(fd, &addressfe, &portfe);
 	EXPECT(rc == 0);
-	DIMINUTO_LOG_INFORMATION("%s: START nearend=%s:%d farend=%s:%d\n", program, diminuto_ipc6_address2string(addressne, bufferne, sizeof(bufferne)), portne, diminuto_ipc6_address2string(addressfe, bufferfe, sizeof(bufferfe)), portfe);
+	DIMINUTO_LOG_INFORMATION("%s: START nearend=[%s]:%d farend=[%s]:%d\n", program, diminuto_ipc6_address2string(addressne, bufferne, sizeof(bufferne)), portne, diminuto_ipc6_address2string(addressfe, bufferfe, sizeof(bufferfe)), portfe);
 
 	diminuto_mux_init(&mux);
 
