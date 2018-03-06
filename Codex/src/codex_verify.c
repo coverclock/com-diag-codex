@@ -111,7 +111,7 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 		 */
 
 		name[0] = '\0';
-		nam = X509_get_issuer_name(crt);
+		nam = X509_get_subject_name(crt);
 		if (nam != (X509_NAME *)0) {
 			X509_NAME_oneline(nam, name, sizeof(name));
 			name[sizeof(name) - 1] = '\0';
