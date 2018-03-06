@@ -591,7 +591,7 @@ An example of the output of such a command can be found in
 ## Documentation
 
 Codex, like Diminuto, has embedded Doxygen comments in the header files
-that define the public API. If you have the the Doxygen and TeX packages
+that define the public API. If you have the Doxygen and TeX packages
 installed, you can generate HTML and man page documentation.
 
     make documentation
