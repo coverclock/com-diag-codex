@@ -52,6 +52,32 @@
 #endif
 
 /*******************************************************************************
+ * HELPERS
+ ******************************************************************************/
+
+static char * codex_format_serialnumber(ASN1_INTEGER * srl, char * buffer, size_t size)
+{
+	int ll = 0;
+	int ii = 0;
+	unsigned int dd = 0;
+
+	if (size > 0) {
+		ll = (size - 1) / 2;
+		for (ii = 0; (ii < srl->length) && (ii < ll); ++ii) {
+			dd = (srl->data[ii] & 0xf0) >> 4;
+			buffer[ii * 2] = (dd < 0xa) ? '0' + dd : 'A' + dd - 10;
+			dd = (srl->data[ii] & 0x0f);
+			buffer[(ii * 2) + 1] = (dd < 0xa) ? '0' + dd : 'A' + dd - 10;
+		}
+		if (size > (ii * 2)) {
+			buffer[ii * 2] = '\0';
+		}
+	}
+
+	return buffer;
+}
+
+/*******************************************************************************
  * CALLBACKS
  ******************************************************************************/
 
@@ -61,12 +87,10 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 	X509 * crt = (X509 *)0;
 	ASN1_INTEGER * srl = (ASN1_INTEGER *)0;
 	char srn[(20 /* RFC 5280 4.1.2.2 */ * 2) + 1] = { '\0' };
-	int ii = 0;
-	int jj = 0;
 	X509_NAME * nam = (X509_NAME *)0;
 	int error = 0;
 	const char * text = (const char *)0;
-	char name[256];
+	char name[256] = { '\0' };
 
 	depth = X509_STORE_CTX_get_error_depth(ctx);
 
@@ -76,13 +100,8 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 		srn[0] = '\0';
 		srl = X509_get_serialNumber(crt);
 		if (srl != (ASN1_INTEGER *)0) {
-			for (ii = 0; (ii < srl->length) && (ii < ((sizeof(srn) - 1) / 2)); ++ii) {
-				jj = (srl->data[ii] & 0xf0) >> 4;
-				srn[ii * 2] = (jj < 0xa) ? '0' + jj : 'A' + jj - 10;
-				jj = (srl->data[ii] & 0x0f);
-				srn[(ii * 2) + 1] = (jj < 0xa) ? '0' + jj : 'A' + jj - 10;
-			}
-			srn[ii * 2] = '\0';
+			codex_format_serialnumber(srl, srn, sizeof(srn));
+			srn[sizeof(srn) - 1] = '\0';
 		}
 		DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p SRL=%s\n", ctx, crt, srn);
 
@@ -262,13 +281,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			break;
 		}
 
-		for (ii = 0; (ii < srl->length) && (ii < ((sizeof(srn) - 1) / 2)); ++ii) {
-			jj = (srl->data[ii] & 0xf0) >> 4;
-			srn[ii * 2] = (jj < 0xa) ? '0' + jj : 'A' + jj - 10;
-			jj = (srl->data[ii] & 0x0f);
-			srn[(ii * 2) + 1] = (jj < 0xa) ? '0' + jj : 'A' + jj - 10;
-		}
-		srn[ii * 2] = '\0';
+		codex_format_serialnumber(srl, srn, sizeof(srn));
 
 		DIMINUTO_LOG_DEBUG("codex_connection_verify: srl ssl=%p crt=%p SRL=%s\n", ssl, crt, srn);
 

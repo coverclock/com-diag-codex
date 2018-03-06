@@ -155,6 +155,9 @@ extern int codex_password_callback(char * buffer, int size, int writing, void * 
 
 /**
  * This call back allows the application to further verify the certificate.
+ * The OpenSSL validator calls this function against every certificate in the
+ * chain. Codex uses this to permit self-signed certificates if they have been
+ * enabled (they are disabled by default).
  * @param ok indicates whether OpenSSL verified the certificate.
  * @param ctx points to the X.509 certificate.
  * @return a value indicating whether the application verified the certificate.
