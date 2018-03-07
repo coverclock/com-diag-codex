@@ -16,12 +16,9 @@
 
 #define _GNU_SOURCE
 #include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
-#include <stdio.h>
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
@@ -30,16 +27,6 @@
 #include "com/diag/diminuto/diminuto_ipc4.h"
 #include "com/diag/diminuto/diminuto_ipc6.h"
 #include "codex.h"
-
-/*******************************************************************************
- * PARAMETERS
- ******************************************************************************/
-
-#undef CODEX_PARAMETER
-#define CODEX_PARAMETER(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
-	extern _TYPE_ codex_##_NAME_;
-
-#include "codex_parameters.h"
 
 /*******************************************************************************
  * DEBUGGING

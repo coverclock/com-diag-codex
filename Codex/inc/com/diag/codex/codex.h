@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/crypto.h>
@@ -201,19 +202,13 @@ extern codex_serror_t codex_serror(const char * str, const codex_connection_t * 
  ******************************************************************************/
 
 /**
- * Initializes the OpenSSL stack. Only needs to be called once per process.
- * @return 0 if successful, <0 otherwise.
- */
-extern int codex_initialize(void);
-
-/**
- * Loads a Diffie Hellman parameter file. I strongly suggest using no parameter
- * file for a key length less than 2048 (or whatever the Codex Makefile
- * currently generates for unit testing).
+ * Initializes the OpenSSL stack and loads the Diffie-Hellman (DH) parameter
+ * file used for key exchange of the symmetric keys for data stream encryption.
+ * Only needs to be called once per application.
  * @param dhf names the DH parameter file.
  * @return 0 if successful, <0 otherwise.
  */
-extern int codex_parameters(const char * dhf);
+extern int codex_initialize(const char * dhf);
 
 /*******************************************************************************
  * CONTEXT
@@ -319,6 +314,10 @@ static inline bool codex_connection_verified(int mask) {
 extern char * codex_serialnumber_to_string(ASN1_INTEGER * srl, char * srn, size_t size);
 
 extern bool codex_serialnumber_is_revoked(const char * srn);
+
+int codex_revoked_import_stream(FILE * fp);
+
+int codex_revoked_import(const char * path);
 
 /*******************************************************************************
  * INPUT/OUTPUT

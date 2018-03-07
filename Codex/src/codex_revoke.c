@@ -14,23 +14,31 @@
  * HEADERS
  ******************************************************************************/
 
-#define _GNU_SOURCE
-#include <stdint.h>
-#include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h> /* strcasecmp(3) */
 #include <errno.h>
-#include <stdio.h>
 #include "com/diag/codex/codex.h"
+#include "com/diag/diminuto/diminuto_criticalsection.h"
+#include "com/diag/diminuto/diminuto_log.h"
+#include "com/diag/diminuto/diminuto_tree.h"
 #include "codex.h"
 
 /*******************************************************************************
- * HELPERS
+ * STATICS
  ******************************************************************************/
 
-static int codex_serialnumber_compare(diminuto_tree_t * thisp, diminuto_tree_t * thatp)
+static pthread_mutex_t mutex_crl = PTHREAD_MUTEX_INITIALIZER;
+
+static diminuto_tree_t * codex_crl = DIMINUTO_TREE_EMPTY;
+
+/*******************************************************************************
+ * CALLBACKS
+ ******************************************************************************/
+
+static int codex_serialnumber_compare(diminuto_tree_t * here, diminuto_tree_t * there)
 {
-    return strcasecmp((const char *)(diminuto_store_downcast(thisp)->key), (const char *)(diminuto_store_downcast(thatp)->key));
+    return strcasecmp((const char *)(here->data), (const char *)(there->data));
 }
 
 /*******************************************************************************
@@ -61,10 +69,100 @@ char * codex_serialnumber_to_string(ASN1_INTEGER * srl, char * srn, size_t size)
 
 bool codex_serialnumber_is_revoked(const char * srn)
 {
-	diminuto_store_t * here = (diminuto_store_t *)0;
-	diminuto_store_t that = DIMINUTO_STORE_KEYVALUEINIT(srn, (void *)0);
+	bool result = false;
+	int rc = 0;
+	diminuto_tree_t * here = (diminuto_tree_t *)0;
+	diminuto_tree_t that = DIMINUTO_TREE_DATAINIT((void *)srn);
 
-	here = diminuto_store_find(&codex_crl, &that, codex_serialnumber_compare);
+	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex_crl);
 
-	return (here != (diminuto_store_t *)0);
+		here = diminuto_tree_search(codex_crl, &that, codex_serialnumber_compare, &rc);
+		if (here == (diminuto_tree_t *)0) {
+			/* Do nothing. */
+		} else if (rc != 0) {
+			/* Do nothing. */
+		} else {
+			result = true;
+			DIMINUTO_LOG_INFORMATION("codex_serialnumber_is_revoked: crl SRL=%s\n", (const char *)(here->data));
+		}
+
+	DIMINUTO_CRITICAL_SECTION_END;
+
+	return result;
+}
+
+int codex_revoked_import_stream(FILE * fp)
+{
+	int rc = 0;
+	int nn = 0;
+	char * srn = (char *)0;
+	diminuto_tree_t * here = (diminuto_tree_t *)0;
+	diminuto_tree_t * there = (diminuto_tree_t *)0;
+
+	while (true) {
+
+		nn = fscanf(fp, " %20m[0123456789abcdefABCDEF]%*[^\n]\n", &srn);
+		if (nn == EOF) {
+			break;
+		} else if (nn != 1) {
+			continue;
+		} else {
+			/* Do nothing. */
+		}
+
+		here = (diminuto_tree_t *)malloc(sizeof(diminuto_tree_t));
+		if (here == (diminuto_tree_t *)0) {
+			diminuto_perror("malloc");
+			break;
+		}
+
+		DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex_crl);
+
+			there = diminuto_tree_search_insert_or_replace(&codex_crl, diminuto_tree_datainit(here, srn), codex_serialnumber_compare, !0);
+
+		DIMINUTO_CRITICAL_SECTION_END;
+
+		if (there != (diminuto_tree_t *)0) {
+			free(here->data);
+			free(here);
+		}
+
+		DIMINUTO_LOG_DEBUG("codex_revoked_import_stream: crl SRL=%s\n", srn);
+
+		rc += 1;
+
+	}
+
+	return rc;
+}
+
+int codex_revoked_import(const char * crl)
+{
+	int rc = -1;
+	FILE * fp = (FILE *)0;
+
+	do {
+
+		if (crl == (const char *)0) {
+			rc = 0; /* Not an error. */
+			break;
+		}
+
+		fp = fopen(crl, "r");
+		if (fp == (FILE *)0) {
+			diminuto_perror(crl);
+			break;
+		}
+
+		DIMINUTO_LOG_DEBUG("codex_revoked_import: crl=\"%s\"\n", crl);
+
+		rc = codex_revoked_import_stream(fp);
+
+		if (fclose(fp) == EOF) {
+			diminuto_perror(crl);
+		}
+
+	} while (0);
+
+	return rc;
 }

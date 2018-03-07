@@ -19,7 +19,6 @@
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
-#include <stdio.h>
 #include <arpa/inet.h>
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_log.h"

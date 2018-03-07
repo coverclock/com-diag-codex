@@ -416,20 +416,20 @@ $(SSL_CRT)/revoked.pem:	$(SSL_CRT)/revokedcert.pem $(SSL_CRT)/revokedkey.pem $(S
 
 ##### Revoked Too (EXPERIMENTAL)
 
-$(SSL_CRT)/revoketoodreq.pem:	$(ETC_DIR)/revoketood.cnf
+$(SSL_CRT)/revokedtooreq.pem:	$(ETC_DIR)/revokedtoo.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -config $(ETC_DIR)/revoketood.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/revoketoodkey.pem -out $@
+	$(OPENSSL) req -config $(ETC_DIR)/revokedtoo.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/revokedtookey.pem -out $@
 	chmod 600 $@
 
-$(SSL_CRT)/revoketoodkey.pem:	$(SSL_CRT)/revoketoodreq.pem
+$(SSL_CRT)/revokedtookey.pem:	$(SSL_CRT)/revokedtooreq.pem
 
-$(SSL_CRT)/revoketoodcert.pem:	$(SSL_CRT)/revoketoodreq.pem $(ETC_DIR)/revoketood.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+$(SSL_CRT)/revokedtoocert.pem:	$(SSL_CRT)/revokedtooreq.pem $(ETC_DIR)/revokedtoo.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/revoketoodreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/revoketood.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/revokedtooreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/revokedtoo.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
 	chmod 600 $@
 
-$(SSL_CRT)/revoketood.pem:	$(SSL_CRT)/revoketoodcert.pem $(SSL_CRT)/revoketoodkey.pem $(SSL_CRT)/rootcert.pem
+$(SSL_CRT)/revokedtoo.pem:	$(SSL_CRT)/revokedtoocert.pem $(SSL_CRT)/revokedtookey.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
 	$(C_REHASH) $(SSL_CRT)

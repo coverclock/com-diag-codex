@@ -209,44 +209,33 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
-		rc = codex_initialize();
+		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
+		EXPECT(rc == 0);
+
+		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
+		EXPECT(rc == 0);
+
+		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
 		EXPECT(rc == 0);
 
 		STATUS();
 	}
 
 	{
-		int rc;
-		DH * dh;
-
-		TEST();
-
-		EXPECT(codex_dh == (DH *)0);
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
-		EXPECT(rc == 0);
-		EXPECT(codex_dh != (DH *)0);
-		dh = codex_dh;
-		rc = codex_parameters(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
-		EXPECT(rc == 0);
-		EXPECT(codex_dh == dh);
-
-		STATUS();
-	}
-
-	{
+		DH * pdh = (DH *)0;
 		DH * dh;
 		int exp;
 		int key;
 
 		TEST();
 
-		EXPECT(codex_dh != (DH *)0);
-
 		for (exp = 0; exp <= 1; ++exp) {
 			for (key = 256; key <= 2048; key *= 2) {
 
-				dh = codex_parameters_callback((SSL *)0, exp, key);
-				EXPECT(dh == codex_dh);
+				dh = codex_diffiehellman_callback((SSL *)0, exp, key);
+				EXPECT(dh != (DH *)0);
+				if (pdh == (DH *)0) { pdh = dh; }
+				EXPECT(dh == pdh);
 
 			}
 

@@ -16,12 +16,9 @@
 
 #define _GNU_SOURCE
 #include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
-#include <stdio.h>
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_criticalsection.h"
 #include "com/diag/diminuto/diminuto_log.h"
@@ -32,23 +29,7 @@
 #include "codex.h"
 
 /*******************************************************************************
- * STATICS
- ******************************************************************************/
-
-static bool initialized = false;
-
-/*******************************************************************************
  * GLOBALS
- ******************************************************************************/
-
-pthread_mutex_t codex_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-DH * codex_dh = (DH *)0;
-
-diminuto_store_t * codex_crl = DIMINUTO_STORE_EMPTY;
-
-/*******************************************************************************
- * PARAMETERS
  ******************************************************************************/
 
 #undef CODEX_PARAMETER
@@ -56,6 +37,14 @@ diminuto_store_t * codex_crl = DIMINUTO_STORE_EMPTY;
 	_TYPE_ codex_##_NAME_ = _DEFAULT_;
 
 #include "codex_parameters.h"
+
+/*******************************************************************************
+ * STATICS
+ ******************************************************************************/
+
+static bool initialized = false;
+
+static DH * dh = (DH *)0;
 
 /*******************************************************************************
  * DEBUGGING
@@ -211,76 +200,32 @@ int codex_password_callback(char * buffer, int size, int writing, void * that)
 	return length;
 }
 
-DH * codex_parameters_callback(SSL * ssl, int exp, int length)
+DH * codex_diffiehellman_callback(SSL * ssl, int exp, int length)
 {
-	DH * dhp = (DH *)0;
+	DH * parameters = (DH *)0;
 
-	DIMINUTO_CRITICAL_SECTION_BEGIN(&codex_mutex);
+	parameters = dh; /* I'm assuming this read is atomic. */
 
-		dhp = codex_dh;
-
-	DIMINUTO_CRITICAL_SECTION_END;
-
-	if (dhp == (DH *)0) {
-		DIMINUTO_LOG_ERROR("codex_parameters_callback: ssl=%p export=%d length=%d result=NULL\n", ssl, exp, length);
+	if (parameters == (DH *)0) {
+		DIMINUTO_LOG_ERROR("codex_diffiehellman_callback: ssl=%p export=%d length=%d dh=%p\n", ssl, exp, length, parameters);
 	}
 
-	return dhp;
-}
-
-/*******************************************************************************
- * HELPERS
- ******************************************************************************/
-
-DH * codex_parameters_import(const char * dhf)
-{
-	DH * dhp = (DH *)0;
-	BIO * bio = (BIO *)0;
-	int rc = -1;
-
-	do {
-
-		bio = BIO_new_file(dhf, "r");
-		if (bio == (BIO *)0) {
-			codex_perror(dhf);
-			break;
-		}
-
-		dhp = PEM_read_bio_DHparams(bio, (DH **)0, (pem_password_cb *)0, (void *)0);
-		if (dhp == (DH *)0) {
-			codex_perror(dhf);
-			break;
-		}
-
-		/*
-		 * The OpenSSL man page on PEM_read_bio_DHparams() and its kin is
-		 * strangely silent as to whether the pointer returned by the function
-		 * must ultimately be free()'d. Since there is no function like
-		 * SSL_library_shutdown() that I can find, and valgrind(1) shows memory
-		 * allocated at exit(2), maybe I just need to resign myself to this.
-		 */
-
-	} while (false);
-
-	if (bio != (BIO *)0) {
-		rc = BIO_free(bio);
-		if (rc != 1) {
-			codex_perror(dhf);
-		}
-	}
-
-	return dhp;
+	return parameters;
 }
 
 /*******************************************************************************
  * INITIALIZATION
  ******************************************************************************/
 
-int codex_initialize(void)
+int codex_initialize(const char * dhf)
 {
 	int rc = -1;
+	BIO * bio = (BIO *)0;
+	DH * dhp = (DH *)0;
+	static pthread_mutex_t mutex_init = PTHREAD_MUTEX_INITIALIZER;
+	static pthread_mutex_t mutex_dh = PTHREAD_MUTEX_INITIALIZER;
 
-	DIMINUTO_CRITICAL_SECTION_BEGIN(&codex_mutex);
+	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex_init);
 
 		if (!initialized) {
 
@@ -297,30 +242,52 @@ int codex_initialize(void)
 
 	DIMINUTO_CRITICAL_SECTION_END;
 
-	return initialized ? 0 : -1;
-}
-
-int codex_parameters(const char * dhf)
-{
-	int rc = 0;
-
-	DIMINUTO_CRITICAL_SECTION_BEGIN(&codex_mutex);
+	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex_dh);
 
 		if (dhf == (const char *)0) {
 			/* Do nothing. */
-		} else  if (codex_dh != (DH *)0) {
+		} else  if (dh != (DH *)0) {
 			/* Do nothing. */
 		} else {
-			codex_dh = codex_parameters_import(dhf);
-			if (codex_dh == (DH *)0) {
-				rc = -1;
+
+			do {
+
+				bio = BIO_new_file(dhf, "r");
+				if (bio == (BIO *)0) {
+					codex_perror(dhf);
+					break;
+				}
+
+				dhp = PEM_read_bio_DHparams(bio, (DH **)0, (pem_password_cb *)0, (void *)0);
+				if (dhp == (DH *)0) {
+					codex_perror(dhf);
+					break;
+				}
+
+				/*
+				 * The OpenSSL man page on PEM_read_bio_DHparams() and its kin is
+				 * strangely silent as to whether the pointer returned by the function
+				 * must ultimately be free()'d. Since there is no function like
+				 * SSL_library_shutdown() that I can find, and valgrind(1) shows memory
+				 * allocated at exit(2), maybe I just need to resign myself to this.
+				 */
+
+				dh = dhp;
+
+			} while (false);
+
+			if (bio != (BIO *)0) {
+				rc = BIO_free(bio);
+				if (rc != 1) {
+					codex_perror(dhf);
+				}
 			}
+
 		}
 
 	DIMINUTO_CRITICAL_SECTION_END;
 
-	return rc;
-
+	return (initialized && (dh != (DH *)0)) ? 0 : -1;
 }
 
 /*******************************************************************************
@@ -332,7 +299,8 @@ int codex_parameters(const char * dhf)
 	_TYPE_ codex_set_##_NAME_(_TYPE_ now) \
 	{ \
 		_TYPE_ was = (_TYPE_)_UNDEFINED_; \
-		DIMINUTO_CRITICAL_SECTION_BEGIN(&codex_mutex); \
+		static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; \
+		DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex); \
 			was = codex_##_NAME_; \
 			if (now != (_TYPE_)_UNDEFINED_) { codex_##_NAME_ = now; } \
 		DIMINUTO_CRITICAL_SECTION_END; \
@@ -412,7 +380,7 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 
 		(void)SSL_CTX_set_options(ctx, options);
 
-		SSL_CTX_set_tmp_dh_callback(ctx, codex_parameters_callback);
+		SSL_CTX_set_tmp_dh_callback(ctx, codex_diffiehellman_callback);
 
 		rc = SSL_CTX_set_cipher_list(ctx, list);
 		if (rc != 1) {

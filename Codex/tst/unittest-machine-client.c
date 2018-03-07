@@ -168,10 +168,7 @@ int main(int argc, char ** argv)
 		codex_set_self_signed_certificates(!!selfsigned);
 	}
 
-	rc = codex_initialize();
-	ASSERT(rc == 0);
-
-	rc = codex_parameters(pathdhf);
+	rc = codex_initialize(pathdhf);
 	ASSERT(rc == 0);
 
 	ctx = codex_client_context_new(pathcaf, pathcap, pathcrt, pathkey);

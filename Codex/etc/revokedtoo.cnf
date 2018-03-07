@@ -13,11 +13,11 @@ distinguished_name     = req_distinguished_name
 [ req_distinguished_name ]
 C                      = US
 ST                     = Colorado
-L                      = Westminster
+L                      = Broomfield
 O                      = Prairie Thorn
 OU                     = RnD
 CN                     = client.prairiethorn.org
-emailAddress           = bob@prairiethorn.org
+emailAddress           = alice@prairiethorn.org
 
 [ usr_cert ]
 basicConstraints       = CA:FALSE

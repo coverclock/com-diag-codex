@@ -27,7 +27,6 @@
 #include <openssl/objects.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
-#include "com/diag/diminuto/diminuto_store.h"
 
 /*******************************************************************************
  * PARAMETERS
@@ -94,21 +93,11 @@
  * GLOBALS
  ******************************************************************************/
 
-/**
- * Global mutual exclusion semaphore used to protect global variables.
- */
-extern pthread_mutex_t codex_mutex;
+#undef CODEX_PARAMETER
+#define CODEX_PARAMETER(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
+	extern _TYPE_ codex_##_NAME_;
 
-/**
- * Points to the one and only Diffie-Hellman parameter structure.
- */
-extern DH * codex_dh;
-
-/**
- * Forms the root of the key-value store (a red-black tree) containing the
- * Certificate Revocation List cache.
- */
-extern diminuto_store_t * codex_crl;
+#include "codex_parameters.h"
 
 /*******************************************************************************
  * DEBUGGING
@@ -178,19 +167,6 @@ extern int codex_verification_callback(int ok, X509_STORE_CTX * ctx);
  * @param length is the requested key length which is ignored.
  * @return a pointer to the DH parameter structure.
  */
-extern DH * codex_parameters_callback(SSL * ssl, int exp, int length);
-
-/*******************************************************************************
- * HELPERS
- ******************************************************************************/
-
-/**
- * Import Diffie Hellman parameters from the specified file.
- * @param dhf is the name of the file. Note: the DH parameter structure
- * might be dynamically allocated in the OpenSSL implementation; I don't find
- * an API call to release it.
- * @return a pointer to a new DH parameter structure.
- */
-extern DH * codex_parameters_import(const char * dhf);
+extern DH * codex_diffiehellman_callback(SSL * ssl, int exp, int length);
 
 #endif
