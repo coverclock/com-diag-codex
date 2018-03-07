@@ -26,8 +26,8 @@
 #include <openssl/x509.h>
 #include <openssl/objects.h>
 #include <openssl/conf.h>
-#include <openssl/asn1.h>
 #include <openssl/err.h>
+#include "com/diag/diminuto/diminuto_store.h"
 
 /*******************************************************************************
  * PARAMETERS
@@ -95,14 +95,20 @@
  ******************************************************************************/
 
 /**
- * Points to the one and only Diffie Hellman parameter structure.
+ * Global mutual exclusion semaphore used to protect global variables.
+ */
+extern pthread_mutex_t codex_mutex;
+
+/**
+ * Points to the one and only Diffie-Hellman parameter structure.
  */
 extern DH * codex_dh;
 
 /**
- * Global mutual exclusion semaphore used to protect global variables.
+ * Forms the root of the key-value store (a red-black tree) containing the
+ * Certificate Revocation List cache.
  */
-extern pthread_mutex_t codex_mutex;
+extern diminuto_store_t * codex_crl;
 
 /*******************************************************************************
  * DEBUGGING
@@ -132,8 +138,8 @@ static inline void codex_cerror(void)
  * GETTORS/SETTORS
  ******************************************************************************/
 
-#undef COM_DIAG_CODEX_SETTOR
-#define COM_DIAG_CODEX_SETTOR(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
+#undef CODEX_PARAMETER
+#define CODEX_PARAMETER(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
 	extern _TYPE_ codex_set_##_NAME_(_TYPE_ now);
 
 #include "codex_parameters.h"

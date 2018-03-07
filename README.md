@@ -636,6 +636,9 @@ A. Diquet, "Everything You've Always Wanted to Know About Certificate
 Validation with OpenSSL (but Were Afraid to Ask)", iSECpartners, 2012-10-29,
 <https://github.com/iSECPartners/ssl-conservatory/blob/master/openssl/everything-you-wanted-to-know-about-openssl.pdf?raw=true>
 
+Frank4DD, "certserial.c", 2014,
+<http://fm4dd.com/openssl/certserial.htm>
+
 V. Geraskin, "OpenSSL and select()", 2014-02-21,
 <http://www.past5.com/tutorials/2014/02/21/openssl-and-select/>
 

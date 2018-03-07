@@ -41,16 +41,18 @@ static bool initialized = false;
  * GLOBALS
  ******************************************************************************/
 
+pthread_mutex_t codex_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 DH * codex_dh = (DH *)0;
 
-pthread_mutex_t codex_mutex = PTHREAD_MUTEX_INITIALIZER;
+diminuto_store_t * codex_crl = DIMINUTO_STORE_EMPTY;
 
 /*******************************************************************************
  * PARAMETERS
  ******************************************************************************/
 
-#undef COM_DIAG_CODEX_SETTOR
-#define COM_DIAG_CODEX_SETTOR(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
+#undef CODEX_PARAMETER
+#define CODEX_PARAMETER(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
 	_TYPE_ codex_##_NAME_ = _DEFAULT_;
 
 #include "codex_parameters.h"
@@ -325,8 +327,8 @@ int codex_parameters(const char * dhf)
  * GETTORS/SETTORS
  ******************************************************************************/
 
-#undef COM_DIAG_CODEX_SETTOR
-#define COM_DIAG_CODEX_SETTOR(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
+#undef CODEX_PARAMETER
+#define CODEX_PARAMETER(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
 	_TYPE_ codex_set_##_NAME_(_TYPE_ now) \
 	{ \
 		_TYPE_ was = (_TYPE_)_UNDEFINED_; \

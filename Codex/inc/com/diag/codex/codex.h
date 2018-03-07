@@ -24,6 +24,7 @@
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/crypto.h>
+#include <openssl/asn1.h>
 
 /*******************************************************************************
  * PLATFORM
@@ -157,6 +158,23 @@ typedef enum CodexIndication {
 	CODEX_INDICATION_FAREND		= -1,	/* Tell FE to prepare for action. */
 	CODEX_INDICATION_NONE		=  0,	/* No action pending or in progress. */
 } codex_indication_t;
+
+/**
+ * @def COM_DIAG_CODEX_SERIALNUMBER_BUFSIZE
+ * Generates the minimum size of a buffer that can contain the ASCII hexadecimal
+ * representation of a X.509 certificate serial number according to RFC 5280
+ * 4.1.2.2 plus a trailing NUL.
+ */
+#define COM_DIAG_CODEX_SERIALNUMBER_BUFSIZE ((20 * 2) + 1)
+
+/**
+ * This defines a type that is a character array large enough to contain the
+ * ASCII hexadecimal representation of a X.509 certificate serial number
+ * including a trailing NUL. By convention, in Codex the certificate serial
+ * number is represented as a hexadecimal number in which the alphabetic digits
+ * are all upper case.
+ */
+typedef char (codex_serialnumber_t)[COM_DIAG_CODEX_SERIALNUMBER_BUFSIZE];
 
 /*******************************************************************************
  * ERRORS
@@ -293,6 +311,14 @@ extern int codex_connection_verify(codex_connection_t * ssl, const char * expect
 static inline bool codex_connection_verified(int mask) {
 	return (((mask & CODEX_VERIFY_DNS) != 0) && ((mask & (CODEX_VERIFY_PASSED | CODEX_VERIFY_CN | CODEX_VERIFY_FQDN)) != 0));
 }
+
+/*******************************************************************************
+ * REVOCATION
+ ******************************************************************************/
+
+extern char * codex_serialnumber_to_string(ASN1_INTEGER * srl, char * srn, size_t size);
+
+extern bool codex_serialnumber_is_revoked(const char * srn);
 
 /*******************************************************************************
  * INPUT/OUTPUT

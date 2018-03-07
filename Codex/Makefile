@@ -23,8 +23,8 @@ PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	6# API changes that may require that applications be modified.
-MINOR				:=	2# Only functionality or features added with no legacy API changes.
-BUILD				:=	7# Only bugs fixed with no API changes or new functionality.
+MINOR				:=	3# Only functionality or features added with no legacy API changes.
+BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
 # X86_64 Ubuntu build server.
@@ -212,8 +212,8 @@ TARGETSHARED		:=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
-TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt $(SSL_TXT)/ca.txt $(SSL_TXT)/client.txt $(SSL_TXT)/server.txt $(SSL_TXT)/bogus.txt $(SSL_TXT)/self.txt $(SSL_TXT)/revoked.txt
-TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd $(SSL_PWD)/ca.pwd $(SSL_PWD)/client.pwd $(SSL_PWD)/server.pwd $(SSL_PWD)/bogus.pwd $(SSL_PWD)/revoked.pwd
+TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt $(SSL_TXT)/ca.txt $(SSL_TXT)/client.txt $(SSL_TXT)/server.txt $(SSL_TXT)/bogus.txt $(SSL_TXT)/self.txt $(SSL_TXT)/revoked.txt $(SSL_TXT)/revokedtoo.txt
+TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd $(SSL_PWD)/ca.pwd $(SSL_PWD)/client.pwd $(SSL_PWD)/server.pwd $(SSL_PWD)/bogus.pwd $(SSL_PWD)/revoked.pwd $(SSL_PWD)/revokedtoo.pwd
 TARGETPARAMETERS	:=	$(SSL_CRT)/dh.pem
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
@@ -414,6 +414,28 @@ $(SSL_CRT)/revoked.pem:	$(SSL_CRT)/revokedcert.pem $(SSL_CRT)/revokedkey.pem $(S
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
 	chmod 600 $@
 
+##### Revoked Too (EXPERIMENTAL)
+
+$(SSL_CRT)/revoketoodreq.pem:	$(ETC_DIR)/revoketood.cnf
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) req -config $(ETC_DIR)/revoketood.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/revoketoodkey.pem -out $@
+	chmod 600 $@
+
+$(SSL_CRT)/revoketoodkey.pem:	$(SSL_CRT)/revoketoodreq.pem
+
+$(SSL_CRT)/revoketoodcert.pem:	$(SSL_CRT)/revoketoodreq.pem $(ETC_DIR)/revoketood.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/revoketoodreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/revoketood.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	$(C_REHASH) $(SSL_CRT)
+	chmod 600 $@
+
+$(SSL_CRT)/revoketood.pem:	$(SSL_CRT)/revoketoodcert.pem $(SSL_CRT)/revoketoodkey.pem $(SSL_CRT)/rootcert.pem
+	D=`dirname $@`; mkdir -p $$D
+	cat $^ > $@
+	$(C_REHASH) $(SSL_CRT)
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
+
 ##### Diffie Hellman Parameters
 
 $(SSL_CRT)/dh.pem:
@@ -435,6 +457,7 @@ credentials-clean:
 	( cd $(SSL_CRT); rm -f boguskey.pem bogus.pem bogusreq.pem )
 	( cd $(SSL_CRT); rm -f selfkey.pem self.pem selfreq.pem )
 	( cd $(SSL_CRT); rm -f revokedkey.pem revoked.pem revokedreq.pem )
+	( cd $(SSL_CRT); rm -f revokedtookey.pem revokedtoo.pem revokedtooreq.pem )
 	
 .PHONY:	parameters parameters-clean
 

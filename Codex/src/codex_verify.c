@@ -35,8 +35,8 @@
  * PARAMETERS
  ******************************************************************************/
 
-#undef COM_DIAG_CODEX_SETTOR
-#define COM_DIAG_CODEX_SETTOR(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
+#undef CODEX_PARAMETER
+#define CODEX_PARAMETER(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
 	extern _TYPE_ codex_##_NAME_;
 
 #include "codex_parameters.h"
@@ -52,32 +52,6 @@
 #endif
 
 /*******************************************************************************
- * HELPERS
- ******************************************************************************/
-
-static char * codex_serialnumber2string(ASN1_INTEGER * srl, char * buffer, size_t size)
-{
-	int ll = 0;
-	int ii = 0;
-	unsigned int dd = 0;
-
-	if (size > 0) {
-		ll = (size - 1) / 2;
-		for (ii = 0; (ii < srl->length) && (ii < ll); ++ii) {
-			dd = (srl->data[ii] & 0xf0) >> 4;
-			buffer[ii * 2] = (dd < 0xa) ? '0' + dd : 'A' + dd - 10;
-			dd = (srl->data[ii] & 0x0f);
-			buffer[(ii * 2) + 1] = (dd < 0xa) ? '0' + dd : 'A' + dd - 10;
-		}
-		if (size > (ii * 2)) {
-			buffer[ii * 2] = '\0';
-		}
-	}
-
-	return buffer;
-}
-
-/*******************************************************************************
  * CALLBACKS
  ******************************************************************************/
 
@@ -89,81 +63,117 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 	X509_NAME * nam = (X509_NAME *)0;
 	int error = 0;
 	const char * text = (const char *)0;
-	char srn[(20 /* RFC 5280 4.1.2.2 */ * 2) + 1] = { '\0' };
+	codex_serialnumber_t srn = { '\0' };
 	char subject[256] = { '\0' };
 	char issuer[256] = { '\0' };
+	bool revoked = false;
 
-	depth = X509_STORE_CTX_get_error_depth(ctx);
+	do {
 
-	crt = X509_STORE_CTX_get_current_cert(ctx);
-	if (crt != (X509 *)0) {
-
-		srl = X509_get_serialNumber(crt);
-		if (srl != (ASN1_INTEGER *)0) {
-			codex_serialnumber2string(srl, srn, sizeof(srn));
-			srn[sizeof(srn) - 1] = '\0';
-			DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p SRL=%s\n", ctx, crt, srn);
+		crt = X509_STORE_CTX_get_current_cert(ctx);
+		if (crt == (X509 *)0) {
+			ok = 0;
+			DIMINUTO_LOG_ERROR("codex_verification_callback: x509 ctx=%p crt=%p\n", ctx, crt);
+			break;
 		}
 
 		/*
-		 * These fields are deliberately displayed in the same order as when
-		 * using the "openssl x509 -subject -issuer -noout" command.
+		 * If the OpenSSL validator that is calling us didn't like the
+		 * certificate, see why. If it was becuase it has a self-signed
+		 * certificate, check the (sadly) global variable to see if we
+		 * are allowed to accept self-signed certificates (which are a
+		 * really bad idea, but useful none the less). If so, complain
+		 * and change the result back to OKAY.
 		 */
 
-		nam = X509_get_subject_name(crt);
-		if (nam != (X509_NAME *)0) {
-			X509_NAME_oneline(nam, subject, sizeof(subject));
-			subject[sizeof(subject) - 1] = '\0';
-			DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p SUBJECT[%d]=\"%s\"\n", ctx, crt, depth, subject);
+		if (!ok) {
+
+			error = X509_STORE_CTX_get_error(ctx);
+			text = X509_verify_cert_error_string(error);
+			DIMINUTO_LOG_WARNING("codex_verification_callback: x509 ctx=%p crt=%p error=%d=\"%s\"\n", ctx, crt, error, (text != (const char *)0) ? text : "");
+
+			switch (error) {
+
+			case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
+			case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
+				if (codex_self_signed_certificates) {
+					DIMINUTO_LOG_NOTICE("codex_verification_callback: x509 ctx=%p crt=%p self_signed_certificates=%d\n", ctx, crt, codex_self_signed_certificates);
+					ok = 1;
+				}
+				break;
+
+			default:
+				/* Do nothing. */
+				break;
+
+			}
+
 		}
+
+		if (!ok) {
+			break;
+		}
+
+		srl = X509_get_serialNumber(crt);
+		if (srl == (ASN1_INTEGER *)0) {
+			ok = 0;
+			DIMINUTO_LOG_WARNING("codex_verification_callback: x509 ctx=%p crt=%p srl=%p\n", ctx, crt, srl);
+			break;
+		}
+
+		codex_serialnumber_to_string(srl, srn, sizeof(srn));
+		srn[sizeof(srn) - 1] = '\0';
+		DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p SRL=%s\n", ctx, crt, srn);
+
+		/*
+		 * These fields are deliberately displayed in the same order as when
+		 * using the "openssl x509 -subject -issuer -noout" command. Note that
+		 * the SUBJECT contains the Common Name (CN), which is a useful thing
+		 * to know when troubleshooting.
+		 */
+
+		depth = X509_STORE_CTX_get_error_depth(ctx);
+		if (depth < 0) {
+			ok = 0;
+			DIMINUTO_LOG_WARNING("codex_verification_callback: x509 ctx=%p crt=%p depth=%d\n", ctx, crt, depth);
+			break;
+		}
+
+		nam = X509_get_subject_name(crt);
+		if (nam == (X509_NAME *)0) {
+			ok = 0;
+			DIMINUTO_LOG_WARNING("codex_verification_callback: x509 ctx=%p crt=%p sub=%p\n", ctx, crt, nam);
+			break;
+		}
+
+		X509_NAME_oneline(nam, subject, sizeof(subject));
+		subject[sizeof(subject) - 1] = '\0';
+		DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p SUBJECT[%d]=\"%s\"\n", ctx, crt, depth, subject);
 
 		nam = X509_get_issuer_name(crt);
-		if (nam != (X509_NAME *)0) {
-			X509_NAME_oneline(nam, issuer, sizeof(issuer));
-			issuer[sizeof(issuer) - 1] = '\0';
-			DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p ISSUER[%d]=\"%s\"\n", ctx, crt, depth, issuer);
+		if (nam == (X509_NAME *)0) {
+			ok = 0;
+			DIMINUTO_LOG_WARNING("codex_verification_callback: x509 ctx=%p crt=%p iss=%p\n", ctx, crt, nam);
+			break;
 		}
 
-	}
+		X509_NAME_oneline(nam, issuer, sizeof(issuer));
+		issuer[sizeof(issuer) - 1] = '\0';
+		DIMINUTO_LOG_INFORMATION("codex_verification_callback: x509 ctx=%p crt=%p ISSUER[%d]=\"%s\"\n", ctx, crt, depth, issuer);
 
-	if (!ok) {
+		/*
+		 * We wait until we've displayed some possibly useful diagnostic stuff
+		 * before seeing if this certificate has been revoked.
+		 */
 
-		error = X509_STORE_CTX_get_error(ctx);
-		text = X509_verify_cert_error_string(error);
-		DIMINUTO_LOG_NOTICE("codex_verification_callback: x509 ctx=%p crt=%p error=%d=\"%s\"\n", ctx, crt, error, (text != (const char *)0) ? text : "");
-
-		switch (error) {
-
-		case X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT:
-		case X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN:
-			if (codex_self_signed_certificates) {
-				DIMINUTO_LOG_NOTICE("codex_verification_callback: x509 ctx=%p crt=%p self_signed_certificates=%d\n", ctx, crt, codex_self_signed_certificates);
-				ok = 1;
-			}
+		revoked = codex_serialnumber_is_revoked(srn);
+		if (revoked) {
+			ok = 0;
+			DIMINUTO_LOG_WARNING("codex_verification_callback: x509 ctx=%p crt=%p SRL=%s revoked=%d\n", ctx, crt, srn, revoked);
 			break;
-
-		default:
-			/* Do nothing. */
-			break;
-
 		}
 
-	}
-
-	/*
-	 * Surely if the certificate pointer returned by X509_STORE is null, then
-	 * OpenSSL's own validator would not have verified it. But never the less,
-	 * we check.
-	 */
-
-	if (crt != (X509 *)0) {
-		/* Do nothing. */
-	} else if (!ok) {
-		/* Do nothing. */
-	} else {
-		DIMINUTO_LOG_NOTICE("codex_verification_callback: ctx=%p crt=%p ok=%d\n", ctx, crt, ok);
-		ok = 0;
-	}
+	} while (0);
 
 	return ok;
 }
@@ -185,7 +195,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 	X509 * crt = (X509 *)0;
 	X509_NAME * subject = (X509_NAME *)0;
 	ASN1_INTEGER * srl = (ASN1_INTEGER *)0;
-	char srn[(20 /* RFC 5280 4.1.2.2 */ * 2) + 1] = { '\0' };
+	codex_serialnumber_t srn = { '\0' };
 	int count = 0;
 	X509_EXTENSION * ext = (X509_EXTENSION *)0;
 	int ii = 0;
@@ -281,7 +291,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			break;
 		}
 
-		codex_serialnumber2string(srl, srn, sizeof(srn));
+		codex_serialnumber_to_string(srl, srn, sizeof(srn));
 		srn[sizeof(srn) - 1] = '\0';
 
 		DIMINUTO_LOG_INFORMATION("codex_connection_verify: srl ssl=%p crt=%p SRL=%s\n", ssl, crt, srn);
