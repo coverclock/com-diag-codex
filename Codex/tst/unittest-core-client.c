@@ -36,8 +36,8 @@ static diminuto_ticks_t period = 0;
 static size_t bufsize = 256;
 static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
 static const char * pathcap = (const char *)0;
+static const char * pathcrl = (const char *)0;
 static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
-static const char * pathcrl = COM_DIAG_CODEX_OUT_CRT_PATH "/" "crl.txt";
 static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
 static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
 static int selfsigned = -1;
@@ -164,8 +164,10 @@ int main(int argc, char ** argv)
 	rc = codex_initialize(pathdhf);
 	ASSERT(rc == 0);
 
-	rc = codex_revoked_import(pathcrl);
-	ASSERT(rc == 0);
+	if (pathcrl != (const char *)0) {
+		rc = codex_revoked_import(pathcrl);
+		ASSERT(rc >= 0);
+	}
 
 	ctx = codex_client_context_new(pathcaf, pathcap, pathcrt, pathkey);
 	ASSERT(ctx != (SSL_CTX *)0);
