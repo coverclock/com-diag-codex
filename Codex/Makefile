@@ -213,13 +213,14 @@ TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
 TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt $(SSL_TXT)/ca.txt $(SSL_TXT)/client.txt $(SSL_TXT)/server.txt $(SSL_TXT)/bogus.txt $(SSL_TXT)/self.txt $(SSL_TXT)/revoked.txt $(SSL_TXT)/revokedtoo.txt
-TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd $(SSL_PWD)/ca.pwd $(SSL_PWD)/client.pwd $(SSL_PWD)/server.pwd $(SSL_PWD)/bogus.pwd $(SSL_PWD)/revoked.pwd $(SSL_PWD)/revokedtoo.pwd
 TARGETPARAMETERS	:=	$(SSL_CRT)/dh.pem
+TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd $(SSL_PWD)/ca.pwd $(SSL_PWD)/client.pwd $(SSL_PWD)/server.pwd $(SSL_PWD)/bogus.pwd $(SSL_PWD)/revoked.pwd $(SSL_PWD)/revokedtoo.pwd
+TARGETREVOCATIONS	:=	$(SSL_CRT)/crl.txt
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
 TARGETPROGRAMS		:=	$(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS)
 
-TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPARAMETERS) $(TARGETPASSWORDS)
+TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPASSWORDS) $(TARGETREVOCATIONS) $(TARGETPARAMETERS)
 
 ########## Main Entry Points
 
@@ -392,7 +393,7 @@ $(SSL_CRT)/self.pem:	$(SSL_CRT)/selfcert.pem $(SSL_CRT)/selfkey.pem
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
 	chmod 600 $@
 
-##### Revoked (EXPERIMENTAL)
+##### Revoked
 
 $(SSL_CRT)/revokedreq.pem:	$(ETC_DIR)/revoked.cnf
 	D=`dirname $@`; mkdir -p $$D
@@ -414,7 +415,7 @@ $(SSL_CRT)/revoked.pem:	$(SSL_CRT)/revokedcert.pem $(SSL_CRT)/revokedkey.pem $(S
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
 	chmod 600 $@
 
-##### Revoked Too (EXPERIMENTAL)
+##### Revoked Too
 
 $(SSL_CRT)/revokedtooreq.pem:	$(ETC_DIR)/revokedtoo.cnf
 	D=`dirname $@`; mkdir -p $$D
@@ -434,6 +435,13 @@ $(SSL_CRT)/revokedtoo.pem:	$(SSL_CRT)/revokedtoocert.pem $(SSL_CRT)/revokedtooke
 	cat $^ > $@
 	$(C_REHASH) $(SSL_CRT)
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
+
+##### Certificate Revocation List
+
+$(SSL_CRT)/crl.txt:	$(SSL_CRT)/revoked.pem $(SSL_CRT)/revokedtoo.pem
+	cp /dev/null $@
+	for F in $^; do openssl x509 -in $$F -serial -noout | sed 's/^serial=//' >> $@; done
 	chmod 600 $@
 
 ##### Diffie Hellman Parameters

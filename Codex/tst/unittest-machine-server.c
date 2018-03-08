@@ -48,6 +48,7 @@ static const char * expected = "client.prairiethorn.org";
 static size_t bufsize = 256;
 static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
 static const char * pathcap = (const char *)0;
+static const char * pathcrl = (const char *)0;
 static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
 static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
 static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
@@ -229,7 +230,7 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:C:D:K:P:R:Se:n:s?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:C:D:K:L:P:R:Se:n:s?")) >= 0) {
 
         switch (opt) {
 
@@ -247,6 +248,10 @@ int main(int argc, char ** argv)
 
         case 'K':
         	pathkey = optarg;
+        	break;
+
+        case 'L':
+        	pathcrl = (*optarg != '\0') ? optarg : (const char *)0;
         	break;
 
         case 'P':
@@ -305,6 +310,11 @@ int main(int argc, char ** argv)
 
 	rc = codex_initialize(pathdhf);
 	ASSERT(rc == 0);
+
+	if (pathcrl != (const char *)0) {
+		rc = codex_revoked_import(pathcrl);
+		ASSERT(rc >= 0);
+	}
 
 	ctx = codex_server_context_new(pathcaf, pathcap, pathcrt, pathkey);
 	ASSERT(ctx != (codex_context_t *)0);

@@ -95,20 +95,30 @@ int codex_revoked_import_stream(FILE * fp)
 {
 	int rc = 0;
 	int nn = 0;
+	int ch = '\0';
 	char * srn = (char *)0;
 	diminuto_tree_t * here = (diminuto_tree_t *)0;
 	diminuto_tree_t * there = (diminuto_tree_t *)0;
 
 	while (true) {
 
-		nn = fscanf(fp, " %20m[0123456789abcdefABCDEF]%*[^\n]\n", &srn);
+		srn = (char *)0;
+		nn = fscanf(fp, " %m[0123456789abcdefABCDEF]", &srn);
 		if (nn == EOF) {
 			break;
 		} else if (nn != 1) {
-			continue;
+			break;
+		} else if (srn == (char *)0) {
+			break;
 		} else {
 			/* Do nothing. */
 		}
+
+		do {
+			ch = fgetc(fp);
+		} while (ch != '\n');
+
+		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: crl SRL=%s\n", srn);
 
 		here = (diminuto_tree_t *)malloc(sizeof(diminuto_tree_t));
 		if (here == (diminuto_tree_t *)0) {
@@ -127,8 +137,6 @@ int codex_revoked_import_stream(FILE * fp)
 			free(here);
 		}
 
-		DIMINUTO_LOG_DEBUG("codex_revoked_import_stream: crl SRL=%s\n", srn);
-
 		rc += 1;
 
 	}
@@ -144,7 +152,6 @@ int codex_revoked_import(const char * crl)
 	do {
 
 		if (crl == (const char *)0) {
-			rc = 0; /* Not an error. */
 			break;
 		}
 
@@ -154,7 +161,7 @@ int codex_revoked_import(const char * crl)
 			break;
 		}
 
-		DIMINUTO_LOG_DEBUG("codex_revoked_import: crl=\"%s\"\n", crl);
+		DIMINUTO_LOG_INFORMATION("codex_revoked_import: crl crl=\"%s\"\n", crl);
 
 		rc = codex_revoked_import_stream(fp);
 
