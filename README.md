@@ -33,13 +33,7 @@ Socket Layer or cyber-security shows up on my resume. But people learn in
 different ways, and my way has always been hands-on learn-by-doing. Codex
 has been a useful mechanism through which I would like to think I've
 learned enough to use OpenSSL in the kinds of Internet of Things product
-development efforts on which I get paid to work. However, certificate
-verification seems like an enormously complicated (and, perhaps, more than
-a little terrifying) subject to me, and I am at best just beginning to
-integrate what I'm learning about it into Codex. In particular, reliable
-Certificate Revocation List (CRL) implementations remain a puzzlement. And
-it seems like new security holes are being discovered in OpenSSL (and,
-indeed, in every other SSL framework) on a regular basis. No warranty is
+development efforts on which I get paid to work. No warranty is
 expressed or implied.
 
 ## What Works
@@ -115,6 +109,8 @@ the server data, and expect to receive the exact same data in return. The
 client portions of each unit test checksums the data sent to and received
 from the server to verify it was the same.
 
+### Core
+
 The Core layer allows peers to establish secure (authenticated, encrypted)
 stream connections and pass data in a full-duplex fashion. The Core
 layer API has several sub-layers: initializing the library, creating
@@ -144,6 +140,8 @@ applications. A multi-threaded server approach, which uses blocking reads
 and writes, albeit less scalable, might ultimately be more useful. But as
 the unit tests demonstrate, multiplexing via ```select(2)``` can be done.
 
+### Machine
+
 The Machine layer allows peers to establish secure stream connections
 and pass variable sized packets in a full-duplex fashion. In addition,
 the peers may pass "indications" in-band to signal actions to the far
@@ -152,11 +150,13 @@ handle the I/O streams; this also simplifies multiplexing the OpenSSL
 sockets using the ```select(2)``` system call. The Machine layer allows
 the SSL byte stream to be used in a datagram-like fashion.
 
-The Handshake layer - which only works in OpenSSL 1.0.2 - allows peers
-to establish secure stream connections, pass variable sized packets
-in full-duplex fashion, and use indications to coordinate the of the
-session so that new encryption keys can be established and each end can be
-re-authenticated. This is especially important for long lived connections,
+### Handshake
+
+The Handshake layer - the handshake portion of which only works in OpenSSL
+1.0.2 - allows peers to establish secure stream connections, pass variable
+sized packets in full-duplex fashion, and use indications to coordinate the
+of the session so that new encryption keys can be established and each end can
+be re-authenticated. This is especially important for long lived connections,
 since the longer an encryption key is used, the more likely it is that
 it will be cracked. However, TLS 1.3, due to arrive when OpenSSL 1.1.1
 is fully released, makes this technique obsolete by replacing it with
@@ -260,6 +260,8 @@ testing.
 * ```client.pem``` is a certificate signed by root for client-side unit tests.
 * ```self.pem``` is a self-signed certificate.
 * ```server.pem``` is a certificate signed by root and CA for server-side unit tests.
+* ```revoked.pem``` is a certificate whose serial number is in the generated list of revoked certificates.
+* ```revokedtoo.pem``` is another certificate whose serial number is in the generated list of revoked certificates.
 * ```root.pem``` is a root certificate.
 
 When building Codex on different computers and then running the unit tests
