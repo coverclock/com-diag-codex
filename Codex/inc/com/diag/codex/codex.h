@@ -311,24 +311,6 @@ static inline bool codex_connection_verified(int mask) {
 }
 
 /*******************************************************************************
- * REVOCATION
- ******************************************************************************/
-
-extern char * codex_serialnumber_to_string(ASN1_INTEGER * srl, char * srn, size_t size);
-
-extern bool codex_serialnumber_is_revoked(const char * srn);
-
-extern int codex_revoked_import_stream(FILE * fp);
-
-extern int codex_revoked_import(const char * crl);
-
-extern int codex_revoked_export_stream(FILE *fp);
-
-extern int codex_revoked_export(const char * crl);
-
-extern int codex_revoked_free(void);
-
-/*******************************************************************************
  * INPUT/OUTPUT
  ******************************************************************************/
 

@@ -169,4 +169,60 @@ extern int codex_verification_callback(int ok, X509_STORE_CTX * ctx);
  */
 extern DH * codex_diffiehellman_callback(SSL * ssl, int exp, int length);
 
+/*******************************************************************************
+ * REVOCATION
+ ******************************************************************************/
+
+/**
+ * Convert a certificate serial number in ASN1 integer form into a printable
+ * string.
+ * @param srl points to the serial number in ASN1 integer form.
+ * @param srn points to the buffer in which the character string is placed.
+ * @param size is the number of bytes in the buffer.
+ * @return a pointer to the character string or NULL if an error occurred.
+ */
+extern char * codex_serialnumber_to_string(ASN1_INTEGER * srl, char * srn, size_t size);
+
+/**
+ * Return true if a serial number is revoked, false otherwise.
+ * @param srn points to the serial number in character string form.
+ * @return true if revoked, false otherwise.
+ */
+extern bool codex_serialnumber_is_revoked(const char * srn);
+
+/**
+ * Import an ASCII hexadecimal list of revoked serial numbers from a FILE
+ * stream.
+ * @param fp points to the FILE stream.
+ * @return the number of non-unique serial numbers imported or <0 if error.
+ */
+extern int codex_revoked_import_stream(FILE * fp);
+
+/**
+ * Import an ASCII hexadecimal list of revoked serial numbers from a file.
+ * @param crl points to the file name.
+ * @return the number of non-unique serial numbers imported or <0 if error.
+ */
+extern int codex_revoked_import(const char * crl);
+
+/**
+ * Export an ASCII hexadecimal list of revoked serial numbers to a file stream.
+ * @param fp points to the FILE stream.
+ * @return the number of serial numbers exported or <0 if error.
+ */
+extern int codex_revoked_export_stream(FILE *fp);
+
+/**
+ * Export an ASCII hexadecimal list of revoked serial numbers to a file.
+ * @param crl points to the file name.
+ * @return the number of serial numbers exported or <0 if error.
+ */
+extern int codex_revoked_export(const char * crl);
+
+/**
+ * Free all memory associated with the global certificate revocation list cache
+ * of ASCII hexadecimal serial numbers, which are stored in a red-black tree.
+ * @return the number of freed serial number entries or <0 if error.
+ */
+extern int codex_revoked_free(void);
 #endif
