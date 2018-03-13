@@ -394,8 +394,8 @@ Here is an example.
     9FE8CED0A7934174
     9FE8CED0A7934175
 
-The serial numbers are stored in-memory in a red-black tree (a kind of self-
-balancing binary tree), so the search time is relatively efficient.
+The serial numbers are stored in-memory in a red-black tree (a kind of
+self-balancing binary tree), so the search time is relatively efficient.
 
 ## Configuration
 
