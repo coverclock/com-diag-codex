@@ -321,7 +321,7 @@ context API, you can name them anything you want at run-time.
 
 ## Verification
 
-Besides using the usual OpenSSL verification mechanisms, Codex provides a
+In addition to using the usual OpenSSL verification mechanisms, Codex provides a
 verification function that may be invoked by the application.
 ```codex_connection_verify()``` returns a mask of bits, defined by
 ```codex_verify_t```, that determines if and how the certificate associated
@@ -330,30 +330,36 @@ a connection from either the server or the client is specified in the function
 ```codex_connection_verified()```, but applications are free to apply their
 own criteria. The default criteria is as follows.
 
-Codex requires that either the Common Name (```CN```) or the
+* Codex rejects self-signed certificates, unless this requirement is explicitly
+disabled at build time in the ```Makefile``` or at run-time through a settor
+in the private API. This is implemented through the standard OpenSSL
+verification call back.
+
+* If the application chooses to initialize Codex with a list of revoked
+certificate serial numbers (see below), Codex requires that *every* certificate
+in a certificate chain have a serial number that is not revoked. This is
+implemented through the standard OpenSSL verification call back.
+
+* Codex requires that either the Common Name (```CN```) or the
 Fully-Qualified Domain Name or FQDN (coded as a ```DNS``` value in
 ```subjectAltName```) match the expected name the application provides to the
 Codex API (or the expected name is null, in which case Codex ignores this
 requirement.) See the example certificate configuration files that Codex uses
 for the unit tests in the ```etc``` directory.
 
-Codex rejects self-signed certificates, unless this requirement is explicitly
-disabled at build time in the ```Makefile``` or at run-time through a settor
-in the private API.
-
-Codex expects a DNS name encoded in the certificate in a standards
+* Codex expects a DNS name encoded in the certificate in a standards
 complaint fashion (as a ```subjectAltName```). Multiple DNS names may be
 encoded. At least *one* of these DNS names must resolve to the IP address
 from which the SSL connection is coming.
 
-It is not required that the FQDN that matches against the expected name be the
+* It is *not* required that the FQDN that matches against the expected name be the
 *same* FQDN that resolves via DNS to an IP address of the SSL connection. Here
 is an example of why. The server may expect "*.prairiethorn.org", which could
 be either the CN or a FQDN entry in the client certificate, but the certificate
 will also have multiple actual DNS-resolvable FQDNs like
 "alpha.prairiethorn.org", "beta.prairiethorn.org", etc.
 
-It is also not required that if a peer connects with both an IPv4 and an IPv6
+* It is also *not* required that if a peer connects with both an IPv4 and an IPv6
 address (typically it will; see below) that they match the *same* FQDN
 specified in the certificate, or that *both* of the IPv4 and the IPv6 address
 matches. Here's an example of why. Depending on how ```/etc/host``` is
@@ -374,6 +380,19 @@ fully-qualified domain names in DNS, for example ```alpha.prairiethorn.org```
 for IPv4 and ```alpha-6.prairiethorn.org``` for IPv6; this allows hosts trying
 to connect to ```foo``` to be able to select the IP version by using a different
 host name when it is resolved via DNS.
+
+## Certificate Revocation Lists
+
+The Codex library does *not* directly handle signed certificate revocation lists
+or the real-time revocation of certificates using the Online Certificate Status
+Protocol (OCSP). It will however import a simple ASCII list of hexadecimal
+certificate serial numbers, and reject any connection whose certificate chain
+has a serial number on that list. The Codex CRL is a simple ASCII file
+containing a human readable and editable list of serial numbers, one per line.
+Here is an example.
+
+    9FE8CED0A7934174
+    9FE8CED0A7934175
 
 ## Configuration
 
@@ -560,6 +579,7 @@ either by the client (the server fails to authenticate) or the server
     unittest-verification-server
     unittest-verification-bogus
     unittest-verification-self
+    unittest-verification-revoked
 
 These unit tests disable verification and therefore pass.
 
@@ -567,6 +587,7 @@ These unit tests disable verification and therefore pass.
     unittest-noverification-server
     unittest-noverification-bogus
     unittest-noverification-self
+    unittest-noverification-revoked
 
 These unit test scripts that have my network host names baked in, but you
 can trivially modify them so that you can easily run tests between computers.
