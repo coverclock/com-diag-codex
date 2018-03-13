@@ -279,7 +279,7 @@ int main(int argc, char ** argv)
         	break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -e EXPECTED ] [ -n NEAREND ] [ -S | -s ]\n", program);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -e EXPECTED ] [ -n NEAREND ] [ -S | -s ]\n", program);
             return 1;
             break;
 
@@ -290,7 +290,7 @@ int main(int argc, char ** argv)
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" n=\"%s\" s=%d fdcount=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, (expected == (const char *)0) ? "" : expected, nearend, selfsigned, count);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" n=\"%s\" s=%d fdcount=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcrl == (const char *)0) ? "" : pathcrl, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, (expected == (const char *)0) ? "" : expected, nearend, selfsigned, count);
 
 	map = diminuto_fd_map_alloc(count);
 	ASSERT(map != (diminuto_fd_map_t *)0);
@@ -308,13 +308,8 @@ int main(int argc, char ** argv)
 		codex_set_self_signed_certificates(!!selfsigned);
 	}
 
-	rc = codex_initialize(pathdhf);
+	rc = codex_initialize(pathdhf, pathcrl);
 	ASSERT(rc == 0);
-
-	if (pathcrl != (const char *)0) {
-		rc = codex_revoked_import(pathcrl);
-		ASSERT(rc >= 0);
-	}
 
 	ctx = codex_server_context_new(pathcaf, pathcap, pathcrt, pathkey);
 	ASSERT(ctx != (codex_context_t *)0);

@@ -156,7 +156,7 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 		revoked = codex_serialnumber_is_revoked(srn);
 		if (revoked) {
 			ok = 0;
-			DIMINUTO_LOG_WARNING("codex_verification_callback: x509 ctx=%p crt=%p SRL=%s revoked=%d\n", ctx, crt, srn, revoked);
+			DIMINUTO_LOG_WARNING("codex_verification_callback: crl ctx=%p crt=%p SRL=%s\n", ctx, crt, srn);
 			break;
 		}
 

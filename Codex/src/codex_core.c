@@ -217,7 +217,7 @@ DH * codex_diffiehellman_callback(SSL * ssl, int exp, int length)
  * INITIALIZATION
  ******************************************************************************/
 
-int codex_initialize(const char * dhf)
+int codex_initialize(const char * dhf, const char * crl)
 {
 	int rc = -1;
 	BIO * bio = (BIO *)0;
@@ -242,8 +242,6 @@ int codex_initialize(const char * dhf)
 
 	DIMINUTO_CRITICAL_SECTION_END;
 
-	DIMINUTO_LOG_INFORMATION("codex_initialize: init dhf=\"%s\"\n", (dhf != (const char *)0) ? dhf : "");
-
 	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex_dh);
 
 		if (dhf == (const char *)0) {
@@ -251,6 +249,8 @@ int codex_initialize(const char * dhf)
 		} else  if (dh != (DH *)0) {
 			/* Do nothing. */
 		} else {
+
+			DIMINUTO_LOG_INFORMATION("codex_initialize: init dhf=\"%s\"\n", dhf);
 
 			do {
 
@@ -289,7 +289,18 @@ int codex_initialize(const char * dhf)
 
 	DIMINUTO_CRITICAL_SECTION_END;
 
-	return (initialized && (dh != (DH *)0)) ? 0 : -1;
+	/*
+	 * The revoked module has its own mutex.
+	 */
+
+	if (crl != (const char *)0) {
+
+		DIMINUTO_LOG_INFORMATION("codex_initialize: init crl=\"%s\"\n", crl);
+		rc = codex_revoked_import(crl);
+
+	}
+
+	return (initialized && (dh != (DH *)0) && (rc >= 0)) ? 0 : -1;
 }
 
 /*******************************************************************************
@@ -337,8 +348,8 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 			break;
 		}
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: ctx caf=\"%s\"\n", (caf != (const char *)0) ? caf : "");
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: ctx cap=\"%s\"\n", (cap != (const char *)0) ? cap : "");
+		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx caf=\"%s\"\n", (caf != (const char *)0) ? caf : "");
+		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx cap=\"%s\"\n", (cap != (const char *)0) ? cap : "");
 
 		rc = SSL_CTX_load_verify_locations(ctx, caf, cap);
 		if (rc != 1) {
@@ -355,7 +366,7 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 			break;
 		}
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: ctx env=\"%s\"\n", (env != (const char *)0) ? env : "");
+		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx env=\"%s\"\n", (env != (const char *)0) ? env : "");
 
 		password = secure_getenv(env);
 		if (password != (char *)0) {
@@ -363,7 +374,7 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 			SSL_CTX_set_default_passwd_cb_userdata(ctx, password);
 		}
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: ctx crt=\"%s\"\n", (crt != (const char *)0) ? crt : "");
+		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx crt=\"%s\"\n", (crt != (const char *)0) ? crt : "");
 
 		rc = SSL_CTX_use_certificate_chain_file(ctx, crt);
 		if (rc != 1) {
@@ -371,7 +382,7 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 			break;
 		}
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: ctx key=\"%s\"\n", (key != (const char *)0) ? key : "");
+		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx key=\"%s\"\n", (key != (const char *)0) ? key : "");
 
 		rc = SSL_CTX_use_PrivateKey_file(ctx, key, SSL_FILETYPE_PEM);
 		if (rc != 1) {
@@ -385,21 +396,21 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 		 * N.B. *NOT* SSL_CTX_set_cert_verify_callback()!
 		 */
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: ctx flags=0x%x\n", flags);
+		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx flags=0x%x\n", flags);
 
 		SSL_CTX_set_verify(ctx, flags, codex_verification_callback);
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: ctx depth=%d\n", depth);
+		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx depth=%d\n", depth);
 
 		SSL_CTX_set_verify_depth(ctx, depth);
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: ctx options=0x%x\n", options);
+		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx options=0x%x\n", options);
 
 		(void)SSL_CTX_set_options(ctx, options);
 
 		SSL_CTX_set_tmp_dh_callback(ctx, codex_diffiehellman_callback);
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: ctx list=\"%s\"\n", (list != (const char *)0) ? list : "");
+		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx list=\"%s\"\n", (list != (const char *)0) ? list : "");
 
 		rc = SSL_CTX_set_cipher_list(ctx, list);
 		if (rc != 1) {
@@ -407,7 +418,7 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 			break;
 		}
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: ctx context=\"%s\"\n", (context != (const char *)0) ? context : "");
+		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx context=\"%s\"\n", (context != (const char *)0) ? context : "");
 
 		if (context != (const char *)0) {
 			rc = SSL_CTX_set_session_id_context(ctx, context, strlen(context));

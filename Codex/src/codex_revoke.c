@@ -99,16 +99,27 @@ int codex_revoked_import_stream(FILE * fp)
 	char * srn = (char *)0;
 	diminuto_tree_t * here = (diminuto_tree_t *)0;
 	diminuto_tree_t * there = (diminuto_tree_t *)0;
+	size_t ll = 0;
 
 	while (true) {
 
 		srn = (char *)0;
 		nn = fscanf(fp, " %m[0123456789abcdefABCDEF]", &srn);
 		if (nn == EOF) {
+			errno = 0;
+			break;
+		} else if (nn < 0) {
+			/* errno set by fscanf(3). */
 			break;
 		} else if (nn != 1) {
+			errno = ENOENT;
 			break;
 		} else if (srn == (char *)0) {
+			errno = EIO;
+			break;
+		} else if ((ll = strlen(srn)) >= sizeof(codex_serialnumber_t)) {
+			free(srn);
+			errno = E2BIG;
 			break;
 		} else {
 			/* Do nothing. */
@@ -118,7 +129,7 @@ int codex_revoked_import_stream(FILE * fp)
 			ch = fgetc(fp);
 		} while (ch != '\n');
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import_stream: crl SRL=%s\n", srn);
+		DIMINUTO_LOG_DEBUG("codex_revoked_import_stream: crl SRL=%s[%zu]\n", srn, ll);
 
 		here = (diminuto_tree_t *)malloc(sizeof(diminuto_tree_t));
 		if (here == (diminuto_tree_t *)0) {
@@ -132,13 +143,23 @@ int codex_revoked_import_stream(FILE * fp)
 
 		DIMINUTO_CRITICAL_SECTION_END;
 
-		if (there != (diminuto_tree_t *)0) {
-			free(here->data);
-			free(here);
+		if (there == (diminuto_tree_t *)0) {
+			rc = -1;
+			break;
+		}
+
+		if (there != here) {
+			free(there->data);
+			free(there);
 		}
 
 		rc += 1;
 
+	}
+
+	if (errno != 0) {
+		diminuto_perror("fscanf");
+		rc = -1;
 	}
 
 	return rc;
@@ -161,7 +182,7 @@ int codex_revoked_import(const char * crl)
 			break;
 		}
 
-		DIMINUTO_LOG_INFORMATION("codex_revoked_import: crl crl=\"%s\"\n", crl);
+		DIMINUTO_LOG_DEBUG("codex_revoked_import: crl crl=\"%s\"\n", crl);
 
 		rc = codex_revoked_import_stream(fp);
 
@@ -170,6 +191,80 @@ int codex_revoked_import(const char * crl)
 		}
 
 	} while (0);
+
+	return rc;
+}
+
+int codex_revoked_export_stream(FILE *fp)
+{
+	int rc = 0;
+	diminuto_tree_t * here = (diminuto_tree_t *)0;
+
+	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex_crl);
+
+		for (here = diminuto_tree_first(&codex_crl); here != (diminuto_tree_t *)0; here = diminuto_tree_next(here)) {
+			if (here->data == (void *)0) {
+				rc = -1;
+				break;
+			}
+			fprintf(fp, "%s\n", (const char *)here->data);
+			rc += 1;
+		}
+
+	DIMINUTO_CRITICAL_SECTION_END;
+
+	return rc;
+}
+
+int codex_revoked_export(const char * crl)
+{
+	int rc = -1;
+	FILE * fp = (FILE *)0;
+
+	do {
+
+		if (crl == (const char *)0) {
+			break;
+		}
+
+		fp = fopen(crl, "w");
+		if (fp == (FILE *)0) {
+			diminuto_perror(crl);
+			break;
+		}
+
+		DIMINUTO_LOG_DEBUG("codex_revoked_export: crl crl=\"%s\"\n", crl);
+
+		rc = codex_revoked_export_stream(fp);
+
+		if (fclose(fp) == EOF) {
+			diminuto_perror(crl);
+		}
+
+	} while (0);
+
+	return rc;
+}
+
+int codex_revoked_free(void)
+{
+	int rc = 0;
+	diminuto_tree_t * here = (diminuto_tree_t *)0;
+
+	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex_crl);
+
+		for (here = diminuto_tree_first(&codex_crl); here != (diminuto_tree_t *)0; here = diminuto_tree_first(&codex_crl)) {
+			here = diminuto_tree_remove(here);
+			if (here == (diminuto_tree_t *)0) {
+				rc = -1;
+				break;
+			}
+			free(here->data);
+			free(here);
+			rc += 1;
+		}
+
+	DIMINUTO_CRITICAL_SECTION_END;
 
 	return rc;
 }

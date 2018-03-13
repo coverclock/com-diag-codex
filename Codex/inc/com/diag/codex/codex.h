@@ -202,13 +202,16 @@ extern codex_serror_t codex_serror(const char * str, const codex_connection_t * 
  ******************************************************************************/
 
 /**
- * Initializes the OpenSSL stack and loads the Diffie-Hellman (DH) parameter
- * file used for key exchange of the symmetric keys for data stream encryption.
+ * Initializes the OpenSSL stack, loads the Diffie-Hellman (DH) parameter
+ * file used for key exchange of the symmetric keys for data stream encryption,
+ * and optionally loads the text file containing an ASCII list of serial
+ * numbers identifying revoked certificates.
  * Only needs to be called once per application.
  * @param dhf names the DH parameter file.
+ * @param crl names the certificate revocation list file or null if none.
  * @return 0 if successful, <0 otherwise.
  */
-extern int codex_initialize(const char * dhf);
+extern int codex_initialize(const char * dhf, const char * crl);
 
 /*******************************************************************************
  * CONTEXT
@@ -315,9 +318,15 @@ extern char * codex_serialnumber_to_string(ASN1_INTEGER * srl, char * srn, size_
 
 extern bool codex_serialnumber_is_revoked(const char * srn);
 
-int codex_revoked_import_stream(FILE * fp);
+extern int codex_revoked_import_stream(FILE * fp);
 
-int codex_revoked_import(const char * path);
+extern int codex_revoked_import(const char * crl);
+
+extern int codex_revoked_export_stream(FILE *fp);
+
+extern int codex_revoked_export(const char * crl);
+
+extern int codex_revoked_free(void);
 
 /*******************************************************************************
  * INPUT/OUTPUT

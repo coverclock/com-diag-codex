@@ -209,13 +209,13 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
-		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
+		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem", (const char *)0);
 		EXPECT(rc == 0);
 
-		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
+		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/" "crl.txt");
 		EXPECT(rc == 0);
 
-		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem");
+		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/" "crltwo.txt");
 		EXPECT(rc == 0);
 
 		STATUS();

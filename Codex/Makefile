@@ -215,7 +215,7 @@ TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt $(SSL_TXT)/ca.txt $(SSL_TXT)/client.txt $(SSL_TXT)/server.txt $(SSL_TXT)/bogus.txt $(SSL_TXT)/self.txt $(SSL_TXT)/revoked.txt $(SSL_TXT)/revokedtoo.txt
 TARGETPARAMETERS	:=	$(SSL_CRT)/dh.pem
 TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd $(SSL_PWD)/ca.pwd $(SSL_PWD)/client.pwd $(SSL_PWD)/server.pwd $(SSL_PWD)/bogus.pwd $(SSL_PWD)/revoked.pwd $(SSL_PWD)/revokedtoo.pwd
-TARGETREVOCATIONS	:=	$(SSL_CRT)/crl.txt
+TARGETREVOCATIONS	:=	$(SSL_CRT)/crl.txt $(SSL_CRT)/crltwo.txt
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
 TARGETPROGRAMS		:=	$(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS)
@@ -444,6 +444,10 @@ $(SSL_CRT)/crl.txt:	$(SSL_CRT)/revoked.pem $(SSL_CRT)/revokedtoo.pem
 	for F in $^; do openssl x509 -in $$F -serial -noout | sed 's/^serial=//' >> $@; done
 	chmod 600 $@
 
+$(SSL_CRT)/crltwo.txt:	$(SSL_CRT)/crl.txt
+	cat $< $< > $@
+	chmod 600 $@
+
 ##### Diffie Hellman Parameters
 
 $(SSL_CRT)/dh.pem:
@@ -466,6 +470,7 @@ credentials-clean:
 	( cd $(SSL_CRT); rm -f selfkey.pem self.pem selfreq.pem )
 	( cd $(SSL_CRT); rm -f revokedkey.pem revoked.pem revokedreq.pem )
 	( cd $(SSL_CRT); rm -f revokedtookey.pem revokedtoo.pem revokedtooreq.pem )
+	( cd $(SSL_CRT); rm -f crl.txt crltwo.txt )
 	
 .PHONY:	parameters parameters-clean
 
