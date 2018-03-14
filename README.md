@@ -294,7 +294,7 @@ Codex on those systems.
     make exported FAREND="pi@lead"
     make exported FAREND="pi@bronze"
 
-Codex create just enough Public Key Infrastructure (PKI) to run the unit
+Codex builds just enough Public Key Infrastructure (PKI) to run the unit
 tests.
 
 ## Passwords
