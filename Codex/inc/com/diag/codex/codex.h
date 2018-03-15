@@ -207,11 +207,12 @@ extern codex_serror_t codex_serror(const char * str, const codex_connection_t * 
  * and optionally loads the text file containing an ASCII list of serial
  * numbers identifying revoked certificates.
  * Only needs to be called once per application.
+ * @param cnf points to the OpenSSL configuration file or null for default.
  * @param dhf names the DH parameter file.
  * @param crl names the certificate revocation list file or null if none.
  * @return 0 if successful, <0 otherwise.
  */
-extern int codex_initialize(const char * dhf, const char * crl);
+extern int codex_initialize(const char * cnf, const char * dhf, const char * crl);
 
 /*******************************************************************************
  * CONTEXT

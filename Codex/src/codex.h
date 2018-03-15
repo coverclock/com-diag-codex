@@ -170,7 +170,19 @@ extern int codex_verification_callback(int ok, X509_STORE_CTX * ctx);
 extern DH * codex_diffiehellman_callback(SSL * ssl, int exp, int length);
 
 /*******************************************************************************
- * REVOCATION
+ * DIFFIE-HELLMAN
+ ******************************************************************************/
+
+/**
+ * Import a pre-generated collection of Diffie-Hellman parameters to use in
+ * symmetric encryption.
+ * @param dhf points to the file name.
+ * @return 0 for success or <0 if error.
+ */
+extern int codex_diffiehellman_import(const char * dhf);
+
+/*******************************************************************************
+ * CERTIFICATION REVOCATION LIST
  ******************************************************************************/
 
 /**
@@ -225,4 +237,5 @@ extern int codex_revoked_export(const char * crl);
  * @return the number of freed serial number entries or <0 if error.
  */
 extern int codex_revoked_free(void);
+
 #endif

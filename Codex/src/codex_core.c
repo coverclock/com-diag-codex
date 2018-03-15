@@ -44,8 +44,6 @@
 
 static bool initialized = false;
 
-static DH * dh = (DH *)0;
-
 /*******************************************************************************
  * DEBUGGING
  ******************************************************************************/
@@ -200,107 +198,57 @@ int codex_password_callback(char * buffer, int size, int writing, void * that)
 	return length;
 }
 
-DH * codex_diffiehellman_callback(SSL * ssl, int exp, int length)
-{
-	DH * parameters = (DH *)0;
-
-	parameters = dh; /* I'm assuming this read is atomic. */
-
-	if (parameters == (DH *)0) {
-		DIMINUTO_LOG_ERROR("codex_diffiehellman_callback: ssl=%p export=%d length=%d dh=%p\n", ssl, exp, length, parameters);
-	}
-
-	return parameters;
-}
-
 /*******************************************************************************
  * INITIALIZATION
  ******************************************************************************/
 
-int codex_initialize(const char * dhf, const char * crl)
+int codex_initialize(const char * cnf, const char * dhf, const char * crl)
 {
-	int rc = -1;
-	BIO * bio = (BIO *)0;
-	DH * dhp = (DH *)0;
 	static pthread_mutex_t mutex_init = PTHREAD_MUTEX_INITIALIZER;
-	static pthread_mutex_t mutex_dh = PTHREAD_MUTEX_INITIALIZER;
+	int initrc = 0;
+	int revokedrc = 0;
+	int diffiehellmanrc = 0;
 
 	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex_init);
 
 		if (!initialized) {
 
-			rc = SSL_library_init();
-			if (rc != 1) {
+			initrc = SSL_library_init();
+			if (initrc != 1) {
+
 				codex_perror("SSL_library_init");
+				initrc = -1;
+
 			} else {
+
+				DIMINUTO_LOG_INFORMATION("codex_initialize: init cnf=\"%s\"\n", (cnf != (const char *)0) ? cnf : "");
+
 				SSL_load_error_strings();
-				OPENSSL_config((const char *)0);
+				OPENSSL_config(cnf);
 				initialized = true;
+				initrc = 0;
+
 			}
 
 		}
 
 	DIMINUTO_CRITICAL_SECTION_END;
 
-	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex_dh);
+	if (dhf != (const char *)0) {
 
-		if (dhf == (const char *)0) {
-			/* Do nothing. */
-		} else  if (dh != (DH *)0) {
-			/* Do nothing. */
-		} else {
+		DIMINUTO_LOG_INFORMATION("codex_initialize: init dhf=\"%s\"\n", dhf);
+		diffiehellmanrc = codex_diffiehellman_import(dhf);
 
-			DIMINUTO_LOG_INFORMATION("codex_initialize: init dhf=\"%s\"\n", dhf);
-
-			do {
-
-				bio = BIO_new_file(dhf, "r");
-				if (bio == (BIO *)0) {
-					codex_perror(dhf);
-					break;
-				}
-
-				dhp = PEM_read_bio_DHparams(bio, (DH **)0, (pem_password_cb *)0, (void *)0);
-				if (dhp == (DH *)0) {
-					codex_perror(dhf);
-					break;
-				}
-
-				/*
-				 * The OpenSSL man page on PEM_read_bio_DHparams() and its kin is
-				 * strangely silent as to whether the pointer returned by the function
-				 * must ultimately be free()'d. Since there is no function like
-				 * SSL_library_shutdown() that I can find, and valgrind(1) shows memory
-				 * allocated at exit(2), maybe I just need to resign myself to this.
-				 */
-
-				dh = dhp;
-
-			} while (false);
-
-			if (bio != (BIO *)0) {
-				rc = BIO_free(bio);
-				if (rc != 1) {
-					codex_perror(dhf);
-				}
-			}
-
-		}
-
-	DIMINUTO_CRITICAL_SECTION_END;
-
-	/*
-	 * The revoked module has its own mutex.
-	 */
+	}
 
 	if (crl != (const char *)0) {
 
 		DIMINUTO_LOG_INFORMATION("codex_initialize: init crl=\"%s\"\n", crl);
-		rc = codex_revoked_import(crl);
+		revokedrc = codex_revoked_import(crl);
 
 	}
 
-	return (initialized && (dh != (DH *)0) && (rc >= 0)) ? 0 : -1;
+	return ((initrc >= 0) && (diffiehellmanrc >= 0) && (revokedrc >= 0)) ? 0 : -1;
 }
 
 /*******************************************************************************
