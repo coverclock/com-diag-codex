@@ -16,8 +16,7 @@
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_delay.h"
-#include "com/diag/diminuto/diminuto_ipc.h"
-#include "com/diag/codex/codex.h"
+#include "com/diag/diminuto/diminuto_ipc4.h"
 #include "unittest-codex.h"
 #include <errno.h>
 #include <string.h>
@@ -25,31 +24,31 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-static const char * program = "unittest-core-server";
+static const char * program = "unittest-control-server";
 static const char * nearend = "49162";
 static const char * expected = "client.prairiethorn.org";
 static size_t bufsize = 256;
-static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
+static const char * pathcaf = (const char *)0;
 static const char * pathcap = (const char *)0;
 static const char * pathcrl = (const char *)0;
-static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
-static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
-static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
+static const char * pathcrt = (const char *)0;
+static const char * pathkey = (const char *)0;
+static const char * pathdhf = (const char *)0;
 static int selfsigned = -1;
 
 int main(int argc, char ** argv)
 {
 	uint8_t * buffer = (uint8_t *)0;
 	int rc = -1;
-	codex_context_t * ctx = (codex_context_t *)0;
-	codex_rendezvous_t * bio = (codex_rendezvous_t *)0;
+	int meetme = -1;
+	diminuto_ipc_endpoint_t endpoint = { 0 };
 	ssize_t count = 0;
 	diminuto_fd_map_t * map = (diminuto_fd_map_t *)0;
 	void ** here = (void **)0;
 	diminuto_mux_t mux = { 0 };
 	int fd = -1;
 	int rendezvous = -1;
-	codex_connection_t * ssl = (codex_connection_t *)0;
+	int sock = -1;
 	ssize_t bytes = -1;
 	ssize_t reads = -1;
 	ssize_t writes = -1;
@@ -142,24 +141,16 @@ int main(int argc, char ** argv)
 
 	diminuto_mux_init(&mux);
 
-	if (selfsigned >= 0) {
-	    extern int codex_set_self_signed_certificates(int);
-		codex_set_self_signed_certificates(!!selfsigned);
-	}
-
-	rc = codex_initialize((const char *)0, pathdhf, pathcrl);
+	rc = diminuto_ipc_endpoint(nearend, &endpoint);
 	ASSERT(rc == 0);
 
-	ctx = codex_server_context_new(pathcaf, pathcap, pathcrt, pathkey);
-	ASSERT(ctx != (codex_context_t *)0);
+	meetme = diminuto_ipc4_stream_provider(endpoint.tcp);
+	ASSERT(meetme >= 0);
 
-	bio = codex_server_rendezvous_new(nearend);
-	ASSERT(bio != (codex_rendezvous_t *)0);
-
-	rendezvous = codex_rendezvous_descriptor(bio);
+	rendezvous = meetme;
 	ASSERT(rendezvous >= 0);
 
-	DIMINUTO_LOG_DEBUG("%s: RUN rendezvous=%p fd=%d\n", program, bio, rendezvous);
+	DIMINUTO_LOG_DEBUG("%s: RUN rendezvous=%d fd=%d\n", program, meetme, rendezvous);
 
 	rc = diminuto_mux_register_accept(&mux, rendezvous);
 	ASSERT(rc >= 0);
@@ -187,17 +178,10 @@ int main(int argc, char ** argv)
 
 			ASSERT(fd == rendezvous);
 
-			ssl = codex_server_connection_new(ctx, bio);
-			EXPECT(ssl != (codex_connection_t *)0);
-			if (ssl == (codex_connection_t *)0) {
-				continue;
-			}
-			EXPECT(codex_connection_is_server(ssl));
-
-			fd = codex_connection_descriptor(ssl);
+			fd = diminuto_ipc4_stream_accept(rendezvous);
 			ASSERT(fd >= 0);
 
-			DIMINUTO_LOG_INFORMATION("%s: START connection=%p fd=%d\n", program, ssl, fd);
+			DIMINUTO_LOG_INFORMATION("%s: START connection=%d fd=%d\n", program, rendezvous, fd);
 
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
@@ -210,7 +194,7 @@ int main(int argc, char ** argv)
 			 * and this breaks. But doing this keeps us from having to have a
 			 * second file descriptor map.
 			 */
-			temp = (uintptr_t)ssl;
+			temp = (uintptr_t)0;
 			temp |= 0x1;
 			*here = (void *)temp;
 
@@ -228,54 +212,42 @@ int main(int argc, char ** argv)
 
 			here = diminuto_fd_map_ref(map, fd);
 			ASSERT(here != (void **)0);
-			ASSERT(*here != (void *)0);
 			temp = (uintptr_t)*here;
 			tripwire = (temp & 0x1) != 0;
 			if (tripwire) {
 				temp &= ~(uintptr_t)0x1;
 				*here = (void *)temp;
 			}
-			ssl = (codex_connection_t *)temp;
 
 			do {
 
-				bytes = codex_connection_read(ssl, buffer, bufsize);
-				DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, ssl, bytes);
+				bytes = diminuto_ipc4_stream_read(fd, buffer, bufsize);
+				DIMINUTO_LOG_DEBUG("%s: READ connection=%d bytes=%d\n", program, fd, bytes);
 
 				if (bytes > 0) {
 
-					if (tripwire) {
-						rc = codex_connection_verify(ssl, expected);
-						if (!codex_connection_verified(rc)) {
-							bytes = 0;
-						}
-					}
-
 					for (reads = bytes, writes = 0; (writes < reads) && (bytes > 0); writes += bytes) {
-						bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
-						DIMINUTO_LOG_DEBUG("%s: WRITE connection=%p bytes=%d\n", program, ssl, bytes);
+						bytes = diminuto_ipc4_stream_write(fd, buffer + writes, reads - writes);
+						DIMINUTO_LOG_DEBUG("%s: WRITE connection=%d bytes=%d\n", program, fd, bytes);
 					}
 
 				}
 
 				if (bytes <= 0) {
 
-					DIMINUTO_LOG_INFORMATION("%s: FINISH connection=%p\n", program, ssl);
+					DIMINUTO_LOG_INFORMATION("%s: FINISH connection=%d\n", program, fd);
 
 					rc = diminuto_mux_unregister_read(&mux, fd);
 					EXPECT(rc >= 0);
 
-					rc = codex_connection_close(ssl);
+					rc = diminuto_ipc4_close(fd);
 					ADVISE(rc >= 0);
-
-					ssl = codex_connection_free(ssl);
-					EXPECT(ssl == (codex_connection_t *)0);
 
 					*here = (void *)0;
 
 				}
 
-			} while ((ssl != (codex_connection_t *)0) && codex_connection_is_ready(ssl));
+			} while (false);
 
 		}
 
@@ -287,15 +259,15 @@ int main(int argc, char ** argv)
 
 	diminuto_mux_fini(&mux);
 
-	fd = codex_rendezvous_descriptor(bio);
+	fd = rendezvous;
 	ASSERT(fd >= 0);
 	ASSERT(fd == rendezvous);
 
 	rc = diminuto_mux_unregister_accept(&mux, fd);
 	EXPECT(rc >= 0);
 
-	bio = codex_server_rendezvous_free(bio);
-	ASSERT(bio == (codex_rendezvous_t *)0);
+	rc = diminuto_ipc4_close(fd);
+	ASSERT(rc >= 0);
 
 	for (fd = 0; fd < count; ++fd) {
 
@@ -304,22 +276,15 @@ int main(int argc, char ** argv)
 		if (*here == (void *)0) { continue; }
 		temp = (uintptr_t)*here;
 		temp &= ~(uintptr_t)0x1;
-		ssl = (codex_connection_t *)temp;
 
-		rc = codex_connection_close(ssl);
+		rc = diminuto_ipc4_close(fd);
 		EXPECT(rc >= 0);
-
-		ssl = codex_connection_free(ssl);
-		EXPECT(ssl == (codex_connection_t *)0);
 
 		*here = (void *)0;
 
 	}
 
 	free(map);
-
-	ctx = codex_context_free(ctx);
-	EXPECT(ctx == (codex_context_t *)0);
 
 	free(buffer);
 
