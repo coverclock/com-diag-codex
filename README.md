@@ -605,6 +605,12 @@ connection.
     unittest-client-lead
     unittest-client-bronze
 
+There is a Control unittest that duplicates the functionality of
+the Core unittest but without using SSL at all. I use this to
+compare the performance of applications with and without SSL.
+
+    unittest-control
+
 You can run the ```openssl s_client``` command against the
 ```unittest-server-nickel``` server-side unit test and see what Codex is
 actually telling the client.
