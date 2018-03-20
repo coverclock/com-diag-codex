@@ -12,7 +12,7 @@ BLOCKSIZE=4096
 NEAREND=49582
 FAREND="localhost:${NEAREND}"
 
-export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
+export COM_DIAG_DIMINUTO_LOG_MASK=0xfffc
 
 time unittest-control-server -n ${NEAREND} -B ${BUFSIZE} &
 SERVER=$!
