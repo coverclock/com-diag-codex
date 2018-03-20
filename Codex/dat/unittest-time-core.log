@@ -1,0 +1,273 @@
+unittest-time-core 1
+1+0 records in
+1+0 records out
+4096 bytes (4.1 kB, 4.0 KiB) copied, 4.2244e-05 s, 97.0 MB/s
+2018-03-20T16:32:58.502617Z <NOTE> [16138] {7f643fa8b700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T16:32:58.517314Z <NOTE> [16136] {7fcc37cf2700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.482s
+user	0m0.016s
+sys	0m0.009s
+blocks	1
+blksize	4096
+bytes	4096
+unittest-time-core 2
+2+0 records in
+2+0 records out
+8192 bytes (8.2 kB, 8.0 KiB) copied, 0.000215334 s, 38.0 MB/s
+2018-03-20T16:38:00.130517Z <NOTE> [16176] {7f36a429f700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T16:38:00.139426Z <NOTE> [16174] {7f951fb15700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.617s
+user	0m0.015s
+sys	0m0.009s
+blocks	2
+blksize	4096
+bytes	8192
+unittest-time-core 4
+4+0 records in
+4+0 records out
+16384 bytes (16 kB, 16 KiB) copied, 0.000416931 s, 39.3 MB/s
+2018-03-20T16:43:01.539275Z <NOTE> [16211] {7f32c43cc700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T16:43:01.553859Z <NOTE> [16209] {7f76724f2700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.409s
+user	0m0.023s
+sys	0m0.003s
+blocks	4
+blksize	4096
+bytes	16384
+unittest-time-core 8
+8+0 records in
+8+0 records out
+32768 bytes (33 kB, 32 KiB) copied, 0.000577671 s, 56.7 MB/s
+2018-03-20T16:48:02.976024Z <NOTE> [16261] {7fba33673700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T16:48:02.989989Z <NOTE> [16259] {7fccb1512700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.431s
+user	0m0.027s
+sys	0m0.000s
+blocks	8
+blksize	4096
+bytes	32768
+unittest-time-core 16
+16+0 records in
+16+0 records out
+65536 bytes (66 kB, 64 KiB) copied, 0.00124559 s, 52.6 MB/s
+2018-03-20T16:53:04.346515Z <NOTE> [16298] {7fbec5410700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T16:53:04.361472Z <NOTE> [16296] {7efed3138700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.367s
+user	0m0.024s
+sys	0m0.004s
+blocks	16
+blksize	4096
+bytes	65536
+unittest-time-core 32
+32+0 records in
+32+0 records out
+131072 bytes (131 kB, 128 KiB) copied, 0.0543607 s, 2.4 MB/s
+2018-03-20T16:58:05.818611Z <NOTE> [16324] {7f6d3afe1700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T16:58:05.833243Z <NOTE> [16322] {7f8964c4a700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.467s
+user	0m0.014s
+sys	0m0.014s
+blocks	32
+blksize	4096
+bytes	131072
+unittest-time-core 64
+64+0 records in
+64+0 records out
+262144 bytes (262 kB, 256 KiB) copied, 0.0686849 s, 3.8 MB/s
+2018-03-20T17:03:07.282532Z <NOTE> [16419] {7f1b732db700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:03:07.292016Z <NOTE> [16417] {7fd1330c7700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.456s
+user	0m0.022s
+sys	0m0.004s
+blocks	64
+blksize	4096
+bytes	262144
+unittest-time-core 128
+128+0 records in
+128+0 records out
+524288 bytes (524 kB, 512 KiB) copied, 0.06992 s, 7.5 MB/s
+2018-03-20T17:08:08.922281Z <NOTE> [16454] {7f5551c08700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:08:08.927552Z <NOTE> [16452] {7f23ef113700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.631s
+user	0m0.032s
+sys	0m0.017s
+blocks	128
+blksize	4096
+bytes	524288
+unittest-time-core 256
+256+0 records in
+256+0 records out
+1048576 bytes (1.0 MB, 1.0 MiB) copied, 0.0910885 s, 11.5 MB/s
+2018-03-20T17:13:10.330680Z <NOTE> [16505] {7f8d3a239700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:13:10.337825Z <NOTE> [16503] {7fa476860700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.405s
+user	0m0.029s
+sys	0m0.012s
+blocks	256
+blksize	4096
+bytes	1048576
+unittest-time-core 512
+512+0 records in
+512+0 records out
+2097152 bytes (2.1 MB, 2.0 MiB) copied, 0.0982843 s, 21.3 MB/s
+2018-03-20T17:18:11.858888Z <NOTE> [16535] {7f2bd0584700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:18:11.865748Z <NOTE> [16533] {7f5929269700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.523s
+user	0m0.032s
+sys	0m0.023s
+blocks	512
+blksize	4096
+bytes	2097152
+unittest-time-core 1024
+1024+0 records in
+1024+0 records out
+4194304 bytes (4.2 MB, 4.0 MiB) copied, 0.306619 s, 13.7 MB/s
+2018-03-20T17:23:13.254814Z <NOTE> [16563] {7f5241711700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:23:13.259777Z <NOTE> [16560] {7f379c711700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.389s
+user	0m0.050s
+sys	0m0.022s
+blocks	1024
+blksize	4096
+bytes	4194304
+unittest-time-core 2048
+2048+0 records in
+2048+0 records out
+8388608 bytes (8.4 MB, 8.0 MiB) copied, 1.01285 s, 8.3 MB/s
+2018-03-20T17:28:15.335040Z <NOTE> [16623] {7f2b136a9700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:28:15.339304Z <NOTE> [16621] {7f46b9541700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m2.075s
+user	0m0.047s
+sys	0m0.073s
+blocks	2048
+blksize	4096
+bytes	8388608
+unittest-time-core 4096
+4096+0 records in
+4096+0 records out
+16777216 bytes (17 MB, 16 MiB) copied, 0.856593 s, 19.6 MB/s
+2018-03-20T17:33:17.256872Z <NOTE> [16652] {7f8c3be0c700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:33:17.260882Z <NOTE> [16650] {7fe816403700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m1.919s
+user	0m0.136s
+sys	0m0.145s
+blocks	4096
+blksize	4096
+bytes	16777216
+unittest-time-core 8192
+8192+0 records in
+8192+0 records out
+33554432 bytes (34 MB, 32 MiB) copied, 1.45633 s, 23.0 MB/s
+2018-03-20T17:38:19.782884Z <NOTE> [16670] {7fd3cd5cd700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:38:19.786962Z <NOTE> [16668] {7f9d9012d700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m2.521s
+user	0m0.272s
+sys	0m0.288s
+blocks	8192
+blksize	4096
+bytes	33554432
+unittest-time-core 16384
+16384+0 records in
+16384+0 records out
+67108864 bytes (67 MB, 64 MiB) copied, 2.55684 s, 26.2 MB/s
+2018-03-20T17:43:23.408914Z <NOTE> [16701] {7f9ba0fe3700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:43:23.413128Z <NOTE> [16699] {7fddff973700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m3.621s
+user	0m0.507s
+sys	0m0.692s
+blocks	16384
+blksize	4096
+bytes	67108864
+unittest-time-core 32768
+32768+0 records in
+32768+0 records out
+134217728 bytes (134 MB, 128 MiB) copied, 4.8008 s, 28.0 MB/s
+2018-03-20T17:48:29.274746Z <NOTE> [16724] {7f07079b9700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:48:29.278929Z <NOTE> [16722] {7f7dd8e94700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m5.864s
+user	0m1.042s
+sys	0m1.108s
+blocks	32768
+blksize	4096
+bytes	134217728
+unittest-time-core 65536
+65536+0 records in
+65536+0 records out
+268435456 bytes (268 MB, 256 MiB) copied, 8.7299 s, 30.7 MB/s
+2018-03-20T17:53:39.074501Z <NOTE> [16749] {7feaedcc3700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:53:39.078812Z <NOTE> [16747] {7fe39aaeb700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m9.795s
+user	0m2.290s
+sys	0m2.409s
+blocks	65536
+blksize	4096
+bytes	268435456
+unittest-time-core 131072
+131072+0 records in
+131072+0 records out
+536870912 bytes (537 MB, 512 MiB) copied, 13.9662 s, 38.4 MB/s
+2018-03-20T17:58:54.110374Z <NOTE> [16767] {7f8fd7168700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T17:58:54.114510Z <NOTE> [16765] {7f655a12a700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m15.029s
+user	0m2.182s
+sys	0m2.833s
+blocks	131072
+blksize	4096
+bytes	536870912
+unittest-time-core 262144
+262144+0 records in
+262144+0 records out
+1073741824 bytes (1.1 GB, 1.0 GiB) copied, 35.2558 s, 30.5 MB/s
+2018-03-20T18:04:30.425864Z <NOTE> [16790] {7f051e9f3700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T18:04:30.430640Z <NOTE> [16788] {7fc4088e0700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	0m36.312s
+user	0m8.740s
+sys	0m10.000s
+blocks	262144
+blksize	4096
+bytes	1073741824
+unittest-time-core 524288
+524288+0 records in
+524288+0 records out
+2147483648 bytes (2.1 GB, 2.0 GiB) copied, 70.9157 s, 30.3 MB/s
+2018-03-20T18:10:42.401856Z <NOTE> [16809] {7fe1363fa700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T18:10:42.406098Z <NOTE> [16807] {7fdb64eee700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	1m11.970s
+user	0m17.749s
+sys	0m18.432s
+blocks	524288
+blksize	4096
+bytes	2147483648
+unittest-time-core 1048576
+1048576+0 records in
+1048576+0 records out
+4294967296 bytes (4.3 GB, 4.0 GiB) copied, 136.525 s, 31.5 MB/s
+2018-03-20T18:17:59.996417Z <NOTE> [16832] {7f99bfb56700} tst/unittest-core-client.c@307: EXIT: tests=0 errors=0 SUCCESS. 
+2018-03-20T18:18:00.000759Z <NOTE> [16830] {7fc84842a700} tst/unittest-core-server.c@326: EXIT: tests=0 errors=0 SUCCESS. 
+
+real	2m17.590s
+user	0m34.998s
+sys	0m37.587s
+blocks	1048576
+blksize	4096
+bytes	4294967296
