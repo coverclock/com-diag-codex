@@ -198,7 +198,7 @@ BROWSER				:=	evince
 ########## Build Artifacts
 
 TARGETOBJECTS		:=	$(addprefix $(OUT)/$(OBC_DIR)/,$(addsuffix .o,$(basename $(wildcard $(SRC_DIR)/*.c))))
-TARGETSCRIPTS		:=	$(addprefix $(OUT)/,$(basename $(wildcard $(BIN_DIR)/*.sh)))
+TARGETSCRIPTS		:=	$(addprefix $(OUT)/,$(basename $(wildcard $(BIN_DIR)/*.sh))) $(addprefix $(OUT)/,$(basename $(wildcard $(BIN_DIR)/*.awk)))
 TARGETBINARIES		:=	$(addprefix $(OUT)/,$(basename $(wildcard $(BIN_DIR)/*.c)))
 TARGETGENERATED		:=	$(addprefix $(OUT)/$(BIN_DIR)/,$(GENERATED)) $(addprefix $(OUT)/$(SYM_DIR)/,$(GENERATED))
 TARGETSYNTHESIZED	:=	$(addprefix $(OUT)/$(INC_DIR)/com/diag/$(PROJECT)/,$(SYNTHESIZED))
@@ -913,7 +913,12 @@ $(OUT)/%:	%.sh
 	D=`dirname $@`; mkdir -p $$D
 	cp $< $@
 	chmod 755 $@
-	
+
+$(OUT)/%.awk:	%.awk
+	D=`dirname $@`; mkdir -p $$D
+	cp $< $@
+	chmod 755 $@
+
 .SECONDARY:
 
 $(OUT)/$(BIN_DIR)/%:	$(OUT)/$(SYM_DIR)/%
