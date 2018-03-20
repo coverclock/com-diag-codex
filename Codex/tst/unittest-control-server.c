@@ -17,6 +17,7 @@
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_ipc4.h"
+#include "com/diag/diminuto/diminuto_ipc6.h"
 #include "unittest-codex.h"
 #include <errno.h>
 #include <string.h>
@@ -144,8 +145,15 @@ int main(int argc, char ** argv)
 	rc = diminuto_ipc_endpoint(nearend, &endpoint);
 	ASSERT(rc == 0);
 
-	meetme = diminuto_ipc4_stream_provider(endpoint.tcp);
+	if (diminuto_ipc6_is_unspecified(&endpoint.ipv6)) {
+		meetme = diminuto_ipc4_stream_provider(endpoint.tcp);
+	} else {
+		meetme = diminuto_ipc6_stream_provider(endpoint.tcp);
+	}
 	ASSERT(meetme >= 0);
+
+	rc = diminuto_ipc_set_reuseaddress(meetme, !0);
+	ASSERT(rc >= 0);
 
 	rendezvous = meetme;
 	ASSERT(rendezvous >= 0);

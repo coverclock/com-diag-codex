@@ -20,6 +20,7 @@
 #include "com/diag/diminuto/diminuto_alarm.h"
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/diminuto/diminuto_ipc4.h"
+#include "com/diag/diminuto/diminuto_ipc6.h"
 #include "unittest-codex.h"
 #include <unistd.h>
 #include <stdio.h>
@@ -159,7 +160,11 @@ int main(int argc, char ** argv)
 	rc = diminuto_ipc_endpoint(farend, &endpoint);
 	ASSERT(rc == 0);
 
-	sock = diminuto_ipc4_stream_consumer(endpoint.ipv4, endpoint.tcp);
+	if (diminuto_ipc6_is_unspecified(&endpoint.ipv6)) {
+		sock = diminuto_ipc4_stream_consumer(endpoint.ipv4, endpoint.tcp);
+	} else {
+		sock = diminuto_ipc6_stream_consumer(endpoint.ipv6, endpoint.tcp);
+	}
 	ASSERT(sock >= 0);
 
 	fd = sock;
