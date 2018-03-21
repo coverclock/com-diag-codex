@@ -148,7 +148,6 @@ include $(PROJECTMAKEFILE)
 ########## Diminuto Makefile
 
 DIMINUTO_TITLE		:=	Diminuto
-
 DIMINUTO_PROJECT	:=	$(shell echo $(DIMINUTO_TITLE) | tr '[A-Z]' '[a-z]')
 DIMINUTO_SYMBOL		:=	$(shell echo $(DIMINUTO_TITLE) | tr '[a-z]' '[A-Z]')
 
@@ -198,26 +197,52 @@ BROWSER				:=	evince
 ########## Build Artifacts
 
 TARGETOBJECTS		:=	$(addprefix $(OUT)/$(OBC_DIR)/,$(addsuffix .o,$(basename $(wildcard $(SRC_DIR)/*.c))))
-TARGETSCRIPTS		:=	$(addprefix $(OUT)/,$(basename $(wildcard $(BIN_DIR)/*.sh))) $(addprefix $(OUT)/,$(basename $(wildcard $(BIN_DIR)/*.awk)))
+
+TARGETSCRIPTS		:=	$(addprefix $(OUT)/,$(basename $(wildcard $(BIN_DIR)/*.sh)))
+
 TARGETBINARIES		:=	$(addprefix $(OUT)/,$(basename $(wildcard $(BIN_DIR)/*.c)))
-TARGETGENERATED		:=	$(addprefix $(OUT)/$(BIN_DIR)/,$(GENERATED)) $(addprefix $(OUT)/$(SYM_DIR)/,$(GENERATED))
+
+TARGETGENERATED		:=	$(addprefix $(OUT)/$(BIN_DIR)/,$(GENERATED))
+TARGETGENERATED		+=	$(addprefix $(OUT)/$(SYM_DIR)/,$(GENERATED))
+
 TARGETSYNTHESIZED	:=	$(addprefix $(OUT)/$(INC_DIR)/com/diag/$(PROJECT)/,$(SYNTHESIZED))
 
 TARGETALIASES		:=	$(addprefix $(OUT)/$(BIN_DIR)/,$(ALIASES))
+
 TARGETUNITTESTS		:=	$(addprefix $(OUT)/,$(basename $(wildcard $(TST_DIR)/*.c)))
 TARGETUNITTESTS		+=	$(addprefix $(OUT)/,$(basename $(wildcard $(TST_DIR)/*.sh)))
+TARGETUNITTESTS		+=	$(addprefix $(OUT)/,$(wildcard $(TST_DIR)/*.awk))
 
 TARGETARCHIVE		:=	$(OUT)/$(ARC_DIR)/$(PROJECT_A)
+
 TARGETSHARED		:=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
-TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt $(SSL_TXT)/ca.txt $(SSL_TXT)/client.txt $(SSL_TXT)/server.txt $(SSL_TXT)/bogus.txt $(SSL_TXT)/self.txt $(SSL_TXT)/revoked.txt $(SSL_TXT)/revokedtoo.txt
+TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/ca.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/client.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/server.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/bogus.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/self.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/revoked.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/revokedtoo.txt
+
 TARGETPARAMETERS	:=	$(SSL_CRT)/dh.pem
-TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd $(SSL_PWD)/ca.pwd $(SSL_PWD)/client.pwd $(SSL_PWD)/server.pwd $(SSL_PWD)/bogus.pwd $(SSL_PWD)/revoked.pwd $(SSL_PWD)/revokedtoo.pwd
-TARGETREVOCATIONS	:=	$(SSL_CRT)/crl.txt $(SSL_CRT)/crltwo.txt
+
+TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd
+TARGETPASSWORDS		+=	$(SSL_PWD)/ca.pwd
+TARGETPASSWORDS		+=	$(SSL_PWD)/client.pwd
+TARGETPASSWORDS		+=	$(SSL_PWD)/server.pwd
+TARGETPASSWORDS		+=	$(SSL_PWD)/bogus.pwd
+TARGETPASSWORDS		+=	$(SSL_PWD)/revoked.pwd
+TARGETPASSWORDS		+=	$(SSL_PWD)/revokedtoo.pwd
+
+TARGETREVOCATIONS	:=	$(SSL_CRT)/crl.txt
+TARGETREVOCATIONS	+=	$(SSL_CRT)/crltwo.txt
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
+
 TARGETPROGRAMS		:=	$(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS)
 
 TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPASSWORDS) $(TARGETREVOCATIONS) $(TARGETPARAMETERS)
@@ -917,7 +942,7 @@ $(OUT)/%:	%.sh
 $(OUT)/%.awk:	%.awk
 	D=`dirname $@`; mkdir -p $$D
 	cp $< $@
-	chmod 755 $@
+	chmod 644 $@
 
 .SECONDARY:
 
