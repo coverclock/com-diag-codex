@@ -4,10 +4,10 @@
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
 
-BLOCKS=${1:-"1048576"}
+BLOCKS=${1:-1048576}
+BUFSIZE=${2:-512}
 CLIENTS=1
 PERIOD=10
-BUFSIZE=512
 BLOCKSIZE=4096
 NEAREND=50002
 FAREND="localhost:${NEAREND}"
@@ -33,3 +33,4 @@ wait ${SERVER}
 echo "blocks	${BLOCKS}"
 echo "blksize	${BLOCKSIZE}"
 echo "bytes	$(( ${BLOCKS} * ${BLOCKSIZE} ))"
+echo "bufsize	${BUFSIZE}"
