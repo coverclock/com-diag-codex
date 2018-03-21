@@ -7,4 +7,4 @@ BEGIN			{ print "TEST,REAL,USER,SYSTEM,TOTAL,BLOCKS,BLOCKSIZE,BYTES,BUFFER"; }
 /^blocks\t/		{ BLOCKS=$2; }
 /^blksize\t/	{ BLOCKSIZE=$2; }
 /^bytes\t/		{ BYTES=$2; }
-/^bufsize\t/    { BUFFER=$2; print TEST","REAL","USER","SYSTEM","TOTAL","BLOCKS","BLOCKSIZE","BYTES","BUFFER; }
+/^bufsize\t/    { BUFFER=$2; print "\""TEST"\","REAL","USER","SYSTEM","TOTAL","BLOCKS","BLOCKSIZE","BYTES","BUFFER; }
