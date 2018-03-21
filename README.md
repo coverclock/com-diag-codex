@@ -415,13 +415,14 @@ settors defined in the private API. Here are the defaults.
 
 ## Directories
  
-* ```bin``` contains utility source files.
-* ```cfg``` contains makefile configuration files.
-* ```etc``` contains certificate configuration files.
-* ```inc``` contains public header files.
-* ```out``` contains build artifacts in a ```TARGET``` subdirectory.
-* ```src``` contains implementation source files and private header files.
-* ```tst``` contains unit test source files and scripts.
+* ```bin``` - utility source files.
+* ```cfg``` - makefile configuration files.
+* ```dat``` - analysis artifacts mostly from performance testing.
+* ```etc``` - certificate configuration files.
+* ```inc``` - public header files.
+* ```out``` - build artifacts in a ```TARGET``` subdirectory.
+* ```src``` - implementation source files and private header files.
+* ```tst``` - unit test source files and scripts.
 
 ```TARGET=host``` is the default, which builds Codex (or Diminuto) for the
 target system on which ```make``` is running. But the Makefile has the
