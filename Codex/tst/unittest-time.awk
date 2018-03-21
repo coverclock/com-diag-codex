@@ -1,3 +1,8 @@
+#!/usr/bin/awk
+# Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+# Licensed under the terms in LICENSE.txt
+# Chip Overclock (mailto:coverclock@diag.com)
+# https://github.com/coverclock/com-diag-codex
 BEGIN			{ print "TEST,REAL,USER,SYSTEM,TOTAL,BLOCKS,BLOCKSIZE,BYTES,BUFFER"; }
 #               { print $0; }
 /^unittest/		{ TEST=$1; }
