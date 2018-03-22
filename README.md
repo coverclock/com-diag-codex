@@ -634,6 +634,15 @@ PDF utilities, you can generate PDF manuals.
 
     make documentation-ancillary
 
+## Performance
+
+There are a number of scripts in the ```tst``` directory that I used to do
+some performance testing by comparing the total CPU time of ```unittest-core```
+against that of ```unittest-control``` for various workloads and configurations.
+I then used ```awk```, R, and Excel to post-process the data. The results can
+be found in the ```dat``` directory. This is even more a work in progress than
+the rest of this effort.
+
 ## Repositories
 
 <https://github.com/coverclock/com-diag-codex>

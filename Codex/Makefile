@@ -23,7 +23,7 @@ PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	8# API changes that may require that applications be modified.
-MINOR				:=	1# Only functionality or features added with no legacy API changes.
+MINOR				:=	2# Only functionality or features added with no legacy API changes.
 BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
@@ -212,6 +212,7 @@ TARGETALIASES		:=	$(addprefix $(OUT)/$(BIN_DIR)/,$(ALIASES))
 TARGETUNITTESTS		:=	$(addprefix $(OUT)/,$(basename $(wildcard $(TST_DIR)/*.c)))
 TARGETUNITTESTS		+=	$(addprefix $(OUT)/,$(basename $(wildcard $(TST_DIR)/*.sh)))
 TARGETUNITTESTS		+=	$(addprefix $(OUT)/,$(wildcard $(TST_DIR)/*.awk))
+TARGETUNITTESTS		+=	$(addprefix $(OUT)/,$(wildcard $(TST_DIR)/*.r))
 
 TARGETARCHIVE		:=	$(OUT)/$(ARC_DIR)/$(PROJECT_A)
 
@@ -940,6 +941,11 @@ $(OUT)/%:	%.sh
 	chmod 755 $@
 
 $(OUT)/%.awk:	%.awk
+	D=`dirname $@`; mkdir -p $$D
+	cp $< $@
+	chmod 644 $@
+
+$(OUT)/%.r:	%.r
 	D=`dirname $@`; mkdir -p $$D
 	cp $< $@
 	chmod 644 $@
