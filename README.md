@@ -417,7 +417,7 @@ settors defined in the private API. Here are the defaults.
  
 * ```bin``` - utility source files.
 * ```cfg``` - makefile configuration files.
-* ```dat``` - analysis artifacts mostly from performance testing.
+* ```dat``` - performance testing artifacts.
 * ```etc``` - certificate configuration files.
 * ```inc``` - public header files.
 * ```out``` - build artifacts in a ```TARGET``` subdirectory.
@@ -641,7 +641,9 @@ some performance testing by comparing the total CPU time of ```unittest-core```
 against that of ```unittest-control``` for various workloads and configurations.
 I then used ```awk```, R, and Excel to post-process the data. The results can
 be found in the ```dat``` directory. This is even more a work in progress than
-the rest of this effort.
+the rest of this effort. The scripts and artifacts are somewhat misnamed as
+"unittest" because they were derived from what was originally a unit test
+script.
 
 ## Repositories
 
