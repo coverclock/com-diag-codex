@@ -78,7 +78,7 @@ void codex_perror(const char * str)
 		buffer[0] = '\0';
 		ERR_error_string_n(error, buffer, sizeof(buffer));
 		buffer[sizeof(buffer) - 1] = '\0';
-		DIMINUTO_LOG_ERROR("codex_perror: \"%s\" errno=%d index=%d error=0x%08x=\"%s\"\n", str, save, ii++, error, buffer);
+		DIMINUTO_LOG_ERROR("codex_perror: \"%s\" errno=%d=\"%s\" index=%d error=0x%08x=\"%s\"\n", str, save, strerror(save), ii++, error, buffer);
 	}
 
 	if (ii > 0) {
