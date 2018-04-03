@@ -476,9 +476,12 @@ $(SSL_CRT)/crltwo.txt:	$(SSL_CRT)/crl.txt
 
 ##### Diffie Hellman Parameters
 
+# dhparam -out seems to be broken in OpenSSL 1.1.0 in Raspbian stretch.
+
 $(SSL_CRT)/dh.pem:
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) dhparam -check -text -$(SSL_GEN) $(SSL_DHK) -out $@
+	$(OPENSSL) dhparam -check -text -$(SSL_GEN) $(SSL_DHK) -out $@ > $@.tmp
+	test -f $@ || mv $@.tmp $@
 	chmod 600 $@
 
 ##### Helpers
