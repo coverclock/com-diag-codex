@@ -28,7 +28,11 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 
 	do {
 
-#if defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1)
+#if defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_0)
+
+		/* Do nothing. */
+
+#elif defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1)
 
 		/* Do nothing. */
 

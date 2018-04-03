@@ -727,11 +727,11 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 		}
 		codex_perror("BIO_new_socket");
 
-#elif defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1)
+#elif defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1) || defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_0)
 		char * mutable = (char *)0;
 
 		/*
-		 * OpenSSL-1.0.1 doesn't declare the string passed into
+		 * Some OpenSSL flavors don't declare the string passed into
 		 * BIO_new_accept() as const. I haven't examined the implementation,
 		 * but it's entirely possible it alters it, since I had to deal with a
 		 * similar issue in the diminuto_ipc_endpoint() code.
