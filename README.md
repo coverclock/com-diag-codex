@@ -38,10 +38,11 @@ expressed or implied.
 
 ## What Works
 
-I first developed Codex under OpenSSL 1.0.2 (the "native" version under
+I first developed Codex under OpenSSL 1.0.2 (the default version under
 Ubuntu "xenial"). I later ported it to OpenSSL 1.1.1 (the development
-version at the time I did this work), OpenSSL 1.0.1 (the "native" version
-under Raspbian "jessie" on the Raspberry Pi 2 and 3), and BoringSSL 1.1.0
+version at the time I did this work), OpenSSL 1.0.1 (the default version
+under Raspbian "jessie" on the Raspberry Pi 2 and 3), OpenSSL 1.1.0 (the
+default verison under Raspbian "stretch"), and BoringSSL 1.1.0
 (Google's fork of OpenSSL 1.1.0).
 
 The Codex handshake (renegotiation) feature in Codex only works under OpenSSL
@@ -611,9 +612,8 @@ by these unit tests since the host names are also baked into the certificates
 and Codex requires that they match to authenticate both sides in the
 connection.
 
-    unittest-server-nickel
-    unittest-client-lead
-    unittest-client-bronze
+    unittest-server
+    unittest-client
 
 There is a Control unittest that duplicates the functionality of
 the Core unittest but without using SSL at all. I use this to

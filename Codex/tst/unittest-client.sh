@@ -4,14 +4,6 @@
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
 
-# "Bronze"   
-# Raspberry Pi 2 Model B (32-bit ARM)  
-# Broadcom BCM2836 Cortex-A7 ARMv7 @ 900MHz x 4  
-# Raspbian GNU/Linux 8.0 "jessie"  
-# Linux 4.4.34  
-# gcc 4.9.2  
-# OpenSSL 1.0.1t  3 May 2016
-
 CLIENTS=${1:-"3"}
 EXPECTED="nickel"
 FAREND=${2:-"${EXPECTED}:49302"}
