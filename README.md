@@ -622,7 +622,7 @@ compare the performance of applications with and without SSL.
     unittest-control
 
 You can run the ```openssl s_client``` command against the
-```unittest-server-nickel``` server-side unit test and see what Codex is
+```unittest-server``` server-side unit test and see what Codex is
 actually telling the client.
 
     openssl s_client -connect localhost:49302 2>&1 < /dev/null
