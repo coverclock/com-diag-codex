@@ -252,9 +252,9 @@ gcc 4.9.2
 "Cobalt"    
 Raspberry Pi 3 Model B (64-bit ARM)    
 Broadcom BCM2837 Cortex-A53 ARMv7 @ 1.2GHz x 4    
-Raspbian GNU/Linux 9.4 "stretch"
-Linux 4.14.30
-gcc 6.3.0
+Raspbian GNU/Linux 9.4 "stretch"    
+Linux 4.14.30    
+gcc 6.3.0    
 
 ## Certificates
 
