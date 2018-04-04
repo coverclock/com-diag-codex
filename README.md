@@ -429,7 +429,7 @@ settors defined in the private API. Here are the defaults.
  
 * ```bin``` - utility source files.
 * ```cfg``` - makefile configuration files.
-* ```dat``` - performance testing artifacts.
+* ```dat``` - unit, function, and perforamnce testing artifacts.
 * ```etc``` - certificate configuration files.
 * ```inc``` - public header files.
 * ```out``` - build artifacts in a ```TARGET``` subdirectory.
