@@ -38,12 +38,13 @@ expressed or implied.
 
 ## What Works
 
-I first developed Codex under OpenSSL 1.0.2 (the default version under
-Ubuntu "xenial"). I later ported it to OpenSSL 1.1.1 (the development
-version at the time I did this work), OpenSSL 1.0.1 (the default version
-under Raspbian "jessie" on the Raspberry Pi 2 and 3), OpenSSL 1.1.0 (the
-default verison under Raspbian "stretch"), and BoringSSL 1.1.0
-(Google's fork of OpenSSL 1.1.0).
+I first developed Codex under OpenSSL 1.0.2 on Ubuntu "xenial". I later
+ported it to (not necessarily in this order)
+
+* OpenSSL 1.0.1 on Raspbian "jessie" on the Raspberry Pi 2 and 3,
+* OpenSSL 1.1.0 on Raspbian "stretch",
+* BoringSSL 1.1.0 which is Google's fork of OpenSSL 1.1.0 from which it is substantially different, and
+* OpenSSL 1.1.1 which is the current development version.
 
 The Codex handshake (renegotiation) feature in Codex only works under OpenSSL
 1.0.2. It's of questionable value anyway, but it was an enlightening
@@ -64,7 +65,7 @@ stuff on which I typically work.
 ## Contact
 
 Chip Overclock  
-<coverclock@diag.com>  
+<mailto:coverclock@diag.com>  
 Digital Aggregates Corporation  
 <http://www.diag.com>  
 3440 Youngfield St. #209  
@@ -214,15 +215,15 @@ application should worry about.
 
 ## Dependencies
 
+OpenSSL 1.0.1t
+*or*
 OpenSSL 1.0.2g
+*or*
+OpenSSL 1.1.0
 *or*
 BoringSSL 1.1.0
 *or*
 OpenSSL 1.1.1-pre2-dev
-*or*
-OpenSSL 1.0.1t
-*or*
-OpenSSL 1.1.0
 
 Diminuto 48.4.1 (later releases may work as well)
 
@@ -298,11 +299,12 @@ to the home directory on either ends.
 
 For example, I exported root and CA credentials from my x86_64 Ubuntu
 system "nickel", that were generated during the build of that Codex,
-to my ARM Raspbian systems "lead" and "bronze", prior to the build of
-Codex on those systems.
+to my ARM Raspbian systems, prior to the build of Codex on those systems.
 
-    make exported FAREND="pi@lead"
     make exported FAREND="pi@bronze"
+    make exported FAREND="pi@cobalt"
+    make exported FAREND="pi@copper"
+    make exported FAREND="pi@lead"
 
 Codex builds just enough Public Key Infrastructure (PKI) to run the unit
 tests.
