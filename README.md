@@ -2,6 +2,8 @@
 
 Slightly Simpler Open Secure Socket Layer (OpenSSL) API in C.
 
+[![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/coverclock)
+
 ## Copyright
 
 Copyright 2018 Digital Aggregates Corporation, Arvada Colorado USA
