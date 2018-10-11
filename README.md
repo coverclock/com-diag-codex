@@ -233,7 +233,7 @@ Diminuto 48.4.1 (later releases may work as well)
 
 "Nickel"    
 Intel NUC5i7RYH    
-Intel Core i7-5557U @ 3.10GHz x 8    
+Intel Core i7-5557U @ 3.10GHz x 2 x 2   
 Ubuntu 16.04.3 LTS "xenial"    
 Linux 4.10.0    
 gcc 5.4.0    
