@@ -28,6 +28,10 @@ C or C++, code that I typically am asked to develop. Codex is built on
 top of Diminuto, my C-based systems programming library I've been using
 for years in both personal and commercial development projects.
 
+>N.B. If you got here via "prairiethorn.org", that is a test domain I use
+>for this project and others. It is (apparently) currently forwarded to
+>the GitHub README page for this repository.
+
 ## Disclaimer
 
 This is not my area of expertise, which is why nothing about the Secure
