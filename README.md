@@ -1,24 +1,25 @@
-# com-diag-codex
+com-diag-codex
+==============
 
 Slightly Simpler Open Secure Socket Layer (OpenSSL) API in C.
 
 [![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/coverclock)
 
-## Copyright
+# Copyright
 
-Copyright 2018 Digital Aggregates Corporation, Arvada Colorado USA
+Copyright 2018-2020 Digital Aggregates Corporation, Arvada Colorado USA
 
-## License
+# License
 
 Licensed under the terms in LICENSE.txt (FSF LGPL 2.1).
 
-## Trademarks
+# Trademarks
 
 "Digital Aggregates Corporation" is a registered trademark.
 
 "Chip Overclock" is a registered trademark.
 
-## Abstract
+# Abstract
 
 Codex provides a slightly simpler higher-level C-based application
 programming interface to the Open Secure Socket Layer (OpenSSL)
@@ -32,7 +33,7 @@ for years in both personal and commercial development projects.
 >for this project and others. It is (apparently) currently forwarded to
 >the GitHub README page for this repository.
 
-## Disclaimer
+# Disclaimer
 
 This is not my area of expertise, which is why nothing about the Secure
 Socket Layer or cyber-security shows up on my resume. But people learn in
@@ -42,7 +43,7 @@ learned enough to use OpenSSL in the kinds of Internet of Things product
 development efforts on which I get paid to work. No warranty is
 expressed or implied.
 
-## What Works
+# What Works
 
 I first developed Codex under OpenSSL 1.0.2 on Ubuntu "xenial". I later
 ported it to (not necessarily in this order)
@@ -68,7 +69,7 @@ versions of OpenSSL, as a demonstration of interoperability. This use of an
 X86_64 server with ARM clients is a typical IoT configuration on the kinds of
 stuff on which I typically work.
 
-## Contact
+# Contact
 
 Chip Overclock  
 <mailto:coverclock@diag.com>  
@@ -77,7 +78,7 @@ Digital Aggregates Corporation
 3440 Youngfield St. #209  
 Wheat Ridge CO 80033 USA  
 
-## Remarks
+# Remarks
 
 The application programming interface for Codex is split into a *public* API
 and a *private* API. The public API is defined in the header file
@@ -219,7 +220,7 @@ test robust against a client and a server simultaneously requesting
 a renegotiation. But that's a legitimate concern that a real-world
 application should worry about.
 
-## Dependencies
+# Dependencies
 
 OpenSSL 1.0.1t
 *or*
@@ -233,7 +234,7 @@ OpenSSL 1.1.1-pre2-dev
 
 Diminuto 48.4.1 (later releases may work as well)
 
-## Targets
+# Targets
 
 "Nickel"    
 Intel NUC5i7RYH    
@@ -263,7 +264,7 @@ Raspbian GNU/Linux 9.4 "stretch"
 Linux 4.14.30    
 gcc 6.3.0    
 
-## Certificates
+# Certificates
 
 The build ```Makefile``` for Codex builds root, certificate authority (CA),
 client, and server certificates anew. It is these certificates that allow
@@ -315,7 +316,7 @@ to my ARM Raspbian systems, prior to the build of Codex on those systems.
 Codex builds just enough Public Key Infrastructure (PKI) to run the unit
 tests.
 
-## Passwords
+# Passwords
 
 The certificates built by the ```Makefile``` for the unit tests are password
 protected: the unit tests (or, indeed, any application that tries to
@@ -339,7 +340,7 @@ for a Codex client context; however, you can change these names in the
 if you roll your own context using the "generic" version of the Codex
 context API, you can name them anything you want at run-time.
 
-## Verification
+# Verification
 
 In addition to using the usual OpenSSL verification mechanisms, Codex provides a
 verification function that may be invoked by the application.
@@ -401,7 +402,7 @@ for IPv4 and ```alpha-6.prairiethorn.org``` for IPv6; this allows hosts trying
 to connect to ```foo``` to be able to select the IP version by using a different
 host name when it is resolved via DNS.
 
-## Certificate Revocation Lists
+# Certificate Revocation Lists
 
 The Codex library does *not* directly handle signed certificate revocation lists
 or the real-time revocation of certificates using the Online Certificate Status
@@ -417,7 +418,7 @@ Here is an example.
 The serial numbers are stored in-memory in a red-black tree (a kind of
 self-balancing binary tree), so the search time is relatively efficient.
 
-## Configuration
+# Configuration
 
 Codex has a number of OpenSSL-related configuration parameters. The
 defaults can be configured at build-time by changing the make variables in
@@ -431,7 +432,7 @@ settors defined in the private API. Here are the defaults.
 * Diffie-Hellman with 2048-bit keys is used for exchanging keys.
 * Symmetric cipher selection string "TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL" is used for encrypting the data stream.
 
-## Directories
+# Directories
  
 * ```bin``` - utility source files.
 * ```cfg``` - makefile configuration files.
@@ -448,7 +449,7 @@ flexibility to cross-compile and generate build-artifacts into other
 ```TARGET``` directories. I've used this capability for Diminuto. But I build
 Codex on the x86_64 and ARM targets on which I intend to run it.
 
-## Building
+# Building
 
 If you want to use OpenSSL 1.0.2 on an X86_64 running Ubuntu "xenial"
 system, you can install it with the Aptitude package manager using the
@@ -540,7 +541,7 @@ is included by Bash to define ```PATH```, ```LD_LIBRARY_PATH``` and other
 necessary variables in the environment, so that you can test without installing
 Codex or Diminuto.
 
-## Logging
+# Logging
 
 Diminuto provides a logging framework that is widely used in Codex. If a
 process has a controlling terminal, log messages are displayed on standard
@@ -573,7 +574,7 @@ as ```0xfe``` or ```254```, with the lowest priority log levels being the
 lowest order bits. ```0xfe``` (all but Debug) is the value set by the
 ```out/host/bin/setup``` script used in the unit test description below.
 
-## Testing
+# Testing
 
 Run the Codex unit tests without having to install anything in, for
 example,``` /usr/local```.
@@ -638,7 +639,7 @@ actually telling the client.
 An example of the output of such a command can be found in
 ```txt/unittest-server-nickel.txt```.
 
-## Documentation
+# Documentation
 
 Codex, like Diminuto, has embedded Doxygen comments in the header files
 that define the public API. If you have the Doxygen and TeX packages
@@ -651,7 +652,7 @@ PDF utilities, you can generate PDF manuals.
 
     make documentation-ancillary
 
-## Performance
+# Performance
 
 There are a number of scripts in the ```tst``` directory that I used to do
 some performance testing by comparing the total CPU time of ```unittest-core```
@@ -662,7 +663,7 @@ the rest of this effort. The scripts and artifacts are somewhat misnamed as
 "unittest" because they were derived from what was originally a unit test
 script.
 
-## Repositories
+# Repositories
 
 <https://github.com/coverclock/com-diag-codex>
 
@@ -672,7 +673,7 @@ script.
 
 <https://boringssl.googlesource.com/boringssl>
 
-## References
+# References
 
 D. Adrian, et al., "Imperfect Forward Secrecy: How Diffie-Hellman Fails
 in Practice", 22nd ACM Conference on Computer and Communication Security,
@@ -705,7 +706,7 @@ V. Geraskin, "OpenSSL and select()", 2014-02-21,
 
 M. Georgiev, et. al., "The Most Dangerous Code in the World: Validating SSL
 Certificates in Non-Browser Software", 19nd ACM Conference on Computer and
-Communication Security (*CCS'12), Raleigh NC USA, 2012-10-16..18,
+Communication Security (CCS'12), Raleigh NC USA, 2012-10-16..18,
 <https://www.cs.utexas.edu/~shmat/shmat_ccs12.pdf>
 
 D. Gibbons, personal communication, 2018-01-17
@@ -765,7 +766,11 @@ J. Viega, et al., _Network Security with OpenSSL_, O'Reilly,
 J. Viega, et al., _Secure Programming Cookbook for C and C++_, O'Reilly,
 2003
 
-## Acknowledgements
+# Soundtrack
+
+<https://www.youtube.com/playlist?list=PLd7Yo1333iA8yVIm-Pw5yfTcHNTbhNSux>
+
+# Acknowledgements
 
 Special thanks to Doug Gibbons, my long-time friend, occasional colleague,
 and one-time office mate, who was extraordinarily generous with his
