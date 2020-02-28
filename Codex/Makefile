@@ -1013,3 +1013,8 @@ install-include:
 	mkdir -p $(INSTALL_INC)
 	tar -C $(OUT)/$(INC_DIR) -cvf - . | tar -C $(INSTALL_INC) -xvf -
 	tar -C $(INC_DIR) -cvf - . | tar -C $(INSTALL_INC) -xvf -
+
+########## Sanity Tests
+
+sanity:
+	unittest-sanity
