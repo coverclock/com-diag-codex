@@ -10,7 +10,7 @@ BUFSIZE=${3:-"512"}
 BLOCKSIZE=${4:-"4096"}
 BLOCKS=${5:-"1024"}
 NEAREND=${6:-"49482"}
-FAREND=${7:-"localhost:${NEAREND}"}
+FAREND=${7:-"127.0.0.1:${NEAREND}"}
 EXPECTED="client.prairiethorn.org"
 
 export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
