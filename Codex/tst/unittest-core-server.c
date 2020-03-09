@@ -194,6 +194,9 @@ int main(int argc, char ** argv)
 			}
 			EXPECT(codex_connection_is_server(ssl));
 
+            codex_perror("Test codex_perror");
+            codex_serror("Test codex_serror", ssl, 0);
+
 			fd = codex_connection_descriptor(ssl);
 			ASSERT(fd >= 0);
 

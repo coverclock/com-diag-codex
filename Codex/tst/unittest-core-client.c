@@ -171,6 +171,9 @@ int main(int argc, char ** argv)
 	ASSERT(ssl != (SSL *)0);
 	EXPECT(!codex_connection_is_server(ssl));
 
+    codex_perror("Test codex_perror");
+    codex_serror("Test codex_serror", ssl, 0);
+
 	fd = codex_connection_descriptor(ssl);
 	ASSERT(fd >= 0);
 	ASSERT(fd != STDIN_FILENO);

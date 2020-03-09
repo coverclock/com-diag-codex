@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2020 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -63,7 +63,7 @@ void codex_wtf(const char * file, int line, const codex_connection_t * ssl, int 
  * ERRORS
  ******************************************************************************/
 
-void codex_perror(const char * str)
+void codex_perror_f(const char * file, int line, const char * str)
 {
 	int save = -1;
 	unsigned long error = -1;
@@ -78,7 +78,7 @@ void codex_perror(const char * str)
 		buffer[0] = '\0';
 		ERR_error_string_n(error, buffer, sizeof(buffer));
 		buffer[sizeof(buffer) - 1] = '\0';
-		DIMINUTO_LOG_ERROR("codex_perror: \"%s\" errno=%d=\"%s\" index=%d error=0x%08x=\"%s\"\n", str, save, strerror(save), ii++, error, buffer);
+		DIMINUTO_LOG_ERROR("%s@%d: \"%s\" errno=%d=\"%s\" index=%d error=0x%08x=\"%s\"\n", file, line, str, save, strerror(save), ii++, error, buffer);
 	}
 
 	if (ii > 0) {
@@ -87,11 +87,11 @@ void codex_perror(const char * str)
 		/* Do nothing. */
 	} else {
 		errno = save;
-		diminuto_perror(str);
+		diminuto_perror_f(file, line, str);
 	}
 }
 
-codex_serror_t codex_serror(const char * str, const SSL * ssl, int rc)
+codex_serror_t codex_serror_f(const char * file, int line, const char * str, const SSL * ssl, int rc)
 {
 	codex_serror_t result = CODEX_SERROR_OTHER;
 	int error = -1;
@@ -136,21 +136,21 @@ codex_serror_t codex_serror(const char * str, const SSL * ssl, int rc)
 	case SSL_ERROR_SYSCALL:
 		queued = ERR_peek_error();
 		if (queued != 0) {
-			codex_perror(str);
+			codex_perror_f(file, line, str);
 		} else if (save == 0) {
 			/* Do nothing. */
 		} else if (save == EINTR) {
 			/* Do nothing. */
 		} else {
 			errno = save;
-			diminuto_perror(str);
+			diminuto_perror_f(file, line, str);
 		}
 		result = CODEX_SERROR_SYSCALL;
 		break;
 
 	case SSL_ERROR_SSL:
 		errno = save;
-		codex_perror(str);
+		codex_perror_f(file, line, str);
 		result = CODEX_SERROR_SSL;
 		break;
 
@@ -162,9 +162,9 @@ codex_serror_t codex_serror(const char * str, const SSL * ssl, int rc)
 	}
 
 	if (rc < 0) {
-		DIMINUTO_LOG_INFORMATION("codex_serror: \"%s\" ssl=%p rc=%d serror=%d errno=%d error='%c'\n", str, ssl, rc, error, save, result);
+		DIMINUTO_LOG_INFORMATION("%s@%d: \"%s\" ssl=%p rc=%d serror=%d errno=%d error='%c'\n", file, line, str, ssl, rc, error, save, result);
 	} else {
-		DIMINUTO_LOG_DEBUG("codex_serror: \"%s\" ssl=%p rc=%d serror=%d errno=%d error='%c'\n", str, ssl, rc, error, save, result);
+		DIMINUTO_LOG_DEBUG("%s@%d: \"%s\" ssl=%p rc=%d serror=%d errno=%d error='%c'\n", file, line, str, ssl, rc, error, save, result);
 	}
 
 	errno = save;
