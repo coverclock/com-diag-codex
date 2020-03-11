@@ -66,7 +66,7 @@ int codex_verification_callback(int ok, X509_STORE_CTX * ctx)
 
 		/*
 		 * If the OpenSSL validator that is calling us didn't like the
-		 * certificate, see why. If it was becuase it has a self-signed
+		 * certificate, see why. If it was because it has a self-signed
 		 * certificate, check the (sadly) global variable to see if we
 		 * are allowed to accept self-signed certificates (which are a
 		 * really bad idea, but useful none the less). If so, complain
