@@ -541,6 +541,14 @@ is included by Bash to define ```PATH```, ```LD_LIBRARY_PATH``` and other
 necessary variables in the environment, so that you can test without installing
 Codex or Diminuto.
 
+# Unit Tests
+
+Preceed with . out/host/bin/setup to setup PATH etc.
+
+* make sanity - These tests will take a coffee break to run.
+* make functional - These tests will take at least a lunch hour to run.
+* make extra - These tests will take at least a lunch hour to run.
+
 # Logging
 
 Diminuto provides a logging framework that is widely used in Codex. If a
