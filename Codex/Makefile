@@ -974,6 +974,8 @@ install-include:
 
 sanity:
 	unittest-sanity
+
+functional:
 	unittest-core
 	unittest-machine
 

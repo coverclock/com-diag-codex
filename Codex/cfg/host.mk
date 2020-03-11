@@ -1,5 +1,5 @@
 # Copyright 2018 Digital Aggregates Corporation
-# Licensed under the terms in README.hz
+# Licensed under the terms in LICENSE.txt
 # author:Chip Overclock
 # mailto:coverclock@diag.com
 # https://github.com/coverclock/com-diag-codex
