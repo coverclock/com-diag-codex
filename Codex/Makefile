@@ -974,6 +974,17 @@ install-include:
 
 sanity:
 	unittest-sanity
+	unittest-verification-client
+	unittest-verification-server
+	unittest-verification-bogus
+	unittest-verification-self
+	unittest-verification-noself && false || true
+	unittest-verification-revoked && false || true
+	unittest-noverification-client
+	unittest-noverification-server
+	unittest-noverification-bogus
+	unittest-noverification-self
+	unittest-noverification-revoked
 
 functional:
 	unittest-core
@@ -982,18 +993,3 @@ functional:
 extra:
 	unittest-handshake
 	unittest-control
-
-verification:
-	unittest-verification-client
-	unittest-verification-server
-	unittest-verification-bogus
-	unittest-verification-self
-	unittest-verification-noself && false || true
-	unittest-verification-revoked && false || true
-
-noverification:
-	unittest-noverification-client
-	unittest-noverification-server
-	unittest-noverification-bogus
-	unittest-noverification-self
-	unittest-noverification-revoked
