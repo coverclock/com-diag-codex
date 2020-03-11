@@ -766,6 +766,14 @@ J. Viega, et al., _Network Security with OpenSSL_, O'Reilly,
 J. Viega, et al., _Secure Programming Cookbook for C and C++_, O'Reilly,
 2003
 
+# Articles
+
+Chip Overclock, "Using The Open Secure Socket Layer In C", 2018-04,
+<https://coverclock.blogspot.com/2018/04/using-open-secure-socket-layer-in-c.html>
+
+Chip Overclock, "When Learning By Doing Goes To Eleven", 2020-03,
+<https://coverclock.blogspot.com/2020/03/when-learning-by-doing-goes-to-eleven.html>
+
 # Soundtrack
 
 <https://www.youtube.com/playlist?list=PLd7Yo1333iA8yVIm-Pw5yfTcHNTbhNSux>

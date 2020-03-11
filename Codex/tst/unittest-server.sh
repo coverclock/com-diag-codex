@@ -10,4 +10,4 @@ EXPECTED="client.prairiethorn.org"
 
 export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
-exec unittest-handshake-server -e "${EXPECTED}" -n ${NEAREND} -B ${BUFSIZE}
+exec functionaltest-handshake-server -e "${EXPECTED}" -n ${NEAREND} -B ${BUFSIZE}

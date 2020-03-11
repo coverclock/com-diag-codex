@@ -5,10 +5,13 @@
 /**
  * @file
  *
- * Copyright 2020 Digital Aggregates Corporation, Colorado, USA<BR>
- * Licensed under the terms in LICENSE.txt<BR>
- * Chip Overclock (mailto:coverclock@diag.com)<BR>
- * https://github.com/coverclock/com-diag-codex<BR>
+ * Copyright 2020 Digital Aggregates Corporation, Colorado, USA.
+ * Licensed under the terms in LICENSE.txt.
+ *
+ * The Codex Platform feature tries to determine what OpenSSL
+ * implementation is being used. It does default to something
+ * reasonable. But things work best if it can really tell, since
+ * the API differs between implementations.
  */
 
 /*******************************************************************************

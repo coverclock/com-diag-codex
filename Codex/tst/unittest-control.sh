@@ -14,13 +14,13 @@ FAREND=${7:-"127.0.0.1:${NEAREND}"}
 
 export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
-unittest-control-server -n ${NEAREND} -B ${BUFSIZE} &
+functionaltest-control-server -n ${NEAREND} -B ${BUFSIZE} &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do
 
     sleep 1
-    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-control-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
+    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | functionaltest-control-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
     CLIENT="${CLIENT} $!"
     CLIENTS=$(( ${CLIENTS} - 1 ))
 

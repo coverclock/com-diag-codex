@@ -5,10 +5,105 @@
 /**
  * @file
  *
- * Copyright 2018-2020 Digital Aggregates Corporation, Colorado, USA<BR>
- * Licensed under the terms in LICENSE.txt<BR>
- * Chip Overclock (mailto:coverclock@diag.com)<BR>
- * https://github.com/coverclock/com-diag-codex<BR>
+ * Copyright 2018-2020 Digital Aggregates Corporation, Colorado, USA.
+ * Licensed under the terms in LICENSE.txt.
+ *
+ * The Codex package implements a slightly simpler interface to the
+ * Open Secure Socket Layer (OpenSSL) library and its variations like
+ * BoringSSL.
+ *
+ * REFERENCES
+ * 
+ * D. Adrian, et al., "Imperfect Forward Secrecy: How Diffie-Hellman Fails
+ * in Practice", 22nd ACM Conference on Computer and Communication Security,
+ * 2015-10, <https://weakdh.org/imperfect-forward-secrecy-ccs15.pdf>
+ * 
+ * K. Ballard, "Secure Programming with the OpenSSL API",
+ * <https://www.ibm.com/developerworks/library/l-openssl/>, IBM, 2012-06-28
+ * 
+ * E. Barker, et al., "Transitions: Recommendation for Transitioning the
+ * Use of Cryptographic Algorithms and Key Lengths", NIST, SP 800-131A
+ * Rev. 1, 2015-11
+ * 
+ * D. Barrett, et al., _SSH, The Secure Shell_, 2nd ed.,
+ * O'Reilly, 2005
+ * 
+ * D. Cooper, et al., "Internet X.509 Public Key Infrastructure Certificate
+ * and Certificate Revocation List (CRL) Profile", RFC 5280, 2008-05
+ * 
+ * J. Davies, _Implementing SSL/TLS_, Wiley, 2011
+ * 
+ * A. Diquet, "Everything You've Always Wanted to Know About Certificate
+ * Validation with OpenSSL (but Were Afraid to Ask)", iSECpartners, 2012-10-29,
+ * <https://github.com/iSECPartners/ssl-conservatory/blob/master/openssl/everything-you-wanted-to-know-about-openssl.pdf?raw=true>
+ * 
+ * Frank4DD, "certserial.c", 2014,
+ * <http://fm4dd.com/openssl/certserial.htm>
+ * 
+ * V. Geraskin, "OpenSSL and select()", 2014-02-21,
+ * <http://www.past5.com/tutorials/2014/02/21/openssl-and-select/>
+ * 
+ * M. Georgiev, et. al., "The Most Dangerous Code in the World: Validating SSL
+ * Certificates in Non-Browser Software", 19nd ACM Conference on Computer and
+ * Communication Security (CCS'12), Raleigh NC USA, 2012-10-16..18,
+ * <https://www.cs.utexas.edu/~shmat/shmat_ccs12.pdf>
+ * 
+ * D. Gibbons, personal communication, 2018-01-17
+ * 
+ * D. Gibbons, personal communication, 2018-02-12
+ * 
+ * D. Gillmor, "Negotiated Finite Diffie-Hellman Ephemeral Parameters for
+ * Transport Layer Security (TLS)", RFC 7919, 2016-08
+ * 
+ * HP, "SSL Programming Tutorial", HP OpenVMS Systems Documentation,
+ * <http://h41379.www4.hpe.com/doc/83final/ba554_90007/ch04s03.html>
+ * 
+ * Karthik, et al., "SSL Renegotiation with Full Duplex Socket Communication",
+ * Stack Overflow, 2013-12-14,
+ * <https://stackoverflow.com/questions/18728355/ssl-renegotiation-with-full-duplex-socket-communication>
+ * 
+ * V. Kruglikov et al., "Full-duplex SSL/TLS renegotiation failure", OpenSSL
+ * Ticket #2481, 2011-03-26,
+ * <https://rt.openssl.org/Ticket/Display.html?id=2481&user=guest&pass=guest>
+ * 
+ * OpenSSL, documentation, <https://www.openssl.org/docs/>
+ * 
+ * OpenSSL, "HOWTO keys", ```openssl/doc/HOWTO/keys.txt```
+ * 
+ * OpenSSL, "HOWTO proxy certificates",
+ * ```openssl/doc/HOWTO/proxy_certificates.txt```
+ * 
+ * OpenSSL, "HOWTO certificates", ```openssl/doc/HOWTO/certificates.txt```
+ * 
+ * OpenSSL, "Fingerprints for Signing Releases", ```openssl/doc/fingerprints.txt```
+ * 
+ * OpenSSL Wiki, "FIPS mode and TLS",
+ * <https://wiki.openssl.org/index.php/FIPS_mode_and_TLS>
+ * 
+ * E. Rescorla, "An Introduction to OpenSSL Programming (Part I)", Version
+ * 1.0, 2001-10-05, <http://www.past5.com/assets/post_docs/openssl1.pdf>
+ * (also Linux Journal, September 2001)
+ * 
+ * E. Rescorla, "An Introduction to OpenSSL Programming (Part II)", Version
+ * 1.0, 2002-01-09, <http://www.past5.com/assets/post_docs/openssl2.pdf>
+ * (also Linux Journal, September 2001)
+ * 
+ * I. Ristic, _OpenSSL Cookbook_, Feisty Duck,
+ * <https://www.feistyduck.com/books/openssl-cookbook/>
+ * 
+ * I. Ristic, "SSL and TLS Deployment Best Practices", Version 1.6-draft,
+ * Qualys/SSL Labs, 2017-05-13,
+ * <https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices>
+ * 
+ * L. Rumcajs, "How to perform a rehandshake (renegotiation) with OpenSSL API",
+ * Stack Overflow, 2015-12-04,
+ * <https://stackoverflow.com/questions/28944294/how-to-perform-a-rehandshake-renegotiation-with-openssl-api>
+ * 
+ * J. Viega, et al., _Network Security with OpenSSL_, O'Reilly,
+ * 2002
+ * 
+ * J. Viega, et al., _Secure Programming Cookbook for C and C++_, O'Reilly,
+ * 2003
  */
 
 /*******************************************************************************

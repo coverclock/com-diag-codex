@@ -16,13 +16,13 @@ export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
 CRTPATH="$(realpath $(dirname $0))/../crt"
 
-unittest-handshake-server -n ${NEAREND} -B ${BUFSIZE} -L ${CRTPATH}/crl.txt &
+functionaltest-handshake-server -n ${NEAREND} -B ${BUFSIZE} -L ${CRTPATH}/crl.txt &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do
 
     sleep 1
-    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-handshake-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} -C ${CRTPATH}/revoked.pem -D ${CRTPATH}/dh.pem -K ${CRTPATH}/revoked.pem -R ${CRTPATH}/root.pem -P "" > /dev/null &
+    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | functionaltest-handshake-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} -C ${CRTPATH}/revoked.pem -D ${CRTPATH}/dh.pem -K ${CRTPATH}/revoked.pem -R ${CRTPATH}/root.pem -P "" > /dev/null &
     CLIENT="${CLIENT} $!"
     CLIENTS=$(( ${CLIENTS} - 1 ))
 

@@ -24,7 +24,7 @@ SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	8# API changes that may require that applications be modified.
 MINOR				:=	6# Only functionality or features added with no legacy API changes.
-BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
+BUILD				:=	1# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
 # X86_64 Ubuntu build server.
@@ -82,6 +82,7 @@ CRT_DIR				:=	crt# Certificate files
 DEP_DIR				:=	dep# Generated dependencies and other make files
 DOC_DIR				:=	doc# Documentation
 ETC_DIR				:=	etc# Miscellaneous files
+FUN_DIR				:=	fun# Functional tests
 GEN_DIR				:=	gen# Generated source files
 INC_DIR				:=	inc# Header files
 LIB_DIR				:=	lib# Shared objects for dynamic linking
@@ -116,7 +117,7 @@ OLD					:=	dummy
 
 PACKAGE				:=	$(OUT)/$(TGZ_DIR)/$(PROJECT)-$(TARGET)
 
-MANIFEST			:=	$(ARC_DIR) $(BIN_DIR) $(INC_DIR) $(LIB_DIR) $(TST_DIR)
+MANIFEST			:=	$(ARC_DIR) $(BIN_DIR) $(INC_DIR) $(LIB_DIR) $(TST_DIR) $(FUN_DIR)
 
 DISTRIBUTION		:=	$(OUT)/$(TGZ_DIR)/$(PROJECT)-$(MAJOR).$(MINOR).$(BUILD)
 
@@ -214,6 +215,9 @@ TARGETUNITTESTS		+=	$(addprefix $(OUT)/,$(basename $(wildcard $(TST_DIR)/*.sh)))
 TARGETUNITTESTS		+=	$(addprefix $(OUT)/,$(wildcard $(TST_DIR)/*.awk))
 TARGETUNITTESTS		+=	$(addprefix $(OUT)/,$(wildcard $(TST_DIR)/*.r))
 
+TARGETFUNCTIONALS   :=  $(addprefix $(OUT)/,$(basename $(wildcard $(FUN_DIR)/*.c)))
+TARGETFUNCTIONALS   +=  $(addprefix $(OUT)/,$(basename $(wildcard $(FUN_DIR)/*.sh)))
+
 TARGETARCHIVE		:=	$(OUT)/$(ARC_DIR)/$(PROJECT_A)
 
 TARGETSHARED		:=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
@@ -244,7 +248,7 @@ TARGETREVOCATIONS	+=	$(SSL_CRT)/crltwo.txt
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
 
-TARGETPROGRAMS		:=	$(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS)
+TARGETPROGRAMS		:=	$(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS) $(TARGETFUNCTIONALS)
 
 TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPASSWORDS) $(TARGETREVOCATIONS) $(TARGETPARAMETERS)
 
@@ -536,60 +540,6 @@ exported:	$(SSL_CRT)/rootcert.pem $(SSL_CRT)/rootkey.pem $(SSL_CRT)/root.pem $(S
 	ssh $(FAREND) mkdir -p $$P; \
 	scp $(SSL_CRT)/root* ${SSL_CRT}/ca* $(FAREND):$$P
 
-########## Packaging and Distribution
-
-# Useful for copying the executables over to another target for which they were
-# cross compiled.
-
-.PHONY:	package
-
-package $(PACKAGE).tgz:
-	D=`dirname $(PACKAGE)`; mkdir -p $$D; \
-	for M in $(MANIFEST); do mkdir -p $(OUT)/$$M; done; \
-	T=`mktemp -d "$(TEMP_DIR)/$(PROJECT).XXXXXXXXXX"`; \
-	B=`basename $(PACKAGE)`; mkdir -p $$T/$$B; \
-	tar -C $(OUT) --exclude-vcs -cvf - $(MANIFEST) | tar -C $$T/$$B -xvf -; \
-	tar --exclude-vcs -cvf - $(INC_DIR) | tar -C $$T/$$B -xvf -; \
-	tar -C $$T --exclude-vcs -cvzf - $$B > $(PACKAGE).tgz; \
-	rm -rf $$T
-
-# Useful for given someone a tarball of the actual source distribution that
-# is guaranteed to at least build.
-
-.PHONY:	distribution distro
-
-distribution distro $(DISTRIBUTION).tgz:
-	D=`dirname $(DISTRIBUTION)`; mkdir -p $$D; \
-	T=`mktemp -d "$(TEMP_DIR)/$(PROJECT).XXXXXXXXXX"`; \
-	B=`basename $(DISTRIBUTION)`; \
-	( cd $$T; git clone $(GITURL) $$B ); \
-	tar -C $$T --exclude-vcs -cvzf - ./$$B > $(DISTRIBUTION).tgz; \
-	rm -rf $$T/$$B; \
-	tar -C $$T -xvzf - < $(DISTRIBUTION).tgz; \
-	( cd $$T/$$B/$(TITLE); make all TARGET=host OUT=out/host && $(OUT)/bin/generate > ./setup && . ./setup && vintage ); \
-	rm -rf $$T
-
-# Useful for copying a tarball of the current development source base to a
-# target for which there is no cross compiler toolchain.
-
-.PHONY:	tarball
-
-tarball $(TARBALL).tgz:
-	D=`dirname $(TARBALL)`; mkdir -p $$D; \
-	T=`pwd`; \
-	B=`basename $$T`; \
-	( tar -C .. --exclude-vcs --exclude=$(OUT_DIR) --exclude=.??* -cvzf - $$B ) > $(TARBALL).tgz; \
-
-# Useful for backing a complete backup before doing something that may turn
-# out to be profoundly stupid, like running a transformative script across all
-# the source files. Sure, your local and remote repos should save you, but what
-# if they didn't?
-
-.PHONY:	backup
-
-backup:
-	tar --exclude=$(OUT_DIR) -cvzf - . > $(HOME)/$(PROJECT)-$(shell date -u +%Y%m%d%H%M%S%N%Z).tgz
-
 ########## Target C Libraries
 
 $(OUT)/$(ARC_DIR)/$(PROJECT_A):	$(TARGETOBJECTS)
@@ -616,6 +566,12 @@ $(OUT)/$(SYM_DIR)/%:	$(OUT)/$(OBC_DIR)/$(BIN_DIR)/%.o $(TARGETLIBRARIES)
 ########## Unit Tests
 
 $(OUT)/$(TST_DIR)/%:	$(OUT)/$(OBC_DIR)/$(TST_DIR)/%.o $(TARGETLIBRARIES)
+	D=`dirname $@`; mkdir -p $$D
+	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+
+########## Functional Tests
+
+$(OUT)/$(FUN_DIR)/%:	$(OUT)/$(OBC_DIR)/$(FUN_DIR)/%.o $(TARGETLIBRARIES)
 	D=`dirname $@`; mkdir -p $$D
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 
@@ -829,7 +785,7 @@ $(OUT)/$(SYM_DIR)/vintage:	$(OUT)/$(GEN_DIR)/vintage.c
 $(OUT)/$(BIN_DIR)/generate:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
-	echo 'echo export PATH=\\$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
+	echo 'echo export PATH=\\$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(FUN_DIR)' >> $@
 	echo 'echo export LD_LIBRARY_PATH=\\$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd\`' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd\`' >> $@
@@ -841,7 +797,7 @@ $(OUT)/$(BIN_DIR)/generate:	Makefile
 $(OUT)/$(SYM_DIR)/generate:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
-	echo 'echo export PATH=\\$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR)' >> $@
+	echo 'echo export PATH=\\$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(FUN_DIR)' >> $@
 	echo 'echo export LD_LIBRARY_PATH=\\$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd\`' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd\`' >> $@
@@ -968,7 +924,7 @@ DEPENDENCIES := $(OUT)/$(DEP_DIR)/dependencies.mk
 depend:	$(TARGETSYNTHESIZED)
 	M=`dirname $(DEPENDENCIES)`; mkdir -p $$M
 	cp /dev/null $(DEPENDENCIES)
-	for S in $(BIN_DIR) $(SRC_DIR) $(TST_DIR); do \
+	for S in $(BIN_DIR) $(SRC_DIR) $(TST_DIR) $(FUN_DIR); do \
 		if [ -d $$S ]; then \
 			for F in $$S/*.c; do \
 				D=`dirname $$F`; \

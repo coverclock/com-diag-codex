@@ -17,13 +17,13 @@ export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
 CRTPATH="$(realpath $(dirname $0))/../crt"
 
-unittest-handshake-server -e "${EXPECTED}" -n ${NEAREND} -B ${BUFSIZE} &
+functionaltest-handshake-server -e "${EXPECTED}" -n ${NEAREND} -B ${BUFSIZE} &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do
 
     sleep 1
-    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-handshake-client -C ${CRTPATH}/self.pem -K ${CRTPATH}/self.pem -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
+    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | functionaltest-handshake-client -C ${CRTPATH}/self.pem -K ${CRTPATH}/self.pem -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
     CLIENT="${CLIENT} $!"
     CLIENTS=$(( ${CLIENTS} - 1 ))
 

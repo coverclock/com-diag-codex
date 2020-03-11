@@ -14,13 +14,13 @@ FAREND="127.0.0.1:${NEAREND}"
 
 export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
-time unittest-core-server -n ${NEAREND} -B ${BUFSIZE} &
+time functionaltest-core-server -n ${NEAREND} -B ${BUFSIZE} &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do
 
     sleep 1
-    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-core-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
+    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | functionaltest-core-client -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
     CLIENT="${CLIENT} $!"
     CLIENTS=$(( ${CLIENTS} - 1 ))
 
@@ -28,7 +28,7 @@ done
 
 trap "kill -9 ${SERVER} ${CLIENT} 2> /dev/null" HUP INT TERM EXIT
 wait ${CLIENT}
-pkill -f -TERM unittest-core-server
+pkill -f -TERM functionaltest-core-server
 wait ${SERVER}
 echo "blocks	${BLOCKS}"
 echo "blksize	${BLOCKSIZE}"

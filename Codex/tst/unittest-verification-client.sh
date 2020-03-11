@@ -15,13 +15,13 @@ EXPECTED="other.prairiethorn.org"
 
 export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
-unittest-handshake-server -n ${NEAREND} -B ${BUFSIZE} &
+functionaltest-handshake-server -n ${NEAREND} -B ${BUFSIZE} &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do
 
     sleep 1
-    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | unittest-handshake-client -e "${EXPECTED}" -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
+    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | functionaltest-handshake-client -e "${EXPECTED}" -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} > /dev/null &
     CLIENT="${CLIENT} $!"
     CLIENTS=$(( ${CLIENTS} - 1 ))
 
