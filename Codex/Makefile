@@ -988,7 +988,8 @@ verification:
 	unittest-verification-server
 	unittest-verification-bogus
 	unittest-verification-self
-	unittest-verification-revoked
+	unittest-verification-noself && false || true
+	unittest-verification-revoked && false || true
 
 noverification:
 	unittest-noverification-client

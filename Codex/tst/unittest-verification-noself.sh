@@ -17,7 +17,7 @@ export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
 CRTPATH="$(realpath $(dirname $0))/../crt"
 
-functionaltest-handshake-server -s -e "${EXPECTED}" -n ${NEAREND} -B ${BUFSIZE} &
+functionaltest-handshake-server -S -e "${EXPECTED}" -n ${NEAREND} -B ${BUFSIZE} &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do
