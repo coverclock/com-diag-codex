@@ -960,6 +960,8 @@ install-include:
 
 ########## Sanity Tests
 
+.PHONY: sanity functional extra
+
 sanity:
 	unittest-sanity
 	unittest-verification-client
