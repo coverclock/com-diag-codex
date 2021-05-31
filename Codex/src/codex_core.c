@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2020 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2021 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -14,7 +14,6 @@
  * HEADERS
  ******************************************************************************/
 
-#define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>

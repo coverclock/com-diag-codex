@@ -5,7 +5,7 @@
 /**
  * @file
  *
- * Copyright 2020 Digital Aggregates Corporation, Colorado, USA.
+ * Copyright 2020-2021 Digital Aggregates Corporation, Colorado, USA.
  * Licensed under the terms in LICENSE.txt.
  *
  * The Codex Platform feature tries to determine what OpenSSL
@@ -45,6 +45,10 @@
 #elif defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x1010104fL) && !defined(OPENSSL_IS_BORINGSSL)
 #	define COM_DIAG_CODEX_PLATFORM "OpenSSL 1.1.1"
 #	define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x1010104fL
+#	define COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_1 1
+#elif defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x1010106fL) && !defined(OPENSSL_IS_BORINGSSL)
+#	define COM_DIAG_CODEX_PLATFORM "OpenSSL 1.1.1"
+#	define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x1010106fL
 #	define COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_1 1
 #elif defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x1010007f) && defined(OPENSSL_IS_BORINGSSL)
 #	define COM_DIAG_CODEX_PLATFORM "BoringSSL 1.1.0"
