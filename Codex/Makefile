@@ -56,7 +56,7 @@ FLAVOR				:=	openssl
 # complaint string with the time specified in UTC with nanosecond resolution.
 
 # This stuff all gets embedded in the vintage application.
-COPYRIGHT			:=	2018-2020 Digital Aggregates Corporation
+COPYRIGHT			:=	2018-2021 Digital Aggregates Corporation
 LICENSE				:=	GNU Lesser General Public License 2.1
 CONTACT				:=	coverclock@diag.com
 HOMEPAGE			:=	https://github.com/coverclock/com-diag-$(PROJECT)
@@ -983,3 +983,28 @@ functional:
 extra:
 	unittest-handshake
 	unittest-control
+
+##### Wheatstone (self-signed)
+##### In support of the Wheatstone subproject in com-diag-hazer.
+##### This section is not built by default.
+
+include $(CFG_DIR)/wheatstone.mk
+
+$(SSL_CRT)/wheatstonecert.pem:	$(ETC_DIR)/wheatstone.cnf
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) req -new -x509 -config $(ETC_DIR)/wheatstone.cnf -extensions usr_cert -newkey $(WHEATSTONE_KEY) -nodes -$(WHEATSTONE_ALG) -keyout $(SSL_CRT)/wheatstonekey.pem -out $@
+	chmod 600 $@
+
+$(SSL_CRT)/wheatstonekey.pem:	$(SSL_CRT)/wheatstonecert.pem
+	chmod 600 $@
+
+$(SSL_CRT)/wheatstone.pem:	$(SSL_CRT)/wheatstonecert.pem $(SSL_CRT)/wheatstonekey.pem
+	D=`dirname $@`; mkdir -p $$D
+	cat $^ > $@
+	$(C_REHASH) $(SSL_CRT)
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
+
+.PHONY:	wheatstone
+
+wheatstone:	$(SSL_CRT)/wheatstone.pem
