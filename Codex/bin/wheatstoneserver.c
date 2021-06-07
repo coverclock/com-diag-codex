@@ -15,6 +15,7 @@
  * WORK IN PROGRESS
  */
 
+#include "com/diag/diminuto/diminuto_assert.h"
 #include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_fd.h"
@@ -33,6 +34,18 @@
 
 #define COM_DIAG_CODEX_OUT_CRT_PATH "out/host/crt"
 
+static const char * program = "wheatstoneserver";
+static const char * nearend = "*:wheatstone";
+static const char * farend = "tesoro:tesoro";
+static const char * expected = "wheatstone.prairiethorn.org";
+static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
+static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "wheatstoneserver.pem";
+static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "wheatstoneserver.pem";
+static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
+static const char * pathcap = (const char *)0;
+static size_t bufsize = 256;
+static int selfsigned = -1;
+
 typedef struct Client {
     diminuto_tree_t client_node;
     codex_connection_t * client_ssl;
@@ -42,20 +55,23 @@ typedef struct Client {
     int client_fd;
 } client_t;
 
-#if 0
-
 static int client_compare(diminuto_tree_t * tAp, diminuto_tree_t * tBp)
 {
     int rc = 0;
     client_t * cAp = (client_t *)0;
     client_t * cBp = (client_t *)0;
+    int fdA = -1;
+    int fdB = -1;
 
     cAp = (client_t *)diminuto_tree_data(tAp);
     cBp = (client_t *)diminuto_tree_data(tBp);
 
-    if (cAp->fd < cBp->fd) {
+    fdA = codex_connection_descriptor(cAp->client_ssl);
+    fdB = codex_connection_descriptor(cBp->client_ssl);
+
+    if (fdA < fdB) {
         rc = -1;
-    } else if (cAp->fd > cBp->fd) {
+    } else if (fdA > fdB) {
         rc = 1;
     } else {
         /* Do nothing. */
@@ -67,11 +83,11 @@ static int client_compare(diminuto_tree_t * tAp, diminuto_tree_t * tBp)
 static client_t * client_allocate(size_t bufsize)
 {
     client_t * cp = (client_t *)0;
-    client_t * np = (client_t *)0;
+    diminuto_tree_t * tp = (diminuto_tree_t *)0;
 
     cp = (client_t *)malloc(sizeof(client_t));
-    np = diminuto_tree_datainit(&(cp->cient_node), cp);
-    diminuto_assert(np != (diminuto_tree_t *)0);
+    tp = diminuto_tree_datainit(&(cp->client_node), cp);
+    diminuto_assert(tp != (diminuto_tree_t *)0);
     cp->client_ssl = (codex_connection_t *)0;
     cp->client_buffer = (uint8_t *)malloc(bufsize);
     diminuto_assert(cp->client_buffer != (uint8_t *)0);
@@ -90,14 +106,15 @@ static client_t * client_free(client_t * cp, diminuto_mux_t * mp)
     diminuto_tree_t * tp = (diminuto_tree_t *)0;
 
     diminuto_assert(cp != (client_t *)0);
-    tp = diminuto_tree_remove(&(cp->node));
-    diminuto_assert(tp == &(cp->node));
-    if (cp->client_fd >= 0) {
-        if (mp != (diminuto_mux_t *)0) {
-            rc = diminuto_mux_unregister_read(mp, cp->client_fd);
-            diminuto_assert(rc >= 0);
-        }
-        cp->client_fd = -1;
+    tp = diminuto_tree_remove(&(cp->client_node));
+    diminuto_assert(tp == &(cp->client_node));
+    if (cp->client_ssl == (codex_connection_t *)0) {
+        /* Do nothing. */
+    } else if (mp == (diminuto_mux_t *)0) {
+        /* Do nothing. */
+    } else {
+        rc = diminuto_mux_unregister_read(mp, codex_connection_descriptor(cp->client_ssl));
+        diminuto_assert(rc >= 0);
     }
     if (cp->client_ssl != (codex_connection_t *)0) {
         rc = codex_connection_close(cp->client_ssl);
@@ -122,42 +139,24 @@ static ssize_t client_read(client_t * cp, size_t length)
 
     do {
 
-        if (this->client_here == (uint8_t *)0) {
-            bytes = codex_connection_read(this->client_ssl, this->buffer, this->client_past - this->client_buffer);
-            DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, ssl, bytes);
+        if (cp->client_here == (uint8_t *)0) {
+            bytes = codex_connection_read(cp->client_ssl, cp->client_buffer, cp->client_past - cp->client_buffer);
+            DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, cp->client_ssl, bytes);
             if (bytes <= 0) {
                 break;
             }
-            this->client_here = this->client_buffer;
+            cp->client_here = cp->client_buffer;
+        } else {
+            bytes = codex_connection_read(cp->client_ssl, cp->client_here, 1);
+            DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, cp->client_ssl, bytes);
+            if (bytes > 0) {
+            }
         }
-
-        bytes = this->client
-
-    } else {
-        bytes = codex_connection_read(this->client_ssl, this->here, 1);
-        DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, ssl, bytes);
-        if (bytes > 0) {
-        }
-    }
 
     } while (false);
 
     return bytes;
 }
-
-#endif
-
-static const char * program = "wheatstoneserver";
-static const char * nearend = "*:wheatstone";
-static const char * farend = "tesoro:tesoro";
-static const char * expected = "wheatstone.prairiethorn.org";
-static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
-static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "wheatstoneserver.pem";
-static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "wheatstoneserver.pem";
-static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
-static const char * pathcap = (const char *)0;
-static size_t bufsize = 256;
-static int selfsigned = -1;
 
 int main(int argc, char ** argv)
 {
