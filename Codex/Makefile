@@ -984,21 +984,42 @@ extra:
 	unittest-handshake
 	unittest-control
 
-##### Wheatstone (self-signed)
+##### Wheatstone
 ##### In support of the Wheatstone subproject in com-diag-hazer.
 ##### This section is not built by default.
 
 include $(CFG_DIR)/wheatstone.mk
 
-$(SSL_CRT)/wheatstonecert.pem:	$(ETC_DIR)/wheatstone.cnf
+$(SSL_CRT)/wheatstoneserverreq.pem:	$(ETC_DIR)/wheatstoneserver.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -new -x509 -config $(ETC_DIR)/wheatstone.cnf -extensions usr_cert -newkey $(WHEATSTONE_KEY) -nodes -$(WHEATSTONE_ALG) -keyout $(SSL_CRT)/wheatstonekey.pem -out $@
+	$(OPENSSL) req -config $(ETC_DIR)/wheatstoneserver.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/wheatstoneserverkey.pem -out $@
 	chmod 600 $@
 
-$(SSL_CRT)/wheatstonekey.pem:	$(SSL_CRT)/wheatstonecert.pem
+$(SSL_CRT)/wheatstoneserverkey.pem:	$(SSL_CRT)/wheatstoneserverreq.pem
 	chmod 600 $@
 
-$(SSL_CRT)/wheatstone.pem:	$(SSL_CRT)/wheatstonecert.pem $(SSL_CRT)/wheatstonekey.pem
+$(SSL_CRT)/wheatstoneservercert.pem:	$(SSL_CRT)/wheatstoneserverreq.pem $(ETC_DIR)/wheatstoneserver.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/wheatstoneserverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/wheatstoneserver.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
+	$(C_REHASH) $(SSL_CRT)
+	chmod 600 $@
+
+$(SSL_CRT)/wheatstoneserver.pem:	$(SSL_CRT)/wheatstoneservercert.pem $(SSL_CRT)/wheatstoneserverkey.pem $(SSL_CRT)/cacert.pem $(SSL_CRT)/rootcert.pem
+	D=`dirname $@`; mkdir -p $$D
+	cat $^ > $@
+	$(C_REHASH) $(SSL_CRT)
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
+
+$(SSL_CRT)/wheatstoneclientcert.pem:	$(ETC_DIR)/wheatstoneclient.cnf
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) req -new -x509 -config $(ETC_DIR)/wheatstoneclient.cnf -extensions usr_cert -newkey $(WHEATSTONE_KEY) -nodes -$(WHEATSTONE_ALG) -keyout $(SSL_CRT)/wheatstoneclientkey.pem -out $@
+	chmod 600 $@
+
+$(SSL_CRT)/wheatstoneclientkey.pem:	$(SSL_CRT)/wheatstoneclientcert.pem
+	chmod 600 $@
+
+$(SSL_CRT)/wheatstoneclient.pem:	$(SSL_CRT)/wheatstoneclientcert.pem $(SSL_CRT)/wheatstoneclientkey.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
 	$(C_REHASH) $(SSL_CRT)
@@ -1007,4 +1028,4 @@ $(SSL_CRT)/wheatstone.pem:	$(SSL_CRT)/wheatstonecert.pem $(SSL_CRT)/wheatstoneke
 
 .PHONY:	wheatstone
 
-wheatstone:	$(SSL_CRT)/wheatstone.pem
+wheatstone:	$(SSL_CRT)/wheatstoneserver.pem $(SSL_CRT)/wheatstoneclient.pem

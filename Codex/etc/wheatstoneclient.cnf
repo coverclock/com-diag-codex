@@ -16,7 +16,7 @@ ST                     = Colorado
 L                      = Wheat Ridge
 O                      = Prairie Thorn
 OU                     = Wheatstone
-CN                     = wheatstone.prairiethorn.org
+CN                     = wheatstoneclient.prairiethorn.org
 emailAddress           = wheatstone@prairiethorn.org
 
 [ usr_cert ]
