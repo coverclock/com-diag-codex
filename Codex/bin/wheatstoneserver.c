@@ -135,7 +135,7 @@ static client_t * client_free(client_t * cp, diminuto_mux_t * mp)
     return (client_t *)0;
 }
 
-static bool client_process(client_t * cp)
+static bool client_process(client_t * cp, int sock, diminuto_ipc_endpoint_t * ep)
 {
     ssize_t bytes = -1;
     size_t length = 0;
@@ -156,8 +156,23 @@ static bool client_process(client_t * cp)
         *(++(cp->client_here)) = '\0';
         length = strlen(cp->client_buffer);
         DIMINUTO_LOG_DEBUG("%s: %p (%d) \"%s\"[%zu]\n", program, cp, codex_connection_descriptor(cp->client_ssl), cp->client_buffer, length);
+        /*
+         * We echo back the collected message just to drive the underlying SSL
+         * state machines on both ends. The Hazer's Wheatstone client is
+         * currently write-only.
+         */
         bytes = codex_connection_write(cp->client_ssl, cp->client_buffer, length);
-        /* Send datagram here. */
+        if (bytes <= 0) {
+            /* Do nothing. */
+        } else if (ep->udp <= 0) {
+            /* Do nothing. */
+        } else if (!diminuto_ipc6_is_unspecified(&(ep->ipv6))) {
+            bytes = diminuto_ipc6_datagram_send(sock, cp->client_buffer, length, ep->ipv6, ep->udp);
+        } else if (!diminuto_ipc4_is_unspecified(&(ep->ipv4))) {
+            bytes = diminuto_ipc4_datagram_send(sock, cp->client_buffer, length, ep->ipv4, ep->udp);
+        } else {
+            /* Do nothing. */
+        }
         cp->client_here = cp->client_buffer;
     }
     if (cp->client_here >= cp->client_past) {
@@ -309,15 +324,13 @@ int main(int argc, char ** argv)
     if (rc < 0) {
         /* Do nothing. */
     } else if (endpoint.udp <= 0) {
-        rc = -1;
-        errno = EINVAL;
+        /* Do nothing. */
     } else if (!diminuto_ipc6_is_unspecified(&endpoint.ipv6)) {
         sock = rc = diminuto_ipc6_datagram_peer(0);
     } else if (!diminuto_ipc4_is_unspecified(&endpoint.ipv4)) {
         sock = rc = diminuto_ipc4_datagram_peer(0);
     } else {
-        rc = -1;
-        errno = EINVAL;
+        /* Do nothing. */
     }
     if (rc < 0) {
         diminuto_perror(farend);
@@ -412,7 +425,7 @@ int main(int argc, char ** argv)
             this = (client_t *)diminuto_tree_data(node);
 
             if (this->client_here == (uint8_t *)0) {
-                bytes = client_process(this);
+                bytes = client_process(this, sock, &endpoint);
                 if (bytes <= 0) {
                     DIMINUTO_LOG_INFORMATION("%s: CLOSE connection=%p\n", program, this->client_ssl);
                     this = client_free(this, &mux);
