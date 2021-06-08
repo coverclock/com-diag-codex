@@ -45,7 +45,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 	case CODEX_STATE_START:
 
 		/*
-		 * Authenticate the server by traversing its certificate and verifying
+		 * Authenticate the farend by traversing its certificate and verifying
 		 * it via its common name (CN) or its fully qualified domain name
 		 * (FQDN). The server certificate is available immediately upon the
 		 * client's initial connection.
@@ -134,10 +134,10 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 		}
 
 		/*
-		 * Authenticate the client by traversing its certificate and verifying
+		 * Authenticate the farend by traversing its certificate and verifying
 		 * it via its common name (CN) or its fully qualified domain name
-		 * (FQDN). The client certificate is available only after the server has
-		 * done its first I/O.
+		 * (FQDN). The client certificate is available only after the nearend
+         * has done its first I/O.
 		 */
 
 		if (!codex_connection_is_server(ssl)) {

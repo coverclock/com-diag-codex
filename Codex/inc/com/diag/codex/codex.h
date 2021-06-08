@@ -5,7 +5,7 @@
 /**
  * @file
  *
- * Copyright 2018-2020 Digital Aggregates Corporation, Colorado, USA.
+ * Copyright 2018-2021 Digital Aggregates Corporation, Colorado, USA.
  * Licensed under the terms in LICENSE.txt.
  *
  * The Codex package implements a slightly simpler interface to the
@@ -358,7 +358,7 @@ extern int codex_connection_close(codex_connection_t * ssl);
 extern codex_connection_t * codex_connection_free(codex_connection_t * ssl);
 
 /**
- * Return true if the connection is a server, false if it is a client.
+ * Return true if the nearend is a server, false if it is a client.
  * N.B. For OpenSSL implementations that do not support the SSL_is_server()
  * query (e.g. OpenSSL 1.0.1), this function always returns true. This
  * prevents the verification code as used in the reader and writer state

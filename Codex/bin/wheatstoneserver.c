@@ -91,7 +91,7 @@ static client_t * client_allocate(size_t bufsize)
     cp->client_ssl = (codex_connection_t *)0;
     cp->client_buffer = (uint8_t *)malloc(bufsize);
     diminuto_assert(cp->client_buffer != (uint8_t *)0);
-    cp->client_here = (uint8_t *)0; /* NULL means unsynchronized. */
+    cp->client_here = cp->client_buffer;
     cp->client_past = cp->client_buffer + bufsize;
     cp->client_fd = -1;
 
@@ -133,27 +133,28 @@ static client_t * client_free(client_t * cp, diminuto_mux_t * mp)
     return (client_t *)0;
 }
 
-static ssize_t client_read(client_t * cp, size_t length)
+static bool client_process(client_t * cp)
 {
     ssize_t bytes = -1;
 
-    do {
-
-        if (cp->client_here == (uint8_t *)0) {
-            bytes = codex_connection_read(cp->client_ssl, cp->client_buffer, cp->client_past - cp->client_buffer);
-            DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, cp->client_ssl, bytes);
-            if (bytes <= 0) {
-                break;
-            }
-            cp->client_here = cp->client_buffer;
-        } else {
-            bytes = codex_connection_read(cp->client_ssl, cp->client_here, 1);
-            DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, cp->client_ssl, bytes);
-            if (bytes > 0) {
-            }
-        }
-
-    } while (false);
+    if ((bytes = codex_connection_read(cp->client_ssl, cp->client_here, sizeof(*(cp->client_here)))) <= 0) {
+        /* Do nothing. */
+    } else if (*(cp->client_here) != '\n') {
+        cp->client_here += 1;
+    } else if ((cp->client_here - cp->client_buffer) < 2 /* Opening and closing curley brackets. */) {
+        cp->client_here = cp->client_buffer;
+    } else if ((cp->client_past - cp->client_here) < 2 /* Current character and terminating NUL. */) {
+        cp->client_here = cp->client_buffer;
+    } else if (*(cp->client_buffer) != '{') {
+        cp->client_here = cp->client_buffer;
+    } else if (*(cp->client_here - 1) != '}') {
+        cp->client_here = cp->client_buffer;
+    } else {
+        *(++(cp->client_here)) = '\0';
+    }
+    if (cp->client_here >= cp->client_past) {
+        cp->client_here = cp->client_buffer;
+    }
 
     return bytes;
 }
