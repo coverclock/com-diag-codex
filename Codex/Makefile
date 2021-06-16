@@ -74,6 +74,7 @@ HOME_DIR			:=	$(HOME)/Projects
 
 ########## Directories
 
+APP_DIR             :=  app# Application source directories
 ARC_DIR				:=	arc# Archive files for static linking
 BIN_DIR				:=	bin# Utility source files or stripped executable binaries
 CFG_DIR				:=	cfg# Build configuration files
@@ -117,7 +118,7 @@ OLD					:=	dummy
 
 PACKAGE				:=	$(OUT)/$(TGZ_DIR)/$(PROJECT)-$(TARGET)
 
-MANIFEST			:=	$(ARC_DIR) $(BIN_DIR) $(INC_DIR) $(LIB_DIR) $(TST_DIR) $(FUN_DIR)
+MANIFEST			:=	$(APP_DIR) $(ARC_DIR) $(BIN_DIR) $(INC_DIR) $(LIB_DIR) $(TST_DIR) $(FUN_DIR)
 
 DISTRIBUTION		:=	$(OUT)/$(TGZ_DIR)/$(PROJECT)-$(MAJOR).$(MINOR).$(BUILD)
 
@@ -193,6 +194,8 @@ SOFLAGS				:=	$(SOARCH) $(SOLIBRARIES)
 
 ########## Build Artifacts
 
+TARGETAPPLICATIONS  :=  $(addprefix $(OUT)/,$(basename $(wildcard $(APP_DIR)/*)))
+
 TARGETOBJECTS		:=	$(addprefix $(OUT)/$(OBC_DIR)/,$(addsuffix .o,$(basename $(wildcard $(SRC_DIR)/*.c))))
 
 TARGETSCRIPTS		:=	$(addprefix $(OUT)/,$(basename $(wildcard $(BIN_DIR)/*.sh)))
@@ -244,13 +247,13 @@ TARGETREVOCATIONS	+=	$(SSL_CRT)/crltwo.txt
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
 
-TARGETPROGRAMS		:=	$(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS) $(TARGETFUNCTIONALS)
+TARGETPROGRAMS		:=	$(TARGETAPPLICATIONS) $(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS) $(TARGETFUNCTIONALS)
 
 TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPASSWORDS) $(TARGETREVOCATIONS) $(TARGETPARAMETERS)
 
 ########## Main Entry Points
 
-.PHONY:	all dist tidy clean pristine clobber
+.PHONY:	all dist tidy clean pristine scratch clobber
 
 all:	$(TARGETALL)
 
@@ -264,6 +267,12 @@ clean:
 
 pristine:
 	rm -rf $(OUT_DIR)
+
+# This is not the same as simply listing the targets as dependencies.
+scratch:
+	make pristine
+	make depend
+	make all
 
 clobber:	pristine
 	rm -f .cscope.lst .cscope.out .cscope.out.in .cscope.out.po
@@ -553,6 +562,13 @@ $(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR):	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJO
 $(OUT)/$(LIB_DIR)/$(PROJECT_SO):	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 	D=`dirname $<`; F=`basename $<`; T=`basename $@`; ( cd $$D; ln -s -f $$F $$T ) 
 
+
+########## Target Unstripped Applications
+
+$(OUT)/$(APP_DIR)/%:    $(APP_DIR)/% $(TARGETLIBRARIES)
+	D=`dirname $@`; mkdir -p $$D
+	$(CC) -iquote $< $(CPPFLAGS) $(CFLAGS) -o $@ $</*.c $(LDFLAGS)
+
 ########## Target Unstripped Binaries
 
 $(OUT)/$(SYM_DIR)/%:	$(OUT)/$(OBC_DIR)/$(BIN_DIR)/%.o $(TARGETLIBRARIES)
@@ -781,7 +797,7 @@ $(OUT)/$(SYM_DIR)/vintage:	$(OUT)/$(GEN_DIR)/vintage.c
 $(OUT)/$(BIN_DIR)/generate:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
-	echo 'echo export PATH=\\$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(FUN_DIR)' >> $@
+	echo 'echo export PATH=\\$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(APP_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(FUN_DIR)' >> $@
 	echo 'echo export LD_LIBRARY_PATH=\\$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd\`' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd\`' >> $@
@@ -793,7 +809,7 @@ $(OUT)/$(BIN_DIR)/generate:	Makefile
 $(OUT)/$(SYM_DIR)/generate:	Makefile
 	D=`dirname $@`; mkdir -p $$D
 	echo 'COM_DIAG_$(SYMBOL)_PATH=`dirname $$0`; COM_DIAG_$(SYMBOL)_ROOT=`cd $$COM_DIAG_$(SYMBOL)_PATH; pwd`' > $@
-	echo 'echo export PATH=\\$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(FUN_DIR)' >> $@
+	echo 'echo export PATH=\\$$PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(APP_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(SYM_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(BIN_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(TST_DIR):$$COM_DIAG_$(SYMBOL)_ROOT/../$(FUN_DIR)' >> $@
 	echo 'echo export LD_LIBRARY_PATH=\\$$LD_LIBRARY_PATH:$$COM_DIAG_$(SYMBOL)_ROOT/../$(LIB_DIR):$(SSL_LIBRARIES)' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_CLIENT_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/client.pwd\`' >> $@
 	echo 'echo export COM_DIAG_$(SYMBOL)_SERVER_PASSWORD=\`cat $$COM_DIAG_$(SYMBOL)_ROOT/../$(PWD_DIR)/server.pwd\`' >> $@
@@ -912,7 +928,7 @@ DEPENDENCIES := $(OUT)/$(DEP_DIR)/dependencies.mk
 depend:	$(TARGETSYNTHESIZED)
 	M=`dirname $(DEPENDENCIES)`; mkdir -p $$M
 	cp /dev/null $(DEPENDENCIES)
-	for S in $(BIN_DIR) $(SRC_DIR) $(TST_DIR) $(FUN_DIR); do \
+	for S in $(APP_DIR)/* $(BIN_DIR) $(SRC_DIR) $(TST_DIR) $(FUN_DIR); do \
 		if [ -d $$S ]; then \
 			for F in $$S/*.c; do \
 				D=`dirname $$F`; \
