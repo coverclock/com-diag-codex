@@ -136,7 +136,7 @@ int main(int argc, char ** argv)
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" f=\"%s\" e=\"%s\" p=%llu s=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcrl == (const char *)0) ? "" : pathcrl, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, farend, (expected == (const char *)0) ? "" : expected, period, selfsigned);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" f=\"%s\" e=\"%s\" p=%llu s=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcrl == (const char *)0) ? "" : pathcrl, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, farend, (expected == (const char *)0) ? "" : expected, (diminuto_llu_t)period, selfsigned);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);
@@ -232,7 +232,7 @@ int main(int argc, char ** argv)
 				do {
 
 					bytes = codex_connection_read(ssl, buffer, bufsize);
-					DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%d\n", program, ssl, bytes);
+					DIMINUTO_LOG_DEBUG("%s: READ connection=%p bytes=%zd\n", program, ssl, bytes);
 					if (bytes <= 0) {
 						rc = diminuto_mux_unregister_read(&mux, fd);
 						ASSERT(rc >= 0);
@@ -265,7 +265,7 @@ int main(int argc, char ** argv)
 
 				for (reads = bytes, writes = 0; writes < reads; writes += bytes) {
 					bytes = codex_connection_write(ssl, buffer + writes, reads - writes);
-					DIMINUTO_LOG_DEBUG("%s: WRITE connection=%p bytes=%d\n", program, ssl, bytes);
+					DIMINUTO_LOG_DEBUG("%s: WRITE connection=%p bytes=%zd\n", program, ssl, bytes);
 					if (bytes <= 0) {
 						break;
 					}

@@ -77,7 +77,7 @@ void codex_perror_f(const char * file, int line, const char * str)
 		buffer[0] = '\0';
 		ERR_error_string_n(error, buffer, sizeof(buffer));
 		buffer[sizeof(buffer) - 1] = '\0';
-		DIMINUTO_LOG_ERROR("%s@%d: \"%s\" errno=%d=\"%s\" index=%d error=0x%08x=\"%s\"\n", file, line, str, save, strerror(save), ii++, error, buffer);
+		DIMINUTO_LOG_ERROR("%s@%d: \"%s\" errno=%d=\"%s\" index=%d error=0x%08lx=\"%s\"\n", file, line, str, save, strerror(save), ii++, error, buffer);
 	}
 
 	if (ii > 0) {
@@ -525,7 +525,7 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 				break;
 			}
 
-			DIMINUTO_LOG_INFORMATION("codex_connection_read_generic: ssl=%p buffer=%p size=%u rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
+			DIMINUTO_LOG_INFORMATION("codex_connection_read_generic: ssl=%p buffer=%p size=%zu rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
 
 		}
 
@@ -575,7 +575,7 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
 				break;
 			}
 
-			DIMINUTO_LOG_INFORMATION("codex_connection_write: ssl=%p buffer=%p size=%u rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
+			DIMINUTO_LOG_INFORMATION("codex_connection_write: ssl=%p buffer=%p size=%zu rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
 
 		}
 

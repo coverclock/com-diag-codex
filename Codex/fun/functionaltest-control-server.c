@@ -126,7 +126,7 @@ int main(int argc, char ** argv)
 	count = diminuto_fd_maximum();
 	ASSERT(count > 0);
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" n=\"%s\" s=%d fdcount=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcrl == (const char *)0) ? "" : pathcrl, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, (expected == (const char *)0) ? "" : expected, nearend, selfsigned, count);
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" n=\"%s\" s=%d fdcount=%zd\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcrl == (const char *)0) ? "" : pathcrl, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, (expected == (const char *)0) ? "" : expected, nearend, selfsigned, count);
 
 	buffer = (uint8_t *)malloc(bufsize);
 	ASSERT(buffer != (uint8_t *)0);
@@ -230,13 +230,13 @@ int main(int argc, char ** argv)
 			do {
 
 				bytes = diminuto_ipc4_stream_read(fd, buffer, bufsize);
-				DIMINUTO_LOG_DEBUG("%s: READ connection=%d bytes=%d\n", program, fd, bytes);
+				DIMINUTO_LOG_DEBUG("%s: READ connection=%d bytes=%zd\n", program, fd, bytes);
 
 				if (bytes > 0) {
 
 					for (reads = bytes, writes = 0; (writes < reads) && (bytes > 0); writes += bytes) {
 						bytes = diminuto_ipc4_stream_write(fd, buffer + writes, reads - writes);
-						DIMINUTO_LOG_DEBUG("%s: WRITE connection=%d bytes=%d\n", program, fd, bytes);
+						DIMINUTO_LOG_DEBUG("%s: WRITE connection=%d bytes=%zd\n", program, fd, bytes);
 					}
 
 				}

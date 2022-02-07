@@ -488,7 +488,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 							diminuto_ipc4_address2string(*address4, debug4, sizeof(debug4));
 							debug4[sizeof(debug4) - 1] = '\0';
-							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns4 ssl=%p crt=%p FQDN=\"%s\" IPV4=%s\n", ssl, crt, fqdn, debug4, result);
+							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns4 ssl=%p crt=%p FQDN=\"%s\" IPV4=%s\n", ssl, crt, fqdn, debug4);
 
 							if (diminuto_ipc4_compare(address4, &farend4) == 0) {
 
@@ -514,7 +514,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 							diminuto_ipc6_address2string(*address6, debug6, sizeof(debug6));
 							debug6[sizeof(debug6) - 1] = '\0';
-							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns6 ssl=%p crt=%p FQDN=\"%s\" IPV6=%s\n", ssl, crt, fqdn, debug6, result);
+							DIMINUTO_LOG_DEBUG("codex_connection_verify: dns6 ssl=%p crt=%p FQDN=\"%s\" IPV6=%s\n", ssl, crt, fqdn, debug6);
 
 							if (diminuto_ipc6_compare(address6, &farend6) == 0) {
 
@@ -584,7 +584,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 			if (codex_self_signed_certificates) {
 				text = X509_verify_cert_error_string(error);
 				if (text == (const char *)0) { text = ""; }
-				DIMINUTO_LOG_NOTICE("codex_connection_verify: self ssl=%p crt=%p SRL=%s CN=\"%s\" error=%d=\"%s\"\n", ssl, crt, srn, cn, error, text);
+				DIMINUTO_LOG_NOTICE("codex_connection_verify: self ssl=%p crt=%p SRL=%s CN=\"%s\" error=%ld=\"%s\"\n", ssl, crt, srn, cn, error, text);
 				error = X509_V_OK;
 			}
 			break;
@@ -598,7 +598,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 		text = X509_verify_cert_error_string(error);
 		if (text == (const char *)0) { text = ""; }
 		result = CODEX_VERIFY_FAILED;
-		DIMINUTO_LOG_WARNING("codex_connection_verify: x509 ssl=%p crt=%p SRL=%s CN=\"%s\" IPV4=%s IPV6=%s error=%d=\"%s\"\n", ssl, crt, srn, cn, buffer4, buffer6, text);
+		DIMINUTO_LOG_WARNING("codex_connection_verify: x509 ssl=%p crt=%p SRL=%s CN=\"%s\" IPV4=%s IPV6=%s error=%ld=\"%s\"\n", ssl, crt, srn, cn, buffer4, buffer6, error, text);
 	}
 
 	if (crt != (X509 *)0) {
