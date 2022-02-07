@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -36,7 +36,7 @@ static diminuto_tree_t * codex_crl = DIMINUTO_TREE_EMPTY;
  * CALLBACKS
  ******************************************************************************/
 
-static int codex_serialnumber_compare(diminuto_tree_t * here, diminuto_tree_t * there)
+static int codex_serialnumber_compare(const diminuto_tree_t * here, const diminuto_tree_t * there)
 {
     return strcasecmp((const char *)(here->data), (const char *)(there->data));
 }

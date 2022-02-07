@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2021 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2021-2022 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -57,7 +57,7 @@ typedef struct Client {
     int client_fd;
 } client_t;
 
-static int client_compare(diminuto_tree_t * tAp, diminuto_tree_t * tBp)
+static int client_compare(const diminuto_tree_t * tAp, const diminuto_tree_t * tBp)
 {
     int rc = 0;
     client_t * cAp = (client_t *)0;
