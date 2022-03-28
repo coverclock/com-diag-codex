@@ -86,7 +86,7 @@ void codex_perror_f(const char * file, int line, const char * str)
 		/* Do nothing. */
 	} else {
 		errno = save;
-		diminuto_perror_f(file, line, str);
+		diminuto_log_perror(file, line, str);
 	}
 }
 
@@ -142,7 +142,7 @@ codex_serror_t codex_serror_f(const char * file, int line, const char * str, con
 			/* Do nothing. */
 		} else {
 			errno = save;
-			diminuto_perror_f(file, line, str);
+			diminuto_log_perror(file, line, str);
 		}
 		result = CODEX_SERROR_SYSCALL;
 		break;
