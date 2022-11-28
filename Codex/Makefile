@@ -23,8 +23,8 @@ PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	8# API changes that may require that applications be modified.
-MINOR				:=	6# Only functionality or features added with no legacy API changes.
-BUILD				:=	6# Only bugs fixed with no API changes or new functionality.
+MINOR				:=	7# Only functionality or features added with no legacy API changes.
+BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
 # X86_64 Ubuntu build server.
@@ -302,9 +302,9 @@ $(SSL_CRT)/rootreq.pem:	$(ETC_DIR)/root.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/root.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/rootkey.pem -out $@
 	chmod 600 $@
+	chmod 600 $(SSL_CRT)/rootkey.pem
 
 $(SSL_CRT)/rootkey.pem:	$(SSL_CRT)/rootreq.pem
-	chmod 600 $@
 
 $(SSL_CRT)/rootcert.pem:	$(SSL_CRT)/rootreq.pem $(ETC_DIR)/root.cnf $(SSL_CRT)/rootkey.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
@@ -326,9 +326,9 @@ $(SSL_CRT)/careq.pem:	$(ETC_DIR)/ca.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/ca.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/cakey.pem -out $@
 	chmod 600 $@
+	chmod 600 $(SSL_CRT)/cakey.pem
 
 $(SSL_CRT)/cakey.pem:	$(SSL_CRT)/careq.pem
-	chmod 600 $@
 
 $(SSL_CRT)/cacert.pem:	$(SSL_CRT)/careq.pem $(ETC_DIR)/ca.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
@@ -349,9 +349,9 @@ $(SSL_CRT)/serverreq.pem:	$(ETC_DIR)/server.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/serverkey.pem -out $@
 	chmod 600 $@
+	chmod 600 $(SSL_CRT)/serverkey.pem
 
 $(SSL_CRT)/serverkey.pem:	$(SSL_CRT)/serverreq.pem
-	chmod 600 $@
 
 $(SSL_CRT)/servercert.pem:	$(SSL_CRT)/serverreq.pem $(ETC_DIR)/server.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
 	D=`dirname $@`; mkdir -p $$D
@@ -372,6 +372,7 @@ $(SSL_CRT)/clientreq.pem:	$(ETC_DIR)/client.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/client.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/clientkey.pem -out $@
 	chmod 600 $@
+	chmod 600 $(SSL_CRT)/clientkey.pem
 
 $(SSL_CRT)/clientkey.pem:	$(SSL_CRT)/clientreq.pem
 
@@ -394,9 +395,9 @@ $(SSL_CRT)/bogusreq.pem:	$(ETC_DIR)/bogus.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/bogus.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/boguskey.pem -out $@
 	chmod 600 $@
+	chmod 600 $(SSL_CRT)/boguskey.pem
 
 $(SSL_CRT)/boguskey.pem:	$(SSL_CRT)/bogusreq.pem
-	chmod 600 $@
 
 $(SSL_CRT)/boguscert.pem:	$(SSL_CRT)/bogusreq.pem $(ETC_DIR)/bogus.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
@@ -417,9 +418,9 @@ $(SSL_CRT)/selfcert.pem:	$(ETC_DIR)/self.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -new -x509 -config $(ETC_DIR)/self.cnf -extensions usr_cert -newkey $(SSL_KEY) -nodes -$(SSL_ALG) -keyout $(SSL_CRT)/selfkey.pem -out $@
 	chmod 600 $@
+	chmod 600 $(SSL_CRT)/selfkey.pem
 
 $(SSL_CRT)/selfkey.pem:	$(SSL_CRT)/selfcert.pem
-	chmod 600 $@
 
 $(SSL_CRT)/self.pem:	$(SSL_CRT)/selfcert.pem $(SSL_CRT)/selfkey.pem
 	D=`dirname $@`; mkdir -p $$D
@@ -434,6 +435,7 @@ $(SSL_CRT)/revokedreq.pem:	$(ETC_DIR)/revoked.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/revoked.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/revokedkey.pem -out $@
 	chmod 600 $@
+	chmod 600 $(SSL_CRT)/revokedkey.pem
 
 $(SSL_CRT)/revokedkey.pem:	$(SSL_CRT)/revokedreq.pem
 
@@ -456,6 +458,7 @@ $(SSL_CRT)/revokedtooreq.pem:	$(ETC_DIR)/revokedtoo.cnf
 	D=`dirname $@`; mkdir -p $$D
 	$(OPENSSL) req -config $(ETC_DIR)/revokedtoo.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/revokedtookey.pem -out $@
 	chmod 600 $@
+	chmod 600 $(SSL_CRT)/revokedtookey.pem
 
 $(SSL_CRT)/revokedtookey.pem:	$(SSL_CRT)/revokedtooreq.pem
 
@@ -489,7 +492,7 @@ $(SSL_CRT)/crltwo.txt:	$(SSL_CRT)/crl.txt
 
 $(SSL_CRT)/dh.pem:
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) dhparam -check -text -$(SSL_GEN) $(SSL_DHK) -out $@ > $@.tmp
+	$(OPENSSL) dhparam -check -text -$(SSL_GEN) -out $@ $(SSL_DHK) > $@.tmp
 	test -f $@ || mv $@.tmp $@
 	chmod 600 $@
 
