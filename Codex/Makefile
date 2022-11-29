@@ -1011,10 +1011,10 @@ extra:
 
 APPLICATION := application
 
-wheatstone:
+wheatstone:	$(ETC_DIR)/wheatstone/server.cnf
 	make $(SSL_CRT)/wheatstone/server.pem $(SSL_CRT)/wheatstone/client.pem APPLICATION=wheatstone
 
-stagecoach:
+stagecoach:	$(ETC_DIR)/stagecoach/server.cnf
 	make $(SSL_CRT)/stagecoach/server.pem $(SSL_CRT)/stagecoach/client.pem APPLICATION=stagecoach
 
 -include $(CFG_DIR)/$(APPLICATION).mk
