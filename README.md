@@ -28,8 +28,8 @@ top of Diminuto, my C-based systems programming library I've been using
 for years in both personal and commercial development projects.
 
 >N.B. If you got here via "prairiethorn.org", that is a test domain I use
->for this project and others. It is (apparently) currently forwarded to
->the GitHub README page for this repository.
+>for this project and others. It is sometimes forwarded to the GitHub
+>page for this repository.
 
 # Disclaimer
 
@@ -44,12 +44,13 @@ expressed or implied.
 # What Works
 
 I first developed Codex under OpenSSL 1.0.2 on Ubuntu "xenial". I later
-ported it to (not necessarily in this order)
+ported it to (not necessarily in this order):
 
-* OpenSSL 1.0.1 on Raspbian "jessie" on the Raspberry Pi 2 and 3,
-* OpenSSL 1.1.0 on Raspbian "stretch",
-* BoringSSL 1.1.0 which is Google's fork of OpenSSL 1.1.0 from which it is substantially different, and
-* OpenSSL 1.1.1 which is the current development version.
+* OpenSSL 1.0.1 on Raspbian "jessie" on the Raspberry Pi 2 and 3;
+* OpenSSL 1.1.0 on Raspbian "stretch";
+* BoringSSL 1.1.0 which is Google's fork of OpenSSL 1.1.0 from which it is substantially different;
+* OpenSSL 1.1.1;
+* OpenSSL 3.0.2.
 
 The Codex handshake (renegotiation) feature in Codex only works under OpenSSL
 1.0.2. It's of questionable value anyway, but it was an enlightening
@@ -229,8 +230,10 @@ OpenSSL 1.1.0
 BoringSSL 1.1.0
 *or*
 OpenSSL 1.1.1-pre2-dev
+*or*
+OpenSSL 3.0.2
 
-Diminuto 48.4.1 (later releases may work as well)
+Diminuto 48.4.1 or later
 
 # Targets
 

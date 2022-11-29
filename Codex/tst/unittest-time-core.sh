@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+# Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
 # Licensed under the terms in LICENSE.txt
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
@@ -11,8 +11,6 @@ PERIOD=10
 BLOCKSIZE=4096
 NEAREND=50002
 FAREND="127.0.0.1:${NEAREND}"
-
-export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
 time functionaltest-core-server -n ${NEAREND} -B ${BUFSIZE} &
 SERVER=$!

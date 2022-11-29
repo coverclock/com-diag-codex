@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+# Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
 # Licensed under the terms in LICENSE.txt
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
@@ -12,8 +12,6 @@ BLOCKS=${5:-"1048576"}
 NEAREND=${6:-"49202"}
 EXPECTED="127.0.0.1"
 FAREND=${7:-"${EXPECTED}:${NEAREND}"}
-
-export COM_DIAG_DIMINUTO_LOG_MASK=0xfffe
 
 CRTPATH="$(realpath $(dirname $0))/../crt"
 
