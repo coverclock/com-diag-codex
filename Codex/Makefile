@@ -56,7 +56,7 @@ FLAVOR				:=	openssl
 # complaint string with the time specified in UTC with nanosecond resolution.
 
 # This stuff all gets embedded in the vintage application.
-COPYRIGHT			:=	2018-2021 Digital Aggregates Corporation
+COPYRIGHT			:=	2018-2022 Digital Aggregates Corporation
 LICENSE				:=	GNU Lesser General Public License 2.1
 CONTACT				:=	coverclock@diag.com
 HOMEPAGE			:=	https://github.com/coverclock/com-diag-$(PROJECT)
@@ -1011,10 +1011,10 @@ extra:
 
 APPLICATION := application
 
-wheatstone:	$(ETC_DIR)/wheatstone/server.cnf
+wheatstone:	$(ETC_DIR)/wheatstone/server.cnf $(OUT)/$(APP_DIR)/wheatstone
 	make $(SSL_CRT)/wheatstone/server.pem $(SSL_CRT)/wheatstone/client.pem APPLICATION=wheatstone
 
-stagecoach:	$(ETC_DIR)/stagecoach/server.cnf
+stagecoach:	$(ETC_DIR)/stagecoach/server.cnf $(OUT)/$(APP_DIR)/stagecoach
 	make $(SSL_CRT)/stagecoach/server.pem $(SSL_CRT)/stagecoach/client.pem APPLICATION=stagecoach
 
 -include $(CFG_DIR)/$(APPLICATION).mk
