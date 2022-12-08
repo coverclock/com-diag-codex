@@ -103,7 +103,6 @@ static client_t * client_allocate(size_t bufsize)
 static client_t * client_free(client_t * cp, diminuto_mux_t * mp)
 {
     int rc = -1;
-    int fd = -1;
     codex_connection_t * sp = (codex_connection_t *)0;
     diminuto_tree_t * tp = (diminuto_tree_t *)0;
 
@@ -154,7 +153,7 @@ static bool client_process(client_t * cp, int sock, diminuto_ipc_endpoint_t * ep
         cp->client_here = cp->client_buffer;
     } else {
         *(++(cp->client_here)) = '\0';
-        length = strlen(cp->client_buffer);
+        length = strlen((char *)(cp->client_buffer));
         DIMINUTO_LOG_DEBUG("%s: %p (%d) \"%s\"[%zu]\n", program, cp, codex_connection_descriptor(cp->client_ssl), cp->client_buffer, length);
         /*
          * We echo back the collected message just to drive the underlying SSL
@@ -193,14 +192,12 @@ int main(int argc, char ** argv)
     diminuto_tree_t * next = DIMINUTO_TREE_NULL;
     diminuto_mux_t mux = { 0 };
     diminuto_ipc_endpoint_t endpoint = { 0, };
-    ssize_t count = 0;
     int rc = -1;
     int fd = -1;
     int sock = -1;
     int comparison = 0;
     int rendezvous = -1;
     ssize_t bytes = -1;
-    ssize_t reads = -1;
     char * endptr = (char *)0;
     int opt = '\0';
     extern char * optarg;
@@ -295,7 +292,7 @@ int main(int argc, char ** argv)
         codex_set_self_signed_certificates(!!selfsigned);
     }
 
-    rc = codex_initialize((const char *)0, pathdhf, pathcrl);
+    rc = codex_initialize(pathdhf, pathcrl);
     diminuto_assert(rc == 0);
 
     ctx = codex_server_context_new(pathcaf, pathcap, pathcrt, pathkey);

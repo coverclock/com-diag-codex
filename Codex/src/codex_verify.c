@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2021 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -179,7 +179,6 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 	long error = X509_V_ERR_APPLICATION_VERIFICATION;
 	int fd = -1;
 	X509 * crt = (X509 *)0;
-	X509_NAME * subject = (X509_NAME *)0;
 	ASN1_INTEGER * srl = (ASN1_INTEGER *)0;
 	codex_serialnumber_t srn = { '\0' };
 	int count = 0;
@@ -197,7 +196,6 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 	X509_NAME * nam = (X509_NAME *)0;
 	int rc = -1;
 	const char * text = (const char *)0;
-	char * value = (char *)0;
 	const unsigned char * p = (const unsigned char *)0;
 	ASN1_OCTET_STRING * extoct = (ASN1_OCTET_STRING *)0;
 	int extlen = 0;
@@ -400,7 +398,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
 			it = ASN1_ITEM_ptr(meth->it);
 
-			if (it != (ASN1_ITEM_EXP *)0) {
+			if (it != (const ASN1_ITEM *)0) {
 
 				ptr = ASN1_item_d2i((ASN1_VALUE **)0, &p, extlen, it);
 				if (ptr == (void *)0) {

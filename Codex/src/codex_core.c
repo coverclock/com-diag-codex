@@ -38,12 +38,6 @@
 #include "codex_parameters.h"
 
 /*******************************************************************************
- * STATICS
- ******************************************************************************/
-
-static bool initialized = false;
-
-/*******************************************************************************
  * DEBUGGING
  ******************************************************************************/
 
@@ -201,35 +195,42 @@ int codex_password_callback(char * buffer, int size, int writing, void * that)
  * INITIALIZATION
  ******************************************************************************/
 
-int codex_initialize(const char * cnf, const char * dhf, const char * crl)
+int codex_initialize_f(const CONF * cfg, const char * app, int flags, const char * dhf, const char * crl)
 {
-	static pthread_mutex_t mutex_init = PTHREAD_MUTEX_INITIALIZER;
+	static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+    static bool initialized = false;
 	int initrc = 0;
+    int loadrc = 0;
 	int revokedrc = 0;
 	int diffiehellmanrc = 0;
 
-	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex_init);
+	DIMINUTO_CRITICAL_SECTION_BEGIN(&mutex);
 
-		if (!initialized) {
+        do {
+
+		    if (initialized) {
+                break;
+            }
 
 			initrc = SSL_library_init();
-			if (initrc != 1) {
-
+			if (initrc <= 0) {
 				codex_perror("SSL_library_init");
-				initrc = -1;
+                break;
+            }
 
-			} else {
+			SSL_load_error_strings();
 
-				DIMINUTO_LOG_INFORMATION("codex_initialize: init cnf=\"%s\"\n", (cnf != (const char *)0) ? cnf : "");
+		    DIMINUTO_LOG_INFORMATION("codex_initialize: init cfg=\"%s\" app=\"%s\" flags=0x%x\n", (cfg != (const CONF *)0) && (cfg->meth != ((CONF_METHOD *)0)) ? cfg->meth->name : "", (app != (const char *)0) ? app : "", flags);
 
-				SSL_load_error_strings();
-				OPENSSL_config(cnf);
-				initialized = true;
-				initrc = 0;
+            loadrc = CONF_modules_load(cfg, app, flags);
+            if (loadrc <= 0) {
+			    codex_perror("CONF_modules_load");
+                break;
+            }
 
-			}
+			initialized = true;
 
-		}
+        } while (0);
 
 	DIMINUTO_CRITICAL_SECTION_END;
 
@@ -247,7 +248,7 @@ int codex_initialize(const char * cnf, const char * dhf, const char * crl)
 
 	}
 
-	return ((initrc >= 0) && (diffiehellmanrc >= 0) && (revokedrc >= 0)) ? 0 : -1;
+	return (initialized && (diffiehellmanrc >= 0) && (revokedrc >= 0)) ? 0 : -1;
 }
 
 /*******************************************************************************
@@ -355,8 +356,6 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 
 		(void)SSL_CTX_set_options(ctx, options);
 
-		SSL_CTX_set_tmp_dh_callback(ctx, codex_diffiehellman_callback);
-
 		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx list=\"%s\"\n", (list != (const char *)0) ? list : "");
 
 		rc = SSL_CTX_set_cipher_list(ctx, list);
@@ -368,7 +367,7 @@ codex_context_t * codex_context_new(const char * env, const char * caf, const ch
 		DIMINUTO_LOG_INFORMATION("codex_context_new: ctx context=\"%s\"\n", (context != (const char *)0) ? context : "");
 
 		if (context != (const char *)0) {
-			rc = SSL_CTX_set_session_id_context(ctx, context, strlen(context));
+			rc = SSL_CTX_set_session_id_context(ctx, (const unsigned char *)context, strlen(context));
 			if (rc != 1) {
 				/*
 				 * Not fatal but will probably break renegotiation handshake

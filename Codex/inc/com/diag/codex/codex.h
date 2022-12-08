@@ -5,7 +5,7 @@
 /**
  * @file
  *
- * Copyright 2018-2021 Digital Aggregates Corporation, Colorado, USA.
+ * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA.
  * Licensed under the terms in LICENSE.txt.
  *
  * The Codex package implements a slightly simpler interface to the
@@ -292,12 +292,15 @@ extern codex_serror_t codex_serror_f(const char * file, int line, const char * s
  * and optionally loads the text file containing an ASCII list of serial
  * numbers identifying revoked certificates.
  * Only needs to be called once per application.
- * @param cnf points to the OpenSSL configuration file or null for default.
  * @param dhf names the DH parameter file.
  * @param crl names the certificate revocation list file or null if none.
  * @return 0 if successful, <0 otherwise.
  */
-extern int codex_initialize(const char * cnf, const char * dhf, const char * crl);
+static inline int codex_initialize(const char * dhf, const char * crl)
+{
+    extern int codex_initialize_f(const CONF * cfg, const char * app, int flags, const char * dhf, const char * crl);
+    return codex_initialize_f((const CONF *)0, (const char *)0, 0, dhf, crl);
+}
 
 /*******************************************************************************
  * CONTEXT

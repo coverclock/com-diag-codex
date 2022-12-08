@@ -5,7 +5,7 @@
 /**
  * @file
  *
- * Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -27,6 +27,25 @@
 #include <openssl/objects.h>
 #include <openssl/conf.h>
 #include <openssl/err.h>
+
+/*******************************************************************************
+ * INITIALIZATON
+ ******************************************************************************/
+
+/**
+ * Initializes the OpenSSL stack, loads the Diffie-Hellman (DH) parameter
+ * file used for key exchange of the symmetric keys for data stream encryption,
+ * and optionally loads the text file containing an ASCII list of serial
+ * numbers identifying revoked certificates.
+ * Only needs to be called once per application.
+ * @param cfg names the OpenSSL configuration file or null if default.
+ * @param app names the OpenSSL application or null if default.
+ * @param flags contains the OpenSSL configuration flags or 0 if default.
+ * @param dhf names the DH parameter file.
+ * @param crl names the certificate revocation list file or null if none.
+ * @return 0 if successful, <0 otherwise.
+ */
+int codex_initialize_f(const CONF * cfg, const char * app, int flags, const char * dhf, const char * crl);
 
 /*******************************************************************************
  * PARAMETERS

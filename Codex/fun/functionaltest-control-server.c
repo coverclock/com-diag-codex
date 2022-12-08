@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -49,14 +49,12 @@ int main(int argc, char ** argv)
 	diminuto_mux_t mux = { 0 };
 	int fd = -1;
 	int rendezvous = -1;
-	int sock = -1;
 	ssize_t bytes = -1;
 	ssize_t reads = -1;
 	ssize_t writes = -1;
 	uintptr_t temp = 0;
 	bool tripwire = false;
 	char * endptr = (char *)0;
-	long prior = -1;
     int opt = '\0';
     extern char * optarg;
 

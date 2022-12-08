@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -63,9 +63,7 @@ int main(int argc, char ** argv)
 	uint16_t f16sink = 0;
 	uint8_t f16sinkA = 0;
 	uint8_t f16sinkB = 0;
-	long count = 0;
 	diminuto_sticks_t ticks = -1;
-	long prior = -1;
     int opt = '\0';
     extern char * optarg;
 
@@ -161,7 +159,7 @@ int main(int argc, char ** argv)
 		codex_set_self_signed_certificates(!!selfsigned);
 	}
 
-	rc = codex_initialize((const char *)0, pathdhf, pathcrl);
+	rc = codex_initialize(pathdhf, pathcrl);
 	ASSERT(rc == 0);
 
 	ctx = codex_client_context_new(pathcaf, pathcap, pathcrt, pathkey);

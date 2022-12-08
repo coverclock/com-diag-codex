@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -17,7 +17,7 @@
 #include <string.h>
 #include <stdio.h>
 
-int main(char * argc, char ** argv)
+int main(int argc, char ** argv)
 {
 
 	(void)diminuto_core_enable();
@@ -62,7 +62,7 @@ int main(char * argc, char ** argv)
 #endif
 
 #ifdef COM_DIAG_CODEX_PLATFORM_OPENSSL
-		COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL=0x%8.8lx\n", COM_DIAG_CODEX_PLATFORM_OPENSSL);
+		COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL=0x%8.8x\n", COM_DIAG_CODEX_PLATFORM_OPENSSL);
 #endif
 
 #ifdef COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_0
@@ -113,7 +113,7 @@ int main(char * argc, char ** argv)
 		COMMENT("codex_method=%p\n", wasp);
 		meth = (*wasp)();
 		EXPECT(meth != (SSL_METHOD *)0);
-		nowp = codex_set_method(TLSv1_method);
+		nowp = codex_set_method(TLS_method);
 		EXPECT(nowp != (codex_method_t)0);
 		EXPECT(nowp == wasp);
 		nowp = codex_set_method(wasp);
@@ -213,37 +213,14 @@ int main(char * argc, char ** argv)
 
 		TEST();
 
-		rc = codex_initialize((const char *)0, COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem", (const char *)0);
+		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem", (const char *)0);
 		EXPECT(rc == 0);
 
-		rc = codex_initialize((const char *)0, COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/" "crl.txt");
+		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/" "crl.txt");
 		EXPECT(rc == 0);
 
-		rc = codex_initialize((const char *)0, COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/" "crltwo.txt");
+		rc = codex_initialize(COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem", COM_DIAG_CODEX_OUT_CRT_PATH "/" "crltwo.txt");
 		EXPECT(rc == 0);
-
-		STATUS();
-	}
-
-	{
-		DH * pdh = (DH *)0;
-		DH * dh;
-		int exp;
-		int key;
-
-		TEST();
-
-		for (exp = 0; exp <= 1; ++exp) {
-			for (key = 256; key <= 2048; key *= 2) {
-
-				dh = codex_diffiehellman_callback((SSL *)0, exp, key);
-				EXPECT(dh != (DH *)0);
-				if (pdh == (DH *)0) { pdh = dh; }
-				EXPECT(dh == pdh);
-
-			}
-
-		}
 
 		STATUS();
 	}

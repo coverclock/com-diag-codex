@@ -1,4 +1,4 @@
-# Copyright 2018 Digital Aggregates Corporation
+# Copyright 2018-2022 Digital Aggregates Corporation
 # Licensed under the terms in LICENSE.txt
 # author:Chip Overclock
 # mailto:coverclock@diag.com
@@ -32,8 +32,8 @@ SSL_EXP			:=	365
 SSL_GEN			:=	2
 #SSL_GEN		:=	5
 SSL_KEY 		:=	rsa:3072
-SSL_LST			:=	TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL
-SSL_MTH			:=	TLSv1_2_method
+SSL_LST			:=	TLS+FIPS:kRSA+FIPS:!eNULL:!aNULL
+SSL_MTH			:=	TLS_method
 #SSL_MTH		:=	TLS_method
 SSL_SID			:=	com-diag-codex
 SSL_SPW			:=	COM_DIAG_CODEX_SERVER_PASSWORD

@@ -22,8 +22,8 @@ TITLE				:=	Codex
 PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
-MAJOR				:=	8# API changes that may require that applications be modified.
-MINOR				:=	7# Only functionality or features added with no legacy API changes.
+MAJOR				:=	9# API changes that may require that applications be modified.
+MINOR				:=	0# Only functionality or features added with no legacy API changes.
 BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
@@ -979,7 +979,10 @@ install-include:
 
 ########## Sanity Tests
 
-.PHONY: sanity functional extra
+.PHONY: sanity failures functional extra
+
+# Once I moved to OpenSSL 3.0.2 I had to put in some delay in between
+# the unit tests to allow the socket to shutdown.
 
 sanity:
 	unittest-sanity
@@ -987,13 +990,15 @@ sanity:
 	unittest-verification-server
 	unittest-verification-bogus
 	unittest-verification-self
-	unittest-verification-noself && false || true
-	unittest-verification-revoked && false || true
 	unittest-noverification-client
 	unittest-noverification-server
 	unittest-noverification-bogus
 	unittest-noverification-self
 	unittest-noverification-revoked
+
+failures:
+	unittest-verification-noself && false || true; sleep 30
+	unittest-verification-revoked && false || true; sleep 30
 
 functional:
 	unittest-core
