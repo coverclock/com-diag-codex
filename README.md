@@ -385,7 +385,7 @@ configured on a peer, its IPv4 DNS address for "localhost" could be 127.0.0.1,
 and its IPv6 DNS address for "localhost" can legitimately be either
 ::ffff:127.0.0.1 or ::1. The former is an IPv4 address cast in IPv6-compatible
 form, and the latter is the standard IPv6 address for "localhost". Either is
-valid. If the peer mamed "localhost" connects via IPv4, its far end IPv4
+valid. If the peer named "localhost" connects via IPv4, its far end IPv4
 address as seen by the near end will be 127.0.0.1 and its IPv6 address will be
 ::ffff:127.0.0.1. If it connects via IPv6, its far end IPv4 address may be
 0.0.0.0 (because there is no IPv4-compatible form of its IPv6 address) and its
