@@ -424,10 +424,10 @@ settors defined in the private API. Here are the defaults.
 
 * RSA asymmetric cipher with 3072-bit keys is used for encrypting certificates.
 * SHA256 message digest cryptographic hash function is used for signing certificates.
-* TLS v1.2 protocol is used.
+* TLS protocol is used (meaning: the two ends negotiate to the highest level of protocol both support).
 * Diffie-Hellman generator function 2 is used to generate the DH parameters.
 * Diffie-Hellman with 2048-bit keys is used for exchanging keys.
-* Symmetric cipher selection string "TLSv1.2+FIPS:kRSA+FIPS:!eNULL:!aNULL" is used for encrypting the data stream.
+* Symmetric cipher selection string "TLS+FIPS:kRSA+FIPS:!eNULL:!aNULL" is used for encrypting the data stream.
 
 # Directories
  
