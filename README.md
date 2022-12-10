@@ -5,7 +5,7 @@ Slightly Simpler Open Secure Socket Layer (OpenSSL) API in C.
 
 # Copyright
 
-Copyright 2018-2020 Digital Aggregates Corporation, Arvada Colorado USA
+Copyright 2018-2022 Digital Aggregates Corporation, Arvada Colorado USA
 
 # License
 
