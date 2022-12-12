@@ -327,6 +327,10 @@ to my ARM Raspbian systems, prior to the build of Codex on those systems.
     make exported FAREND="pi@copper"
     make exported FAREND="pi@lead"
 
+(These were my development systems at the time I originally developed Codex.
+My current development systems are boron, cadmium, rhodium, and tungsten.
+I changed the Alternate Names in the unit test certificates to reflect this.)
+
 Codex builds just enough Public Key Infrastructure (PKI) to run the unit
 tests.
 
