@@ -52,15 +52,20 @@ ported it to (not necessarily in this order):
 * OpenSSL 1.1.1;
 * OpenSSL 3.0.2.
 
+When I make changes, Codex gets tested on a variety of OpenSSL versions
+depending on what test system I run it on. As later versions of OpenSSL
+deprecate functions, I port Codex to that version, so I can't guarantee
+the latest release of Codex will still work under earlier versions.
+
 The Codex handshake (renegotiation) feature in Codex only works under OpenSSL
 1.0.2. It's of questionable value anyway, but it was an enlightening
 exercise. The Codex handshake unit test however remains very useful since it
 only attempts a renegotiation if either end, client or server, receives a
 hangup signal (```SIGHUP```).
 
-I have run all the unit tests on an x86_64 Ubuntu "xenial" system, and
-on both a Raspberry Pi 2 (ARM 32-bit) and 3 (ARM 64-bit) running Raspbian
-"jessie".
+I have run the unit tests on a variety of systems, including an x86_64
+running Ubuntu, and an ARM (Raspberry Pi) running Raspberry Pi OS
+(Raspbian).
 
 I have also run the client and server unit tests programs talking between
 the x86_64 and the ARMs, each using Codex built against their "native"
@@ -237,29 +242,41 @@ Diminuto 48.4.1 or later
 
 # Targets
 
-Intel NUC5i7RYH    
-Intel Core i7-5557U @ 3.10GHz x 2 x 2   
-Ubuntu 16.04.3 LTS "xenial"    
-Linux 4.10.0    
-gcc 5.4.0    
+Intel(R) Core(TM) i7-7567U CPU @ 3.50GHz     
+x86_64 x4     
+Ubuntu 22.04.1 LTS (Jammy Jellyfish)     
+Linux 5.15.0-56-generic     
+gcc (Ubuntu 11.3.0-1ubuntu1~22.04) 11.3.0     
+ldd (Ubuntu GLIBC 2.35-0ubuntu3.1) 2.35     
+GNU ld (GNU Binutils for Ubuntu) 2.38     
+GNU Make 4.3     
+x86_64-linux-gnu-gcc-11     
+x86_64-linux-gnu     
+Little Endian     
 
-Raspberry Pi 3 Model B (64-bit ARM)    
-Broadcom BCM2837 Cortex-A53 ARMv7 @ 1.2GHz x 4    
-Raspbian GNU/Linux 8.0 "jessie"    
-Linux 4.4.34    
-gcc 4.9.2    
+Raspberry Pi 4 Model B Rev 1.1 BCM2835 c03111     
+aarch64 x4     
+Debian GNU/Linux 11 (bullseye)     
+Linux 5.15.76-v8+     
+gcc (Debian 10.2.1-6) 10.2.1 20210110     
+ldd (Debian GLIBC 2.31-13+rpt2+rpi1+deb11u5) 2.31     
+GNU ld (GNU Binutils for Debian) 2.35.2     
+GNU Make 4.3     
+aarch64-linux-gnu-gcc-10     
+aarch64-linux-gnu     
+Little Endian     
 
-Raspberry Pi 2 Model B (32-bit ARM)    
-Broadcom BCM2836 Cortex-A7 ARMv7 @ 900MHz x 4  
-Raspbian GNU/Linux 8.0 "jessie"  
-Linux 4.4.34  
-gcc 4.9.2  
-
-Raspberry Pi 3 Model B (64-bit ARM)    
-Broadcom BCM2837 Cortex-A53 ARMv7 @ 1.2GHz x 4    
-Raspbian GNU/Linux 9.4 "stretch"    
-Linux 4.14.30    
-gcc 6.3.0    
+Raspberry Pi 4 Model B Rev 1.4 BCM2835 d03114     
+aarch64 x4     
+Ubuntu 22.04.1 LTS (Jammy Jellyfish)     
+Linux 5.15.0-1021-raspi     
+gcc (Ubuntu 11.3.0-1ubuntu1~22.04) 11.3.0     
+ldd (Ubuntu GLIBC 2.35-0ubuntu3.1) 2.35     
+GNU ld (GNU Binutils for Ubuntu) 2.38     
+GNU Make 4.3     
+aarch64-linux-gnu-gcc-11     
+aarch64-linux-gnu     
+Little Endian     
 
 # Certificates
 
@@ -455,9 +472,7 @@ OpenSSL 1.0.1 for Raspbian "jessie" on the Raspberry Pi.
 
     sudo apt-get install openssl libssl-dev libssl-doc
 
-If you want to build OpenSSL 1.0.1t, which is the version used by the
-current Raspbian (jessie) on the Raspberry Pi 2 and 3, use the commands
-below.
+If you want to build OpenSSL 1.0.1t, use the commands below.
 
     cd
     mkdir -p src
@@ -469,8 +484,7 @@ below.
     make depend
     make
 
-If you want to build BoringSSL 1.1.0, which is the current version of
-Google's fork of OpenSSL, use the commands below.
+If you want to build BoringSSL 1.1.0, use the commands below.
 
     cd
     mkdir -p src
@@ -482,8 +496,7 @@ Google's fork of OpenSSL, use the commands below.
     cmake -DBUILD_SHARED_LIBS=1 -DBORINGSSL_SHARED_LIBRARY=1 -DBORING_IMPLEMENTATION=1 ..
     make
     
-If you want to build OpenSSL 1.1.1, which is the current version from
-the OpenSSL project, use the commands below.
+If you want to build OpenSSL 1.1.1, use the commands below.
 
     cd
     mkdir -p src
@@ -493,9 +506,9 @@ the OpenSSL project, use the commands below.
     ./config
     make
 
-Clone and build Diminuto 48.4.1, a library I wrote that Codex is built
-upon.  (Later versions of Diminuto may work providing I haven't altered
-the portions of the API on which Codex depends.)
+Clone and build Diminuto (48.4.1 or later), a library I wrote that Codex
+is built upon.  (Later versions of Diminuto may work providing I haven't
+altered the portions of the API on which Codex depends.)
 
     cd
     mkdir -p src
@@ -643,6 +656,15 @@ actually telling the client.
 
 An example of the output of such a command can be found in
 ```txt/unittest-server-nickel.txt```.
+
+## Issues
+
+If you abort a unit test prematurely such that it does not
+go through a normal OpenSSL shutdown - e.g. via a "kill -9"
+or via a control-C interactively - trying to run it again
+will fail for a while, until the underlying socket pipeline
+gets cleaned up. For the unit tests that are intended to fail,
+I inserted a thirty second delay between tests.
 
 # Documentation
 
