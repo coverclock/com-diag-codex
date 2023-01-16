@@ -84,6 +84,10 @@ int main(int argc, char * argv[])
     int udpfd = -1;
     extern char * optarg;
 
+    /*
+     * BEGIN
+     */
+
     (void)diminuto_core_enable();
 
     diminuto_log_setmask();
@@ -179,8 +183,9 @@ int main(int argc, char * argv[])
         (nearend == (const char *)0) ? "" : nearend,
         (role == CLIENT) ? "Client" : (role == SERVER) ? "Server" : "Unknown");
 
-    buffer = (uint8_t *)malloc(bufsize);
-    diminuto_assert(buffer != (uint8_t *)0);
+    /*
+     * INITIALIZATION
+     */
 
     rc = diminuto_hangup_install(!0);
     diminuto_assert(rc == 0);
@@ -191,10 +196,10 @@ int main(int argc, char * argv[])
     rc = diminuto_ipc_endpoint(farend, &farendpoint);
     diminuto_assert(rc == 0);
     switch (farendpoint.type) {
-    case AF_INET:
+    case DIMINUTO_IPC_TYPE_IPV4:
         diminuto_assert(!diminuto_ipc4_is_unspecified(&farendpoint.ipv4));
         break;
-    case AF_INET6:
+    case DIMINUTO_IPC_TYPE_IPV6:
         diminuto_assert(!diminuto_ipc6_is_unspecified(&farendpoint.ipv6));
         break;
     default:
@@ -206,10 +211,10 @@ int main(int argc, char * argv[])
     rc = diminuto_ipc_endpoint(nearend, &nearendpoint);
     diminuto_assert(rc == 0);
     switch (nearendpoint.type) {
-    case AF_INET:
+    case DIMINUTO_IPC_TYPE_IPV4:
         diminuto_assert(diminuto_ipc4_is_unspecified(&nearendpoint.ipv4) || diminuto_ipc4_is_loopback(&nearendpoint.ipv4));
         break;
-    case AF_INET6:
+    case DIMINUTO_IPC_TYPE_IPV6:
         diminuto_assert(diminuto_ipc6_is_unspecified(&nearendpoint.ipv6) || diminuto_ipc6_is_loopback(&nearendpoint.ipv6));
         break;
     default:
@@ -217,15 +222,28 @@ int main(int argc, char * argv[])
         break;
     }
 
+    /*
+     * ALLOCATION
+     */
+
+    buffer = (uint8_t *)malloc(bufsize);
+    diminuto_assert(buffer != (uint8_t *)0);
+
     codex_set_self_signed_certificates(selfsigned ? 1 : 0);
 
     rc = codex_initialize(pathdhf, pathcrl);
     diminuto_assert(rc == 0);
 
+    /*
+     * CONNECTION
+     */
+
     switch (role) {
     case CLIENT:
+        /*
+         * CLIENT FAR END (SSL)
+         */
         diminuto_assert(farendpoint.tcp != 0);
-        diminuto_assert(nearendpoint.udp != 0);
         ctx = codex_client_context_new(pathcaf, pathcap, pathcrt, pathkey);
         diminuto_assert(ctx != (SSL_CTX *)0);
         ssl = codex_client_connection_new(ctx, farend);
@@ -233,9 +251,41 @@ int main(int argc, char * argv[])
         diminuto_expect(!codex_connection_is_server(ssl));
         sslfd = codex_connection_descriptor(ssl);
         diminuto_assert(sslfd >= 0);
+        /*
+         * CLIENT NEAR END (SERVICE)
+         */
+        diminuto_assert(nearendpoint.udp != 0);
+        switch (nearendpoint.type) {
+        case DIMINUTO_IPC_TYPE_IPV4:
+            udpfd = diminuto_ipc4_datagram_peer(nearendpoint.udp);
+            break;
+        case DIMINUTO_IPC_TYPE_IPV6:
+            udpfd = diminuto_ipc6_datagram_peer(nearendpoint.udp);
+            break;
+        default:
+            break;
+        }
+        diminuto_assert(udpfd >= 0);
         break;
     case SERVER:
+        /*
+         * SERVER FAR END (EPHEMERAL)
+         */
         diminuto_assert(farendpoint.udp != 0);
+        switch (farendpoint.type) {
+        case DIMINUTO_IPC_TYPE_IPV4:
+            udpfd = diminuto_ipc4_datagram_peer(0);
+            break;
+        case DIMINUTO_IPC_TYPE_IPV6:
+            udpfd = diminuto_ipc6_datagram_peer(0);
+            break;
+        default:
+            break;
+        }
+        diminuto_assert(udpfd >= 0);
+        /*
+         * SERVER NEAR END (SSL)
+         */
         diminuto_assert(nearendpoint.tcp != 0);
         ctx = codex_server_context_new(pathcaf, pathcap, pathcrt, pathkey);
         diminuto_assert(ctx != (SSL_CTX *)0);
@@ -249,11 +299,29 @@ int main(int argc, char * argv[])
         break;
     }
 
-    /**/
+    /*
+     * WORK
+     */
+
+    /*
+     * DISCONNECTION
+     */
+
+    /*
+     * DEALLOCATION
+     */
+
+    free(buffer);
+
+    /*
+     * FINALIZATION
+     */
 
     diminuto_mux_fini(&mux);
 
-    free(buffer);
+    /*
+     * END
+     */
 
     DIMINUTO_LOG_INFORMATION("%s: END\n", program);
 
