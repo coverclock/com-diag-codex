@@ -77,6 +77,11 @@ int main(int argc, char * argv[])
     diminuto_ipc_endpoint_t farendpoint = { 0 };
     diminuto_ipc_endpoint_t nearendpoint = { 0 };
     codex_context_t * ctx = (codex_context_t *)0;
+    codex_connection_t * ssl = (codex_connection_t *)0;
+    codex_rendezvous_t * bio = (codex_rendezvous_t *)0;
+    int biofd = -1;
+    int sslfd = -1;
+    int udpfd = -1;
     extern char * optarg;
 
     (void)diminuto_core_enable();
@@ -175,64 +180,74 @@ int main(int argc, char * argv[])
         (role == CLIENT) ? "Client" : (role == SERVER) ? "Server" : "Unknown");
 
     buffer = (uint8_t *)malloc(bufsize);
-    assert(buffer != (uint8_t *)0);
-
-    assert(farend != (const char *)0);
-    rc = diminuto_ipc_endpoint(farend, &farendpoint);
-    assert(rc == 0);
-    switch (farendpoint.type) {
-    case AF_INET:
-        assert(!diminuto_ipc4_is_unspecified(&farendpoint.ipv4));
-        break;
-    case AF_INET6:
-        assert(!diminuto_ipc6_is_unspecified(&farendpoint.ipv6));
-        break;
-    default:
-        assert((farendpoint.type == AF_INET) || (farendpoint.type == AF_INET6));
-        break;
-    }
-
-    assert(nearend != (const char *)0);
-    rc = diminuto_ipc_endpoint(nearend, &nearendpoint);
-    assert(rc == 0);
-    switch (nearendpoint.type) {
-    case AF_INET:
-        assert(diminuto_ipc4_is_unspecified(&nearendpoint.ipv4));
-        break;
-    case AF_INET6:
-        assert(diminuto_ipc6_is_unspecified(&nearendpoint.ipv6));
-        break;
-    default:
-        assert((farendpoint.type == AF_INET) || (farendpoint.type == AF_INET6));
-        break;
-    }
-
-    switch (role) {
-    case CLIENT:
-        assert(farendpoint.tcp != 0);
-        assert(nearendpoint.udp != 0);
-        break;
-    case SERVER:
-        assert(farendpoint.udp != 0);
-        assert(nearendpoint.tcp != 0);
-        break;
-    default:
-        assert(role != UNKNOWN);
-        break;
-    }
+    diminuto_assert(buffer != (uint8_t *)0);
 
     rc = diminuto_hangup_install(!0);
-    assert(rc == 0);
+    diminuto_assert(rc == 0);
 
     diminuto_mux_init(&mux);
+
+    diminuto_assert(farend != (const char *)0);
+    rc = diminuto_ipc_endpoint(farend, &farendpoint);
+    diminuto_assert(rc == 0);
+    switch (farendpoint.type) {
+    case AF_INET:
+        diminuto_assert(!diminuto_ipc4_is_unspecified(&farendpoint.ipv4));
+        break;
+    case AF_INET6:
+        diminuto_assert(!diminuto_ipc6_is_unspecified(&farendpoint.ipv6));
+        break;
+    default:
+        diminuto_assert((farendpoint.type == AF_INET) || (farendpoint.type == AF_INET6));
+        break;
+    }
+
+    diminuto_assert(nearend != (const char *)0);
+    rc = diminuto_ipc_endpoint(nearend, &nearendpoint);
+    diminuto_assert(rc == 0);
+    switch (nearendpoint.type) {
+    case AF_INET:
+        diminuto_assert(diminuto_ipc4_is_unspecified(&nearendpoint.ipv4) || diminuto_ipc4_is_loopback(&nearendpoint.ipv4));
+        break;
+    case AF_INET6:
+        diminuto_assert(diminuto_ipc6_is_unspecified(&nearendpoint.ipv6) || diminuto_ipc6_is_loopback(&nearendpoint.ipv6));
+        break;
+    default:
+        diminuto_assert((farendpoint.type == AF_INET) || (farendpoint.type == AF_INET6));
+        break;
+    }
 
     codex_set_self_signed_certificates(selfsigned ? 1 : 0);
 
     rc = codex_initialize(pathdhf, pathcrl);
-    assert(rc == 0);
+    diminuto_assert(rc == 0);
 
-    ctx = codex_client_context_new(pathcaf, pathcap, pathcrt, pathkey);
-    assert(ctx != (SSL_CTX *)0);
+    switch (role) {
+    case CLIENT:
+        diminuto_assert(farendpoint.tcp != 0);
+        diminuto_assert(nearendpoint.udp != 0);
+        ctx = codex_client_context_new(pathcaf, pathcap, pathcrt, pathkey);
+        diminuto_assert(ctx != (SSL_CTX *)0);
+        ssl = codex_client_connection_new(ctx, farend);
+        diminuto_assert(ssl != (codex_connection_t *)0);
+        diminuto_expect(!codex_connection_is_server(ssl));
+        sslfd = codex_connection_descriptor(ssl);
+        diminuto_assert(sslfd >= 0);
+        break;
+    case SERVER:
+        diminuto_assert(farendpoint.udp != 0);
+        diminuto_assert(nearendpoint.tcp != 0);
+        ctx = codex_server_context_new(pathcaf, pathcap, pathcrt, pathkey);
+        diminuto_assert(ctx != (SSL_CTX *)0);
+        bio = codex_server_rendezvous_new(nearend);
+        diminuto_assert(bio != (codex_rendezvous_t *)0);
+        biofd = codex_rendezvous_descriptor(bio);
+        diminuto_assert(biofd >= 0);
+        break;
+    default:
+        diminuto_assert(role != UNKNOWN);
+        break;
+    }
 
     /**/
 
