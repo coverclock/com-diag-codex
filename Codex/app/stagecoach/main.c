@@ -20,10 +20,10 @@
  * and functionaltest-core-client.
  *
  * I really really wanted NOT to have to write this program. I felt
- * that I should be able to script it using some combinaiton of maybe
+ * that I should be able to script it using some combination of maybe
  * socat and ssh. But I didn't see a way to preserve the record boundaries
  * of datagrams as the data propagates across the SSL tunnel. Some web
- * searches didn't change my mind, despite the claims of many commenters;
+ * searching didn't change my mind, despite the claims of many commenters;
  * the solutions I saw worked most of the time by coincidence, in my
  * opinion.
  */
@@ -51,38 +51,40 @@ typedef enum Role { UNKNOWN = 0, CLIENT = 1, SERVER = 2, } role_t;
 
 typedef uint16_t length_t;
 
-static const char * program = "stagecoach";
-static role_t role = UNKNOWN;
+static const char * program = (const char *)0;
 static const char * nearend = (const char *)0;
 static const char * farend = (const char *)0;
 static const char * expected = (const char *)0;
-static size_t bufsize = 65527; /* (2^16-1)-8 */
 static const char * pathcaf = (const char *)0;
 static const char * pathcap = (const char *)0;
 static const char * pathcrl = (const char *)0;
 static const char * pathcrt = (const char *)0;
 static const char * pathkey = (const char *)0;
 static const char * pathdhf = (const char *)0;
+static size_t bufsize = 65527; /* max(datagram)=(2^16-1)-8 */
+static role_t role = UNKNOWN;
 static bool selfsigned = true;
-static bool verbose = false;
 
 int main(int argc, char * argv[])
 {
     int opt = '\0';
+    extern char * optarg;
     char * endptr = (char *)0;
     int rc = -1;
     length_t length = 0;
     uint8_t * buffer = (uint8_t *)0;
     diminuto_mux_t mux = { 0 };
     diminuto_ipc_endpoint_t farendpoint = { 0 };
+    char farendpointstring[64] = { '\0' };
     diminuto_ipc_endpoint_t nearendpoint = { 0 };
+    char nearendpointstring[64] = { '\0' };
     codex_context_t * ctx = (codex_context_t *)0;
     codex_connection_t * ssl = (codex_connection_t *)0;
     codex_rendezvous_t * bio = (codex_rendezvous_t *)0;
     int biofd = -1;
     int sslfd = -1;
     int udpfd = -1;
-    extern char * optarg;
+    int readyfd = -1;
 
     /*
      * BEGIN
@@ -92,9 +94,13 @@ int main(int argc, char * argv[])
 
     diminuto_log_setmask();
 
+    /*
+     * PARSE
+     */
+
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:C:D:K:L:MP:R:ce:f:mn:sv?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:C:D:E:K:L:MP:R:cf:mn:sv?")) >= 0) {
 
         switch (opt) {
 
@@ -109,6 +115,10 @@ int main(int argc, char * argv[])
         case 'D':
         	pathdhf = optarg;
 			break;
+
+        case 'E':
+            expected = (*optarg != '\0') ? optarg : (const char *)0;
+            break;
 
         case 'K':
         	pathkey = optarg;
@@ -134,10 +144,6 @@ int main(int argc, char * argv[])
             role = CLIENT;
             break;
 
-        case 'e':
-            expected = (*optarg != '\0') ? optarg : (const char *)0;
-            break;
-
         case 'f':
         	farend = optarg;
         	break;
@@ -154,12 +160,8 @@ int main(int argc, char * argv[])
             role = SERVER;
             break;
 
-        case 'v':
-            verbose = true;
-            break;
-
         case '?':
-        	fprintf(stderr, "usage: %s [ -v ] [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -e EXPECTEDDOMAIN ] [ -f FAREND ] [ -n NEAREND ] [ -M | -m ] [ -c | -s ]\n", program);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -f FAREND ] [ -n NEAREND ] [ -M | -m ] [ -c(lient) | -s(erver) ]\n", program);
             return 1;
             break;
 
@@ -167,9 +169,8 @@ int main(int argc, char * argv[])
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN v=%d B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" M=%d P=\"%s\" R=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" %s\n",
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" M=%d P=\"%s\" R=\"%s\" c=%d e=\"%s\" f=\"%s\" m=%d n=\"%s\" s=%d\n",
         program,
-        verbose,
         bufsize,
         (pathcrt == (const char *)0) ? "" : pathcrt,
         (pathdhf == (const char *)0) ? "" : pathdhf,
@@ -178,10 +179,12 @@ int main(int argc, char * argv[])
         selfsigned,
         (pathcap == (const char *)0) ? "" : pathcap,
         (pathcaf == (const char *)0) ? "" : pathcaf,
+        (role == CLIENT),
         (expected == (const char *)0) ? "" : expected,
         (farend == (const char *)0) ? "" : farend,
+        !selfsigned,
         (nearend == (const char *)0) ? "" : nearend,
-        (role == CLIENT) ? "Client" : (role == SERVER) ? "Server" : "Unknown");
+        (role == SERVER));
 
     /*
      * INITIALIZATION
@@ -196,14 +199,25 @@ int main(int argc, char * argv[])
     rc = diminuto_ipc_endpoint(farend, &farendpoint);
     diminuto_assert(rc == 0);
     switch (farendpoint.type) {
+
     case DIMINUTO_IPC_TYPE_IPV4:
+
         diminuto_assert(!diminuto_ipc4_is_unspecified(&farendpoint.ipv4));
+        diminuto_ipc4_address2string(farendpoint.ipv4, farendpointstring, sizeof(farendpointstring));
         break;
+
     case DIMINUTO_IPC_TYPE_IPV6:
+
         diminuto_assert(!diminuto_ipc6_is_unspecified(&farendpoint.ipv6));
+        farendpointstring[0] = '[';
+        diminuto_ipc6_address2string(farendpoint.ipv6, farendpointstring + 1, sizeof(farendpointstring - 2));
+        farendpointstring[strnlen(farendpointstring, sizeof(farendpointstring) - 1)] = ']';
         break;
+
     default:
-        diminuto_assert((farendpoint.type == AF_INET) || (farendpoint.type == AF_INET6));
+
+        diminuto_assert((farendpoint.type == DIMINUTO_IPC_TYPE_IPV4) || (farendpoint.type == DIMINUTO_IPC_TYPE_IPV6));
+
         break;
     }
 
@@ -211,14 +225,27 @@ int main(int argc, char * argv[])
     rc = diminuto_ipc_endpoint(nearend, &nearendpoint);
     diminuto_assert(rc == 0);
     switch (nearendpoint.type) {
+
     case DIMINUTO_IPC_TYPE_IPV4:
+
         diminuto_assert(diminuto_ipc4_is_unspecified(&nearendpoint.ipv4) || diminuto_ipc4_is_loopback(&nearendpoint.ipv4));
+        diminuto_ipc4_address2string(nearendpoint.ipv4, nearendpointstring, sizeof(nearendpointstring));
+
         break;
+
     case DIMINUTO_IPC_TYPE_IPV6:
+
         diminuto_assert(diminuto_ipc6_is_unspecified(&nearendpoint.ipv6) || diminuto_ipc6_is_loopback(&nearendpoint.ipv6));
+        nearendpointstring[0] = '[';
+        diminuto_ipc6_address2string(nearendpoint.ipv6, nearendpointstring + 1, sizeof(nearendpointstring - 2));
+        nearendpointstring[strnlen(nearendpointstring, sizeof(nearendpointstring) - 1)] = ']';
+
         break;
+
     default:
-        diminuto_assert((farendpoint.type == AF_INET) || (farendpoint.type == AF_INET6));
+
+        diminuto_assert((farendpoint.type == DIMINUTO_IPC_TYPE_IPV4) || (farendpoint.type == DIMINUTO_IPC_TYPE_IPV6));
+
         break;
     }
 
@@ -239,21 +266,28 @@ int main(int argc, char * argv[])
      */
 
     switch (role) {
+
     case CLIENT:
+
         /*
          * CLIENT FAR END (SSL)
          */
+
         diminuto_assert(farendpoint.tcp != 0);
         ctx = codex_client_context_new(pathcaf, pathcap, pathcrt, pathkey);
-        diminuto_assert(ctx != (SSL_CTX *)0);
+        diminuto_assert(ctx != (codex_context_t *)0);
         ssl = codex_client_connection_new(ctx, farend);
         diminuto_assert(ssl != (codex_connection_t *)0);
         diminuto_expect(!codex_connection_is_server(ssl));
         sslfd = codex_connection_descriptor(ssl);
         diminuto_assert(sslfd >= 0);
+
+        DIMINUTO_LOG_INFORMATION("%s: client ssl %s:%d [%d]\n", program, farendpointstring, farendpoint.tcp, sslfd);
+
         /*
          * CLIENT NEAR END (SERVICE)
          */
+
         diminuto_assert(nearendpoint.udp != 0);
         switch (nearendpoint.type) {
         case DIMINUTO_IPC_TYPE_IPV4:
@@ -263,14 +297,21 @@ int main(int argc, char * argv[])
             udpfd = diminuto_ipc6_datagram_peer(nearendpoint.udp);
             break;
         default:
+            diminuto_assert((nearendpoint.type == DIMINUTO_IPC_TYPE_IPV4) || (nearendpoint.type == DIMINUTO_IPC_TYPE_IPV6));
             break;
         }
         diminuto_assert(udpfd >= 0);
+
+        DIMINUTO_LOG_INFORMATION("%s: client service %s:%d [%d]\n", program, nearendpointstring, nearendpoint.udp, udpfd);
+
         break;
+
     case SERVER:
+
         /*
          * SERVER FAR END (EPHEMERAL)
          */
+
         diminuto_assert(farendpoint.udp != 0);
         switch (farendpoint.type) {
         case DIMINUTO_IPC_TYPE_IPV4:
@@ -283,20 +324,31 @@ int main(int argc, char * argv[])
             break;
         }
         diminuto_assert(udpfd >= 0);
+
+        DIMINUTO_LOG_INFORMATION("%s: server service %s:%d [%d]\n", program, farendpointstring, farendpoint.udp, udpfd);
+
         /*
          * SERVER NEAR END (SSL)
          */
+
         diminuto_assert(nearendpoint.tcp != 0);
         ctx = codex_server_context_new(pathcaf, pathcap, pathcrt, pathkey);
-        diminuto_assert(ctx != (SSL_CTX *)0);
+        diminuto_assert(ctx != (codex_context_t *)0);
         bio = codex_server_rendezvous_new(nearend);
         diminuto_assert(bio != (codex_rendezvous_t *)0);
         biofd = codex_rendezvous_descriptor(bio);
         diminuto_assert(biofd >= 0);
+
+        DIMINUTO_LOG_INFORMATION("%s: server ssl %s:%d [%d]\n", program, nearendpointstring, nearendpoint.tcp, biofd);
+
         break;
+
     default:
+
         diminuto_assert(role != UNKNOWN);
+
         break;
+
     }
 
     /*
@@ -307,9 +359,22 @@ int main(int argc, char * argv[])
      * DISCONNECTION
      */
 
+    rc = diminuto_ipc_close(udpfd);
+    diminuto_expect(rc >= 0);
+    udpfd = -1;
+
+    rc = codex_connection_close(ssl);
+    diminuto_expect(rc >= 0);
+
     /*
      * DEALLOCATION
      */
+
+    ssl = codex_connection_free(ssl);
+    diminuto_expect(ssl == (codex_connection_t *)0);
+
+    ctx = codex_context_free(ctx);
+    diminuto_expect(ctx == (codex_context_t *)0);
 
     free(buffer);
 
