@@ -104,7 +104,7 @@ int main(int argc, char * argv[])
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:C:D:E:K:L:MP:R:cf:mn:sv?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:C:D:E:K:L:P:R:cf:n:rsv?")) >= 0) {
 
         switch (opt) {
 
@@ -132,10 +132,6 @@ int main(int argc, char * argv[])
         	pathcrl = (*optarg != '\0') ? optarg : (const char *)0;
         	break;
 
-        case 'M':
-        	selfsigned = true;
-        	break;
-
         case 'P':
         	pathcap = (*optarg != '\0') ? optarg : (const char *)0;
         	break;
@@ -152,12 +148,12 @@ int main(int argc, char * argv[])
         	farend = optarg;
         	break;
 
-        case 'm':
-        	selfsigned = false;
-        	break;
-
         case 'n':
         	nearend = optarg;
+        	break;
+
+        case 'r':
+        	selfsigned = false;
         	break;
 
         case 's':
@@ -165,7 +161,7 @@ int main(int argc, char * argv[])
             break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -f FAREND ] [ -n NEAREND ] [ -M | -m ] [ -c(lient) | -s(erver) ]\n", program);
+        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -f FAREND ] [ -n NEAREND ] [ -r ] [ -c | -s ]\n", program);
             return 1;
             break;
 
@@ -173,22 +169,20 @@ int main(int argc, char * argv[])
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" M=%d P=\"%s\" R=\"%s\" c=%d e=\"%s\" f=\"%s\" m=%d n=\"%s\" s=%d\n",
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d %s\n",
         program,
         bufsize,
         (pathcrt == (const char *)0) ? "" : pathcrt,
         (pathdhf == (const char *)0) ? "" : pathdhf,
         (pathkey == (const char *)0) ? "" : pathkey,
         (pathcrl == (const char *)0) ? "" : pathcrl,
-        selfsigned,
         (pathcap == (const char *)0) ? "" : pathcap,
         (pathcaf == (const char *)0) ? "" : pathcaf,
-        (role == CLIENT),
         (expected == (const char *)0) ? "" : expected,
         (farend == (const char *)0) ? "" : farend,
-        !selfsigned,
         (nearend == (const char *)0) ? "" : nearend,
-        (role == SERVER));
+        selfsigned,
+        (role == SERVER) ? "server" : (role == CLIENT) ? "client" : "other");
 
     /*
      * INITIALIZATING
@@ -292,6 +286,9 @@ int main(int argc, char * argv[])
             break;
         }
 
+        rc = diminuto_mux_register_read(&mux, sslfd);
+        diminuto_assert(rc >= 0);
+
         /*
          * CLIENT NEAR END (SERVICE)
          */
@@ -323,6 +320,9 @@ int main(int argc, char * argv[])
             break;
         }
 
+        rc = diminuto_mux_register_read(&mux, udpfd);
+        diminuto_assert(rc >= 0);
+
         break;
 
     case SERVER:
@@ -339,9 +339,6 @@ int main(int argc, char * argv[])
             rc = diminuto_ipc4_nearend(udpfd, &ipv4address, &port);
             diminuto_assert(rc >= 0);
             DIMINUTO_LOG_INFORMATION("%s: server udp [%d] near end %s:%d\n", program, udpfd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
-            rc = diminuto_ipc4_farend(udpfd, &ipv4address, &port);
-            diminuto_assert(rc >= 0);
-            DIMINUTO_LOG_INFORMATION("%s: server udp [%d] far end %s:%d\n", program, udpfd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
             break;
         case DIMINUTO_IPC_TYPE_IPV6:
             udpfd = diminuto_ipc6_datagram_peer(0);
@@ -349,13 +346,13 @@ int main(int argc, char * argv[])
             rc = diminuto_ipc6_nearend(udpfd, &ipv6address, &port);
             diminuto_assert(rc >= 0);
             DIMINUTO_LOG_INFORMATION("%s: server udp [%d] near end [%s]:%d\n", program, udpfd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
-            rc = diminuto_ipc6_farend(udpfd, &ipv6address, &port);
-            diminuto_assert(rc >= 0);
-            DIMINUTO_LOG_INFORMATION("%s: server udp [%d] far end [%s]:%d\n", program, udpfd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
             break;
         default:
             break;
         }
+
+        rc = diminuto_mux_register_read(&mux, udpfd);
+        diminuto_assert(rc >= 0);
 
         /*
          * SERVER NEAR END (BIO)
@@ -390,11 +387,14 @@ int main(int argc, char * argv[])
             break;
         }
 
+        rc = diminuto_mux_register_accept(&mux, biofd);
+        diminuto_assert(rc >= 0);
+
         break;
 
     default:
 
-        diminuto_assert(role != UNKNOWN);
+        diminuto_assert((role == CLIENT) || (role == SERVER));
 
         break;
 
