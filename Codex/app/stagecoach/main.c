@@ -32,6 +32,7 @@
 #include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_fd.h"
+#include "com/diag/diminuto/diminuto_frequency.h"
 #include "com/diag/diminuto/diminuto_hangup.h"
 #include "com/diag/diminuto/diminuto_ipc4.h"
 #include "com/diag/diminuto/diminuto_ipc6.h"
@@ -62,7 +63,8 @@ static const char * pathcrl = (const char *)0;
 static const char * pathcrt = (const char *)0;
 static const char * pathkey = (const char *)0;
 static const char * pathdhf = (const char *)0;
-static size_t bufsize = 65527; /* max(datagram)=(2^16-1)-8 */
+static const char * bytes = (const char *)0;
+static const char * seconds = (const char *)0;
 static role_t role = UNKNOWN;
 static bool selfsigned = true;
 
@@ -74,21 +76,25 @@ int main(int argc, char * argv[])
     int rc = -1;
     length_t length = 0;
     uint8_t * buffer = (uint8_t *)0;
-    diminuto_mux_t mux = { 0 };
+    size_t bufsize = 65527; /* max(datagram)=(2^16-1)-8 */
+    unsigned long timeout = -1;
+    diminuto_sticks_t ticks = -1;
     diminuto_ipc_endpoint_t farendpoint = { 0 };
     diminuto_ipc_endpoint_t nearendpoint = { 0 };
     codex_context_t * ctx = (codex_context_t *)0;
     codex_connection_t * ssl = (codex_connection_t *)0;
     codex_rendezvous_t * bio = (codex_rendezvous_t *)0;
+    codex_connection_t * nxt = (codex_connection_t *)0;
     int biofd = -1;
     int udpfd = -1;
     int sslfd = -1;
-    int readyfd = -1;
+    int muxfd = -1;
     diminuto_ipv4_t ipv4address = 0;
     diminuto_ipv6_t ipv6address = { 0, };
     diminuto_port_t port = 0;
     diminuto_ipv4_buffer_t ipv4string = { '\0', };
     diminuto_ipv6_buffer_t ipv6string = { '\0', };
+    diminuto_mux_t mux = { 0 };
 
     /*
      * BEGIN
@@ -104,13 +110,9 @@ int main(int argc, char * argv[])
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:C:D:E:K:L:P:R:cf:n:rsv?")) >= 0) {
+    while ((opt = getopt(argc, argv, "C:D:E:K:L:P:R:b:cf:n:rst:v?")) >= 0) {
 
         switch (opt) {
-
-        case 'B':
-        	bufsize = strtoul(optarg, &endptr, 0);
-        	break;
 
         case 'C':
         	pathcrt = optarg;
@@ -140,6 +142,10 @@ int main(int argc, char * argv[])
         	pathcaf = (*optarg != '\0') ? optarg : (const char *)0;
         	break;
 
+        case 'b':
+            bytes = optarg;
+        	break;
+
         case 'c':
             role = CLIENT;
             break;
@@ -160,8 +166,12 @@ int main(int argc, char * argv[])
             role = SERVER;
             break;
 
+        case 't':
+            seconds = optarg;
+            break;
+
         case '?':
-        	fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -f FAREND ] [ -n NEAREND ] [ -r ] [ -c | -s ]\n", program);
+        	fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -f FAREND ] [ -n NEAREND ] [ -r ] [ -t SECONDS ] [ -c | -s ]\n", program);
             return 1;
             break;
 
@@ -169,9 +179,9 @@ int main(int argc, char * argv[])
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d %s\n",
+	DIMINUTO_LOG_INFORMATION("%s: BEGIN B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d t=\"%s\" %s\n",
         program,
-        bufsize,
+        (bytes == (const char *)0) ? "" : bytes,
         (pathcrt == (const char *)0) ? "" : pathcrt,
         (pathdhf == (const char *)0) ? "" : pathdhf,
         (pathkey == (const char *)0) ? "" : pathkey,
@@ -182,8 +192,16 @@ int main(int argc, char * argv[])
         (farend == (const char *)0) ? "" : farend,
         (nearend == (const char *)0) ? "" : nearend,
         selfsigned,
+        (seconds == (const char *)0) ? "" : seconds,
         (role == SERVER) ? "server" : (role == CLIENT) ? "client" : "other");
 
+    bufsize = strtoul(bytes, &endptr, 0);
+    diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (bufsize > 0));
+
+    timeout = strtoul(seconds, &endptr, 0);
+    diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (seconds > 0));
+    ticks = diminuto_frequency_units2ticks(timeout, 1 /* Hz */);
+    
     /*
      * INITIALIZATING
      */
@@ -403,6 +421,74 @@ int main(int argc, char * argv[])
     /*
      * WORK
      */
+
+    while (!diminuto_terminator_check()) {
+
+        if (diminuto_hangup_check()) {
+            DIMINUTO_LOG_NOTICE("%s: SIGHUP\n", program);
+            /* Unimplemented. */
+        }
+
+        rc = diminuto_mux_wait(&mux, ticks);
+        if ((rc == 0) || ((rc < 0) && (errno == EINTR))) {
+            diminuto_yield();
+            continue;
+        }
+        diminuto_assert(rc > 0);
+
+        while (true) {
+
+            muxfd = diminuto_mux_ready_accept(&mux);
+            if (muxfd < 0) {
+                break;
+            }
+            diminuto_assert(muxfd == biofd);
+
+            nxt = codex_server_connection_new(ctx, bio);
+            diminuto_expect(nxt != (codex_connection_t *)0);
+            if (nxt == (codex_connection_t *)0) {
+                continue;
+            }
+            diminuto_expect(codex_connection_is_server(nxt));
+
+            if (sslfd >= 0) {
+                rc = codex_connection_close(ssl);
+                diminuto_assert(rc >= 0);
+                ssl = codex_connection_free(ssl);
+                diminuto_assert(ssl == (codex_connection_t *)0);
+                rc = diminuto_mux_unregister_read(&mux, sslfd);
+                diminuto_expect(rc >= 0);
+                sslfd = -1;
+            }
+
+            ssl = nxt;
+            sslfd = codex_connection_descriptor(ssl);
+            diminuto_assert(sslfd >= 0);
+            rc = diminuto_mux_register_read(&mux, sslfd);
+
+            switch (nearendpoint.type) {
+            case DIMINUTO_IPC_TYPE_IPV4:
+                rc = diminuto_ipc4_nearend(sslfd, &ipv4address, &port);
+                diminuto_assert(rc >= 0);
+                DIMINUTO_LOG_INFORMATION("%s: server ssl [%d] near end %s:%d\n", program, sslfd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
+                rc = diminuto_ipc4_farend(sslfd, &ipv4address, &port);
+                diminuto_assert(rc >= 0);
+                DIMINUTO_LOG_INFORMATION("%s: server ssl [%d] far end %s:%d\n", program, sslfd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
+                break;
+            case DIMINUTO_IPC_TYPE_IPV6:
+                rc = diminuto_ipc6_nearend(sslfd, &ipv6address, &port);
+                diminuto_assert(rc >= 0);
+                DIMINUTO_LOG_INFORMATION("%s: server ssl [%d] near end [%s]:%d\n", program, sslfd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
+                rc = diminuto_ipc6_farend(sslfd, &ipv6address, &port);
+                diminuto_assert(rc >= 0);
+                DIMINUTO_LOG_INFORMATION("%s: server ssl [%d] far end [%s]:%d\n", program, sslfd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
+                break;
+            default:
+                break;
+            }
+
+        }
+    }
 
     /*
      * DISCONNECTING
