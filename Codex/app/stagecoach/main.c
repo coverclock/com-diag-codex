@@ -39,6 +39,7 @@
 #include "com/diag/diminuto/diminuto_ipc4.h"
 #include "com/diag/diminuto/diminuto_ipc6.h"
 #include "com/diag/diminuto/diminuto_log.h"
+#include "com/diag/diminuto/diminuto_minmaxof.h"
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_terminator.h"
 #include "com/diag/diminuto/diminuto_tree.h"
@@ -51,9 +52,9 @@
 #include <stdint.h>
 #include "../src/codex.h"
 
-typedef enum Role { UNKNOWN = 0, CLIENT = 1, SERVER = 2, } role_t;
+typedef enum Role { INVALID = '?', CLIENT = 'c', SERVER = 's', } role_t;
 
-typedef uint16_t length_t;
+typedef uint16_t prefix_t;
 
 static const char * program = (const char *)0;
 static const char * nearend = (const char *)0;
@@ -67,7 +68,7 @@ static const char * pathkey = (const char *)0;
 static const char * pathdhf = (const char *)0;
 static const char * bytes = (const char *)0;
 static const char * seconds = (const char *)0;
-static role_t role = UNKNOWN;
+static role_t role = INVALID;
 static bool selfsigned = true;
 
 int main(int argc, char * argv[])
@@ -76,7 +77,7 @@ int main(int argc, char * argv[])
     extern char * optarg;
     char * endptr = (char *)0;
     int rc = -1;
-    const char * name = (const char *)0;
+    const char * name = "invalid";
     uint8_t * buffer = (uint8_t *)0;
     size_t bufsize = 65527; /* max(datagram)=(2^16-1)-8 */
     unsigned long timeout = -1;
@@ -95,12 +96,12 @@ int main(int argc, char * argv[])
     diminuto_ipv4_t ipv4address = 0;
     diminuto_ipv6_t ipv6address = { 0, };
     diminuto_port_t port = 0;
-    diminuto_port_t last = 0;
     diminuto_ipv4_buffer_t ipv4string = { '\0', };
     diminuto_ipv6_buffer_t ipv6string = { '\0', };
     diminuto_mux_t mux = { 0 };
-    length_t length = 0;
-    static const char * NAME[] = { "unknown", "client", "server", };
+    diminuto_port_t last = 0;
+    ssize_t length = 0;
+    prefix_t prefix = 0;
 
     /*
      * BEGIN
@@ -154,6 +155,7 @@ int main(int argc, char * argv[])
 
         case 'c':
             role = CLIENT;
+            name = "client";
             break;
 
         case 'f':
@@ -170,6 +172,7 @@ int main(int argc, char * argv[])
 
         case 's':
             role = SERVER;
+            name = "server";
             break;
 
         case 't':
@@ -185,9 +188,7 @@ int main(int argc, char * argv[])
 
     }
 
-    name = NAME[role];
-
-	DIMINUTO_LOG_INFORMATION("%s: %s BEGIN B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d t=\"%s\"\n",
+	DIMINUTO_LOG_INFORMATION("%s: %s BEGIN B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d t=\"%s\" %c=%d\n",
         program,
         name,
         (bytes == (const char *)0) ? "" : bytes,
@@ -201,7 +202,8 @@ int main(int argc, char * argv[])
         (farend == (const char *)0) ? "" : farend,
         (nearend == (const char *)0) ? "" : nearend,
         selfsigned,
-        (seconds == (const char *)0) ? "" : seconds);
+        (seconds == (const char *)0) ? "" : seconds,
+        role, !0);
 
     diminuto_assert((role == SERVER) || (role == CLIENT));
 
@@ -444,6 +446,7 @@ int main(int argc, char * argv[])
 
             muxfd = diminuto_mux_ready_accept(&mux);
             if (muxfd < 0) {
+                diminuto_yield();
                 break;
             }
             diminuto_assert(muxfd == biofd);
@@ -511,19 +514,23 @@ int main(int argc, char * argv[])
 
         }
 
-        muxfd = diminuto_mux_ready_read(&mux);
-        if (muxfd < 0) {
-            diminuto_yield();
-            continue;
-        }
+        while (true) {
 
-        if (muxfd == udpfd) {
+            muxfd = diminuto_mux_ready_read(&mux);
+            if (muxfd < 0) {
+                diminuto_yield();
+                break;
+            }
 
-        } else if (muxfd == sslfd) {
+            if (muxfd == udpfd) {
 
-        } else {
+            } else if (muxfd == sslfd) {
 
-            DIMINUTO_LOG_WARNING("%s: %s mux [%d] unknown\n", program, name, reqfd);
+            } else {
+
+                DIMINUTO_LOG_WARNING("%s: %s mux [%d] unknown\n", program, name, reqfd);
+
+            }
 
         }
 
