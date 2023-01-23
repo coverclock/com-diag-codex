@@ -70,11 +70,16 @@ int main(int argc, char * argv[])
     codex_connection_t * ssl = (codex_connection_t *)0;
     codex_rendezvous_t * bio = (codex_rendezvous_t *)0;
     codex_connection_t * req = (codex_connection_t *)0;
+    protocol_t nearendtype = UNKNOWN;
+    protocol_t farendtype = UNKNOWN;
+    protocol_t biotype = UNKNOWN;
+    protocol_t ssltype = UNKNOWN;
+    protocol_t udptype = UNKNOWN;
     int biofd = -1;
-    int udpfd = -1;
-    int sslfd = -1;
-    int reqfd = -1;
     int muxfd = -1;
+    int reqfd = -1;
+    int sslfd = -1;
+    int udpfd = -1;
     diminuto_ipv4_t ipv4address = 0;
     diminuto_ipv6_t ipv6address = { 0, };
     diminuto_port_t port = 0;
@@ -215,10 +220,12 @@ int main(int argc, char * argv[])
 
     case DIMINUTO_IPC_TYPE_IPV4:
         diminuto_assert(!diminuto_ipc4_is_unspecified(&farendpoint.ipv4));
+        farendtype = IPV4;
         break;
 
     case DIMINUTO_IPC_TYPE_IPV6:
         diminuto_assert(!diminuto_ipc6_is_unspecified(&farendpoint.ipv6));
+        farendtype = IPV6;
         break;
 
     default:
@@ -233,10 +240,12 @@ int main(int argc, char * argv[])
 
     case DIMINUTO_IPC_TYPE_IPV4:
         diminuto_assert(diminuto_ipc4_is_unspecified(&nearendpoint.ipv4) || diminuto_ipc4_is_loopback(&nearendpoint.ipv4));
+        nearendtype = IPV4;
         break;
 
     case DIMINUTO_IPC_TYPE_IPV6:
         diminuto_assert(diminuto_ipc6_is_unspecified(&nearendpoint.ipv6) || diminuto_ipc6_is_loopback(&nearendpoint.ipv6));
+        nearendtype = IPV6;
         break;
 
     default:
@@ -277,8 +286,8 @@ int main(int argc, char * argv[])
         sslfd = codex_connection_descriptor(ssl);
         diminuto_assert(sslfd >= 0);
 
-        switch (farendpoint.type) {
-        case DIMINUTO_IPC_TYPE_IPV4:
+        switch (farendtype) {
+        case IPV4:
             rc = diminuto_ipc4_nearend(sslfd, &ipv4address, &port);
             diminuto_assert(rc >= 0);
             DIMINUTO_LOG_INFORMATION("%s: %s ssl [%d] near end %s:%d\n", program, name, sslfd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
@@ -286,7 +295,7 @@ int main(int argc, char * argv[])
             diminuto_assert(rc >= 0);
             DIMINUTO_LOG_INFORMATION("%s: %s ssl [%d] far end %s:%d\n", program, name, sslfd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
             break;
-        case DIMINUTO_IPC_TYPE_IPV6:
+        case IPV6:
             rc = diminuto_ipc6_nearend(sslfd, &ipv6address, &port);
             diminuto_assert(rc >= 0);
             DIMINUTO_LOG_INFORMATION("%s: %s ssl [%d] near end [%s]:%d\n", program, name, sslfd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
@@ -295,8 +304,10 @@ int main(int argc, char * argv[])
             DIMINUTO_LOG_INFORMATION("%s: %s ssl [%d] far end [%s]:%d\n", program, name, sslfd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
             break;
         default:
+            diminuto_core_fatal();
             break;
         }
+        ssltype = farendtype;
 
         rc = diminuto_mux_register_read(&mux, sslfd);
         diminuto_assert(rc >= 0);
@@ -306,15 +317,15 @@ int main(int argc, char * argv[])
          */
 
         diminuto_assert(nearendpoint.udp != 0);
-        switch (nearendpoint.type) {
-        case DIMINUTO_IPC_TYPE_IPV4:
+        switch (nearendtype) {
+        case IPV4:
             udpfd = diminuto_ipc4_datagram_peer(nearendpoint.udp);
             diminuto_assert(udpfd >= 0);
             rc = diminuto_ipc4_nearend(udpfd, &ipv4address, &port);
             diminuto_assert(rc >= 0);
             DIMINUTO_LOG_INFORMATION("%s: %s udp [%d] near end %s:%d\n", program, name, udpfd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
             break;
-        case DIMINUTO_IPC_TYPE_IPV6:
+        case IPV6:
             udpfd = diminuto_ipc6_datagram_peer(nearendpoint.udp);
             diminuto_assert(udpfd >= 0);
             rc = diminuto_ipc6_nearend(udpfd, &ipv6address, &port);
@@ -322,9 +333,10 @@ int main(int argc, char * argv[])
             DIMINUTO_LOG_INFORMATION("%s: %s udp [%d] near end [%s]:%d\n", program, name, udpfd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
             break;
         default:
-            diminuto_assert((nearendpoint.type == DIMINUTO_IPC_TYPE_IPV4) || (nearendpoint.type == DIMINUTO_IPC_TYPE_IPV6));
+            diminuto_core_fatal();
             break;
         }
+        udptype = nearendtype;
 
         rc = diminuto_mux_register_read(&mux, udpfd);
         diminuto_assert(rc >= 0);
@@ -338,15 +350,15 @@ int main(int argc, char * argv[])
          */
 
         diminuto_assert(farendpoint.udp != 0);
-        switch (farendpoint.type) {
-        case DIMINUTO_IPC_TYPE_IPV4:
+        switch (farendtype) {
+        case IPV4:
             udpfd = diminuto_ipc4_datagram_peer(0);
             diminuto_assert(udpfd >= 0);
             rc = diminuto_ipc4_nearend(udpfd, &ipv4address, &port);
             diminuto_assert(rc >= 0);
             DIMINUTO_LOG_INFORMATION("%s: %s udp [%d] near end %s:%d\n", program, name, udpfd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
             break;
-        case DIMINUTO_IPC_TYPE_IPV6:
+        case IPV6:
             udpfd = diminuto_ipc6_datagram_peer(0);
             diminuto_assert(udpfd >= 0);
             rc = diminuto_ipc6_nearend(udpfd, &ipv6address, &port);
@@ -354,8 +366,10 @@ int main(int argc, char * argv[])
             DIMINUTO_LOG_INFORMATION("%s: %s udp [%d] near end [%s]:%d\n", program, name, udpfd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
             break;
         default:
+            diminuto_core_fatal();
             break;
         }
+        udptype = farendtype;
 
         rc = diminuto_mux_register_read(&mux, udpfd);
         diminuto_assert(rc >= 0);
@@ -372,20 +386,22 @@ int main(int argc, char * argv[])
         biofd = codex_rendezvous_descriptor(bio);
         diminuto_assert(biofd >= 0);
 
-        switch (nearendpoint.type) {
-        case DIMINUTO_IPC_TYPE_IPV4:
+        switch (nearendtype) {
+        case IPV4:
             rc = diminuto_ipc4_nearend(biofd, &ipv4address, &port);
             diminuto_assert(rc >= 0);
             DIMINUTO_LOG_INFORMATION("%s: %s bio [%d] near end %s:%d\n", program, name, biofd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
             break;
-        case DIMINUTO_IPC_TYPE_IPV6:
+        case IPV6:
             rc = diminuto_ipc6_nearend(biofd, &ipv6address, &port);
             diminuto_assert(rc >= 0);
             DIMINUTO_LOG_INFORMATION("%s: %s bio [%d] near end [%s]:%d\n", program, name, biofd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
             break;
         default:
+            diminuto_core_fatal();
             break;
         }
+        biotype = nearendtype;
 
         rc = diminuto_mux_register_accept(&mux, biofd);
         diminuto_assert(rc >= 0);
@@ -393,9 +409,7 @@ int main(int argc, char * argv[])
         break;
 
     default:
-
-        diminuto_assert((role == CLIENT) || (role == SERVER));
-
+        diminuto_core_fatal();
         break;
 
     }
@@ -443,18 +457,19 @@ int main(int argc, char * argv[])
             reqfd = codex_connection_descriptor(req);
             diminuto_assert(reqfd >= 0);
 
-            switch (nearendpoint.type) {
-            case DIMINUTO_IPC_TYPE_IPV4:
+            switch (biotype) {
+            case IPV4:
                 rc = diminuto_ipc4_farend(reqfd, &ipv4address, &port);
                 diminuto_assert(rc >= 0);
                 DIMINUTO_LOG_NOTICE("%s: %s req [%d] far end %s:%d\n", program, name, reqfd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
                 break;
-            case DIMINUTO_IPC_TYPE_IPV6:
+            case IPV6:
                 rc = diminuto_ipc6_farend(reqfd, &ipv6address, &port);
                 diminuto_assert(rc >= 0);
                 DIMINUTO_LOG_NOTICE("%s: %s req [%d] far end [%s]:%d\n", program, name, reqfd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
                 break;
             default:
+                diminuto_core_fatal();
                 break;
             }
 
@@ -489,6 +504,7 @@ int main(int argc, char * argv[])
             req = (codex_connection_t *)0;
             sslfd = codex_connection_descriptor(ssl);
             diminuto_assert(sslfd >= 0);
+            ssltype = biotype;
             rc = diminuto_mux_register_read(&mux, sslfd);
 
             DIMINUTO_LOG_NOTICE("%s: %s ssl [%d] far end\n", program, name, reqfd);
@@ -510,6 +526,7 @@ int main(int argc, char * argv[])
                 case SERVER:
                     break;
                 default:
+                    diminuto_core_fatal();
                     break;
                 }
 
@@ -521,6 +538,7 @@ int main(int argc, char * argv[])
                 case SERVER:
                     break;
                 default:
+                    diminuto_core_fatal();
                     break;
                 }
 
