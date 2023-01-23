@@ -43,33 +43,15 @@
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_terminator.h"
 #include "com/diag/diminuto/diminuto_tree.h"
-#include "com/diag/diminuto/diminuto_types.h"
 #include "com/diag/codex/codex.h"
 #include <errno.h>
 #include <string.h>
-#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "../src/codex.h"
-
-typedef enum Role { INVALID = '?', CLIENT = 'c', SERVER = 's', } role_t;
-
-typedef uint16_t prefix_t;
-
-static const char * program = (const char *)0;
-static const char * nearend = (const char *)0;
-static const char * farend = (const char *)0;
-static const char * expected = (const char *)0;
-static const char * pathcaf = (const char *)0;
-static const char * pathcap = (const char *)0;
-static const char * pathcrl = (const char *)0;
-static const char * pathcrt = (const char *)0;
-static const char * pathkey = (const char *)0;
-static const char * pathdhf = (const char *)0;
-static const char * bytes = (const char *)0;
-static const char * seconds = (const char *)0;
-static role_t role = INVALID;
-static bool selfsigned = true;
+#include "globals.h"
+#include "types.h"
 
 int main(int argc, char * argv[])
 {
@@ -446,7 +428,6 @@ int main(int argc, char * argv[])
 
             muxfd = diminuto_mux_ready_accept(&mux);
             if (muxfd < 0) {
-                diminuto_yield();
                 break;
             }
             diminuto_assert(muxfd == biofd);
@@ -518,17 +499,36 @@ int main(int argc, char * argv[])
 
             muxfd = diminuto_mux_ready_read(&mux);
             if (muxfd < 0) {
-                diminuto_yield();
                 break;
             }
 
             if (muxfd == udpfd) {
 
+                switch (role) {
+                case CLIENT:
+                    break;
+                case SERVER:
+                    break;
+                default:
+                    break;
+                }
+
             } else if (muxfd == sslfd) {
+
+                switch (role) {
+                case CLIENT:
+                    break;
+                case SERVER:
+                    break;
+                default:
+                    break;
+                }
 
             } else {
 
                 DIMINUTO_LOG_WARNING("%s: %s mux [%d] unknown\n", program, name, reqfd);
+                diminuto_yield();
+                continue;
 
             }
 
