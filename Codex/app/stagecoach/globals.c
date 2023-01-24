@@ -11,17 +11,4 @@
 
 #include "globals.h"
 
-const char * program = (const char *)0;
-const char * nearend = (const char *)0;
-const char * farend = (const char *)0;
-const char * expected = (const char *)0;
-const char * pathcaf = (const char *)0;
-const char * pathcap = (const char *)0;
-const char * pathcrl = (const char *)0;
-const char * pathcrt = (const char *)0;
-const char * pathkey = (const char *)0;
-const char * pathdhf = (const char *)0;
-const char * bytes = (const char *)0;
-const char * seconds = (const char *)0;
-role_t role = INVALID;
-bool selfsigned = true;
+size_t bufsize = 65527; /* max(datagram)=(2^16-1)-8 */

@@ -1,6 +1,6 @@
 /* vi: set ts=4 expandtab shiftwidth=4: */
-#ifndef _H_TYPES_
-#define _H_TYPES_
+#ifndef _H_PROCESS_
+#define _H_PROCESS_
 
 /**
  * @file
@@ -11,10 +11,11 @@
  * https://github.com/coverclock/com-diag-codex<BR>
  */
 
-#include "com/diag/diminuto/diminuto_types.h"
+#include "com/diag/codex/codex.h"
+#include "types.h"
 
-typedef enum Role { INVALID = '?', CLIENT = 'c', SERVER = 's', } role_t;
+extern int client_proxy(int muxfd, protocol_t udptype, int udpfd, codex_connection_t * ssl);
 
-typedef enum Protocol { UNKNOWN = '?', IPV4 = '4', IPV6 = '6', } protocol_t;
+extern int server_proxy(int muxfd, protocol_t udptype, int udpfd, codex_connection_t * ssl);
 
 #endif

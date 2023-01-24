@@ -30,6 +30,7 @@
  * opinion.
  */
 
+#include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_assert.h"
 #include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/diminuto/diminuto_delay.h"
@@ -43,7 +44,6 @@
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_terminator.h"
 #include "com/diag/diminuto/diminuto_tree.h"
-#include "com/diag/codex/codex.h"
 #include <errno.h>
 #include <string.h>
 #include <stdbool.h>
@@ -51,19 +51,38 @@
 #include <stdlib.h>
 #include "../src/codex.h"
 #include "globals.h"
+#include "proxy.h"
 #include "types.h"
 
 int main(int argc, char * argv[])
 {
+    /*
+     * PARAMETERS
+     */
+    const char * program = (const char *)0;
+    const char * bytes = (const char *)0;
+    const char * expected = (const char *)0;
+    const char * farend = (const char *)0;
+    const char * nearend = (const char *)0;
+    const char * pathcaf = (const char *)0;
+    const char * pathcap = (const char *)0;
+    const char * pathcrl = (const char *)0;
+    const char * pathcrt = (const char *)0;
+    const char * pathdhf = (const char *)0;
+    const char * pathkey = (const char *)0;
+    const char * seconds = (const char *)0;
+    role_t role = INVALID;
+    bool selfsigned = true;
+    /*
+     * VARIABLES
+     */
     int opt = '\0';
     extern char * optarg;
     char * endptr = (char *)0;
-    int rc = -1;
     const char * name = "invalid";
-    uint8_t * buffer = (uint8_t *)0;
-    size_t bufsize = 65527; /* max(datagram)=(2^16-1)-8 */
     unsigned long timeout = -1;
     diminuto_sticks_t ticks = -1;
+    int rc = -1;
     diminuto_ipc_endpoint_t farendpoint = { 0 };
     diminuto_ipc_endpoint_t nearendpoint = { 0 };
     codex_context_t * ctx = (codex_context_t *)0;
@@ -86,9 +105,6 @@ int main(int argc, char * argv[])
     diminuto_ipv4_buffer_t ipv4string = { '\0', };
     diminuto_ipv6_buffer_t ipv6string = { '\0', };
     diminuto_mux_t mux = { 0 };
-    diminuto_port_t last = 0;
-    ssize_t length = 0;
-    prefix_t prefix = 0;
 
     /*
      * BEGIN
@@ -167,7 +183,7 @@ int main(int argc, char * argv[])
             break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -f FAREND ] [ -n NEAREND ] [ -r ] [ -t SECONDS ] [ -c | -s ]\n", program);
+        	fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -f FARENDPOINT ] [ -n NEARENDPOINT ] [ -r ] [ -t SECONDS ] [ -c | -s ]\n", program);
             return 1;
             break;
 
@@ -249,16 +265,9 @@ int main(int argc, char * argv[])
         break;
 
     default:
-        diminuto_assert((farendpoint.type == DIMINUTO_IPC_TYPE_IPV4) || (farendpoint.type == DIMINUTO_IPC_TYPE_IPV6));
+        diminuto_assert((nearendpoint.type == DIMINUTO_IPC_TYPE_IPV4) || (nearendpoint.type == DIMINUTO_IPC_TYPE_IPV6));
         break;
     }
-
-    /*
-     * ALLOCATING
-     */
-
-    buffer = (uint8_t *)malloc(bufsize);
-    diminuto_assert(buffer != (uint8_t *)0);
 
     codex_set_self_signed_certificates(selfsigned ? 1 : 0);
 
@@ -310,6 +319,8 @@ int main(int argc, char * argv[])
         ssltype = farendtype;
 
         rc = diminuto_mux_register_read(&mux, sslfd);
+        diminuto_assert(rc >= 0);
+        rc = diminuto_mux_register_write(&mux, sslfd);
         diminuto_assert(rc >= 0);
 
         /*
@@ -427,8 +438,9 @@ int main(int argc, char * argv[])
 
         if (diminuto_hangup_check()) {
             DIMINUTO_LOG_NOTICE("%s: SIGHUP\n", program);
+            /* Unimplemented. */
             diminuto_yield();
-            continue; /* Unimplemented. */
+            continue;
         }
 
         rc = diminuto_mux_wait(&mux, ticks);
@@ -488,24 +500,31 @@ int main(int argc, char * argv[])
                 }
             }
 
-            if (sslfd >= 0) {
+            if (ssl != (codex_connection_t *)0) {
                 rc = codex_connection_close(ssl);
                 diminuto_assert(rc >= 0);
                 ssl = codex_connection_free(ssl);
                 diminuto_assert(ssl == (codex_connection_t *)0);
                 rc = diminuto_mux_unregister_read(&mux, sslfd);
                 diminuto_expect(rc >= 0);
+                rc = diminuto_mux_unregister_write(&mux, sslfd);
+                diminuto_expect(rc >= 0);
                 rc = diminuto_ipc_close(sslfd);
                 diminuto_expect(rc < 0);
                 sslfd = -1;
+                ssltype = UNKNOWN;
             }
 
             ssl = req;
+            diminuto_assert(ssl != (codex_connection_t *)0);
             req = (codex_connection_t *)0;
             sslfd = codex_connection_descriptor(ssl);
             diminuto_assert(sslfd >= 0);
             ssltype = biotype;
             rc = diminuto_mux_register_read(&mux, sslfd);
+            diminuto_assert(rc >= 0);
+            rc = diminuto_mux_register_write(&mux, sslfd);
+            diminuto_assert(rc >= 0);
 
             DIMINUTO_LOG_NOTICE("%s: %s ssl [%d] far end\n", program, name, reqfd);
 
@@ -518,36 +537,16 @@ int main(int argc, char * argv[])
                 break;
             }
 
-            if (muxfd == udpfd) {
-
-                switch (role) {
-                case CLIENT:
-                    break;
-                case SERVER:
-                    break;
-                default:
-                    diminuto_core_fatal();
-                    break;
-                }
-
-            } else if (muxfd == sslfd) {
-
-                switch (role) {
-                case CLIENT:
-                    break;
-                case SERVER:
-                    break;
-                default:
-                    diminuto_core_fatal();
-                    break;
-                }
-
-            } else {
-
-                DIMINUTO_LOG_WARNING("%s: %s mux [%d] unknown\n", program, name, reqfd);
-                diminuto_yield();
-                continue;
-
+            switch (role) {
+            case CLIENT:
+                rc = client_proxy(muxfd, udptype, udpfd, ssl);
+                break;
+            case SERVER:
+                rc = server_proxy(muxfd, udptype, udpfd, ssl);
+                break;
+            default:
+                diminuto_core_fatal();
+                break;
             }
 
         }
@@ -558,35 +557,39 @@ int main(int argc, char * argv[])
      * DISCONNECTING
      */
 
-    rc = diminuto_ipc_close(udpfd);
-    diminuto_expect(rc >= 0);
-    udpfd = -1;
+    if (udpfd >= 0) {
+        rc = diminuto_ipc_close(udpfd);
+        diminuto_expect(rc >= 0);
+        rc = diminuto_mux_unregister_read(&mux, udpfd);
+        diminuto_expect(rc >= 0);
+        udpfd = -1;
+    }
 
-    rc = codex_connection_close(ssl);
-    diminuto_expect(rc >= 0);
+    if (ssl != (codex_connection_t *)0) {
+        rc = codex_connection_close(ssl);
+        diminuto_expect(rc >= 0);
+        ssl = codex_connection_free(ssl);
+        diminuto_expect(ssl == (codex_connection_t *)0);
+        ssl = (codex_connection_t *)0;
+    }
 
-    rc = diminuto_ipc_close(sslfd);
-    diminuto_expect(rc < 0);
-    sslfd = -1;
-
-    /*
-     * DEALLOCATING
-     */
-
-    ssl = codex_connection_free(ssl);
-    diminuto_expect(ssl == (codex_connection_t *)0);
-    ssl = (codex_connection_t *)0;
-
-    ctx = codex_context_free(ctx);
-    diminuto_expect(ctx == (codex_context_t *)0);
-    ctx = (codex_context_t *)0;
-
-    free(buffer);
-    buffer = (uint8_t *)0;
+    if (sslfd >= 0) {
+        rc = diminuto_ipc_close(sslfd);
+        diminuto_expect(rc < 0);
+        rc = diminuto_mux_unregister_read(&mux, sslfd);
+        diminuto_expect(rc >= 0);
+        rc = diminuto_mux_unregister_write(&mux, sslfd);
+        diminuto_expect(rc >= 0);
+        sslfd = -1;
+    }
 
     /*
      * FINALIZATING
      */
+
+    ctx = codex_context_free(ctx);
+    diminuto_expect(ctx == (codex_context_t *)0);
+    ctx = (codex_context_t *)0;
 
     diminuto_mux_fini(&mux);
 
