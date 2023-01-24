@@ -12,10 +12,9 @@
  */
 
 #include "com/diag/codex/codex.h"
+#include "com/diag/diminuto/diminuto_mux.h"
 #include "types.h"
 
-extern int client_proxy(int muxfd, protocol_t udptype, int udpfd, codex_connection_t * ssl);
-
-extern int server_proxy(int muxfd, protocol_t udptype, int udpfd, codex_connection_t * ssl);
+extern int server(diminuto_mux_t * muxp, protocol_t biotype, int biofd, protocol_t udptype, int udpfd, codex_context_t * ctx, codex_connection_t * ssl);
 
 #endif

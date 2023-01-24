@@ -1,6 +1,6 @@
 /* vi: set ts=4 expandtab shiftwidth=4: */
-#ifndef _H_GLOBALS_
-#define _H_GLOBALS_
+#ifndef _H_PROCESS_
+#define _H_PROCESS_
 
 /**
  * @file
@@ -11,16 +11,10 @@
  * https://github.com/coverclock/com-diag-codex<BR>
  */
 
+#include "com/diag/codex/codex.h"
+#include "com/diag/diminuto/diminuto_mux.h"
 #include "types.h"
 
-extern size_t bufsize;
-extern const char * expected;
-
-extern const char * name;
-extern diminuto_ipv4_t ipv4address;
-extern diminuto_ipv6_t ipv6address;
-extern diminuto_port_t port;
-extern diminuto_ipv4_buffer_t ipv4string;
-extern diminuto_ipv6_buffer_t ipv6string;
+extern int client(diminuto_mux_t * muxp, protocol_t udptype, int udpfd, codex_connection_t * ssl);
 
 #endif
