@@ -1,6 +1,6 @@
 /* vi: set ts=4 expandtab shiftwidth=4: */
-#ifndef _H_GLOBALS_
-#define _H_GLOBALS_
+#ifndef _H_STAGECOACH_GLOBALS_
+#define _H_STAGECOACH_GLOBALS_
 
 /**
  * @file
@@ -13,14 +13,10 @@
 
 #include "types.h"
 
-extern size_t bufsize;
-extern const char * expected;
+/*
+ * PARAMETERS
+ */
 
-extern const char * name;
-extern diminuto_ipv4_t ipv4address;
-extern diminuto_ipv6_t ipv6address;
-extern diminuto_port_t port;
-extern diminuto_ipv4_buffer_t ipv4string;
-extern diminuto_ipv6_buffer_t ipv6string;
+extern const char * program;
 
 #endif

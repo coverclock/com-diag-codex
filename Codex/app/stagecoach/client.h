@@ -1,6 +1,6 @@
 /* vi: set ts=4 expandtab shiftwidth=4: */
-#ifndef _H_PROCESS_
-#define _H_PROCESS_
+#ifndef _H_STAGECOACH_CLIENT_
+#define _H_STAGECOACH_CLIENT_
 
 /**
  * @file
@@ -15,6 +15,6 @@
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "types.h"
 
-extern int client(diminuto_mux_t * muxp, protocol_t udptype, int udpfd, codex_connection_t * ssl);
+extern status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, codex_connection_t * ssl, size_t bufsize, const char * expected);
 
 #endif

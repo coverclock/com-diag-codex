@@ -200,7 +200,7 @@ typedef int32_t codex_header_t;
  * payload available for the application is COMPLETE, for a connection that
  * has closed is FINAL, and for a connection whose packet has been consumed
  * and is ready for another is set by the application to RESTART. IDLE is a
- * do-nothing state.
+ * do-nothing state that can be used to quiesce the state machine.
  */
 typedef enum CodexState {
 	CODEX_STATE_START		= 'S',	/* Verify identity and read header. */

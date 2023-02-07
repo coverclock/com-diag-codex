@@ -8,7 +8,7 @@
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
  * This is based on the code I wrote for the functionaltest-machine-server
- * and the functionaltest-machine-client functional test programs.
+ * and the functionaltest-machine-server functional test programs.
  */
 
 #include "com/diag/codex/codex.h"
@@ -17,227 +17,204 @@
 #include "com/diag/diminuto/diminuto_ipc4.h"
 #include "com/diag/diminuto/diminuto_ipc6.h"
 #include "com/diag/diminuto/diminuto_log.h"
+#include "com/diag/diminuto/diminuto_minmaxof.h"
 #include "globals.h"
+#include "protocols.h"
 #include "server.h"
 
-int server(diminuto_mux_t * muxp, protocol_t biotype, int biofd, protocol_t udptype, int udpfd, codex_context_t * ctx, codex_connection_t * ssl)
+static bool initialized = false;
+static codex_state_t state[DIRECTIONS] = { CODEX_STATE_START, CODEX_STATE_COMPLETE, };
+static codex_header_t header[DIRECTIONS] = { 0, 0, };
+static void * buffer[DIRECTIONS] = { (void *)0, (void *)0, };
+static uint8_t * here[DIRECTIONS] = { (uint8_t *)0, (uint8_t *)0, };
+static size_t length[DIRECTIONS] = { 0, 0, };
+static bool first = true;
+
+status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, const address_t * serviceaddressp, port_t serviceport, codex_connection_t * ssl, size_t bufsize, const char * expected)
 {
     int muxfd = -1;
-    int reqfd = -1;
-    codex_connection_t * req = (codex_connection_t *)0;
+    int sslfd = -1;
+    ssize_t bytes = -1;
+    status_t status = CONTINUE;
+    address_t address = { 0, };
+    port_t port = 0;
 
-    while (true) {
-
-        muxfd = diminuto_mux_ready_accept(muxp);
-        if (muxfd < 0) {
-            break;
-        }
-        diminuto_assert(muxfd == biofd);
-
-        req = codex_server_connection_new(ctx, bio);
-        diminuto_expect(req != (codex_connection_t *)0);
-        if (req == (codex_connection_t *)0) {
-            diminuto_yield();
-            continue;
-        }
-        diminuto_expect(codex_connection_is_server(req));
-
-        reqfd = codex_connection_descriptor(req);
-        diminuto_assert(reqfd >= 0);
-
-        switch (biotype) {
-        case IPV4:
-            rc = diminuto_ipc4_farend(reqfd, &ipv4address, &port);
-            diminuto_assert(rc >= 0);
-            DIMINUTO_LOG_NOTICE("%s: %s req [%d] far end %s:%d\n", program, name, reqfd, diminuto_ipc4_address2string(ipv4address, ipv4string, sizeof(ipv4string)), port);
-            break;
-        case IPV6:
-            rc = diminuto_ipc6_farend(reqfd, &ipv6address, &port);
-            diminuto_assert(rc >= 0);
-            DIMINUTO_LOG_NOTICE("%s: %s req [%d] far end [%s]:%d\n", program, name, reqfd, diminuto_ipc6_address2string(ipv6address, ipv6string, sizeof(ipv6string)), port);
-            break;
-        default:
-            diminuto_core_fatal();
-            break;
-        }
-
-        if (expected != (const char *)0) {
-            rc = codex_connection_verify(req, expected);
-            if (!codex_connection_verified(rc)) {
-                DIMINUTO_LOG_WARNING("%s: %s req [%d] failed 0x%x\n", program, name, reqfd, rc);
-                rc = codex_connection_close(req);
-                diminuto_assert(rc >= 0);
-                req = codex_connection_free(req);
-                diminuto_assert(req == (codex_connection_t *)0);
-                req = (codex_connection_t *)0;
-                rc = diminuto_ipc_close(reqfd);
-                diminuto_expect(rc < 0);
-                reqfd = -1;
-            }
-        }
-
-        if (ssl != (codex_connection_t *)0) {
-            rc = codex_connection_close(ssl);
-            diminuto_assert(rc >= 0);
-            ssl = codex_connection_free(ssl);
-            diminuto_assert(ssl == (codex_connection_t *)0);
-            rc = diminuto_mux_unregister_read(muxp, sslfd);
-            diminuto_expect(rc >= 0);
-            rc = diminuto_mux_unregister_write(muxp, sslfd);
-            diminuto_expect(rc >= 0);
-            rc = diminuto_ipc_close(sslfd);
-            diminuto_expect(rc < 0);
-            sslfd = -1;
-            ssltype = UNKNOWN;
-        }
-
-        ssl = req;
-        diminuto_assert(ssl != (codex_connection_t *)0);
-        req = (codex_connection_t *)0;
-        sslfd = codex_connection_descriptor(ssl);
-        diminuto_assert(sslfd >= 0);
-        ssltype = biotype;
-        rc = diminuto_mux_register_read(muxp, sslfd);
-        diminuto_assert(rc >= 0);
-        rc = diminuto_mux_register_write(muxp, sslfd);
-        diminuto_assert(rc >= 0);
-
-        DIMINUTO_LOG_NOTICE("%s: %s ssl [%d] far end\n", program, name, reqfd);
-
+    if (!initialized) {
+        diminuto_assert(bufsize > 0);
+        buffer[READER] = malloc(bufsize);
+        diminuto_assert(buffer[READER] != (void *)0);
+        buffer[WRITER] = malloc(bufsize);
+        diminuto_assert(buffer[WRITER] != (void *)0);
+        initialized = true;
     }
 
-        while (true) {
+    diminuto_assert(ssl != (codex_connection_t *)0);
+    sslfd = codex_connection_descriptor(ssl);
+    diminuto_assert(sslfd >= 0);
 
-            fd = diminuto_mux_ready_read(&mux);
-            if (fd < 0) {
-                break;
-            }
+    do {
 
-            here = diminuto_fd_map_ref(map, fd);
-            ASSERT(here != (void **)0);
-            ASSERT(*here != (void *)0);
-            client = (client_t *)*here;
+        muxfd = (fds > 0) ? diminuto_mux_ready_read(muxp) : -1;
 
-            if (client->source.state == CODEX_STATE_IDLE) {
-                continue;
-            }
-
-            do {
-
-                state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length));
-
-                if (state == CODEX_STATE_FINAL) {
-
-                    DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
-                    client = destroy(client);
-                    break;
-
-                }
-
-                if (state == client->source.state) {
-                    /* Do nothing. */
-                } else if (state != CODEX_STATE_COMPLETE) {
-                    /* Do nothing. */
-                } else if (client->source.header == CODEX_INDICATION_FAREND) {
-
-                    DIMINUTO_LOG_INFORMATION("%s: INDICATION client=%p indication=%d\n", program, client, client->source.header);
-                    client->indication = CODEX_INDICATION_FAREND;
-                    state = CODEX_STATE_IDLE;
-
+        if ((muxfd >= 0) && (muxfd == udpfd)) {
+            switch (state[WRITER]) {
+            case CODEX_STATE_COMPLETE:
+                bytes = datagram_receive(udptype, udpfd, buffer[WRITER], bufsize, &address, &port);
+                if (bytes < 0) {
+                    DIMINUTO_LOG_WARNING("%s: server writer udp (%d) [%zd] error\n", program, udpfd, bytes);
+                    status = UDPFAILED;
+                } else if (bytes == 0) {
+                    DIMINUTO_LOG_NOTICE("%s: server writer udp (%d) [%zd] final\n", program, udpfd, bytes);
+                    status = UDPFINISHED;
+                } else if (bytes > diminuto_maximumof(codex_header_t)) {
+                    DIMINUTO_LOG_ERROR("%s: server writer udp (%d) [%zd] overflow\n", program, udpfd, bytes);
+                    status = UDPFAILED;
                 } else {
-
-                    DIMINUTO_LOG_DEBUG("%s: READ client=%p bytes=%d\n", program, client, client->source.header);
-                    state = CODEX_STATE_IDLE;
-
-                }
-
-                client->source.state = state;
-
-                if (client->sink.state != CODEX_STATE_IDLE) {
-                    break;
-                } else if (client->source.state != CODEX_STATE_IDLE) {
-                    /* Do nothing. */
-                } else if (client->indication == CODEX_INDICATION_NONE) {
-
-                    swap(client);
-
-                } else {
-
-                    DIMINUTO_LOG_INFORMATION("%s: INDICATING client=%p\n", program, client);
-                    if (!indicate(client)) {
-                        DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
-                        client = destroy(client);
-                        break;
+                    DIMINUTO_LOG_DEBUG("%s: server writer udp (%d) [%zd] far end %s\n", program, udpfd, bytes, address2string(udptype, &address, port));
+                    header[WRITER] = bytes;
+                    if (first) {
+                        state[WRITER] = CODEX_STATE_START;
+                        first = false;
+                    } else {
+                        state[WRITER] = CODEX_STATE_RESTART;
                     }
-
                 }
-
-            } while ((client != (client_t *)0) && codex_connection_is_ready(client->ssl));
-
-        }
-
-        while (true) {
-
-            fd = diminuto_mux_ready_write(&mux);
-            if (fd < 0) {
+                break;
+            case CODEX_STATE_START:
+            case CODEX_STATE_RESTART:
+            case CODEX_STATE_HEADER:
+            case CODEX_STATE_PAYLOAD:
+            case CODEX_STATE_SKIP:
+                /* Do nothing. */
+                break;
+            case CODEX_STATE_FINAL:
+                DIMINUTO_LOG_ERROR("%s: server writer ssl (%d) [%d] final\n", program, sslfd, header[WRITER]);
+                status = SSLFINISHED;
+                break;
+            case CODEX_STATE_IDLE:
+                DIMINUTO_LOG_ERROR("%s: server writer ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
+                status = SSLFAILED;
                 break;
             }
 
-            here = diminuto_fd_map_ref(map, fd);
-            ASSERT(here != (void **)0);
-            ASSERT(*here != (void *)0);
-            client = (client_t *)*here;
-
-            if (client->sink.state == CODEX_STATE_IDLE) {
-                continue;
+            if (status != CONTINUE) {
+                break;
             }
-
-            state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length));
-
-            if (state == CODEX_STATE_FINAL) {
-
-                DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
-                client = destroy(client);
-                continue;
-
-            }
-
-            if (state == client->sink.state) {
-                /* Do nothing. */
-            } else if (state != CODEX_STATE_COMPLETE) {
-                /* Do nothing. */
-            } else {
-
-                DIMINUTO_LOG_DEBUG("%s: WRITE client=%p bytes=%d\n", program, client, client->sink.header);
-                state = CODEX_STATE_IDLE;
-
-            }
-
-            client->sink.state = state;
-
-            if (client->sink.state != CODEX_STATE_IDLE) {
-                /* Do nothing. */
-            } else if (client->source.state != CODEX_STATE_IDLE) {
-                /* Do nothing. */
-            } else if (!client->indication) {
-
-                swap(client);
-
-            } else {
-
-                DIMINUTO_LOG_INFORMATION("%s: INDICATING client=%p\n", program, client);
-                if (!indicate(client)) {
-                    DIMINUTO_LOG_INFORMATION("%s: FINAL client=%p fd=%d\n", program, client, fd);
-                    client = destroy(client);
-                }
-
-            }
-
+        
         }
 
-        diminuto_yield();
+        switch (state[WRITER]) {
+        case CODEX_STATE_START:
+        case CODEX_STATE_RESTART:
+            DIMINUTO_LOG_DEBUG("%s: server writer ssl (%d) [%d] start\n", program, sslfd, header[WRITER]);
+            /* Fall through. */
+        case CODEX_STATE_HEADER:
+        case CODEX_STATE_PAYLOAD:
+        case CODEX_STATE_SKIP:
+            state[WRITER] = codex_machine_writer(state[WRITER], expected, ssl, &(header[WRITER]), buffer[WRITER], header[WRITER], &(here[WRITER]), &(length[WRITER]));
+            switch (state[WRITER]) {
+            case CODEX_STATE_FINAL:
+                DIMINUTO_LOG_NOTICE("%s: server writer ssl (%d) [%d] final\n", program, sslfd, header[WRITER]);
+                status = SSLFINISHED;
+                break;
+            case CODEX_STATE_IDLE:
+                DIMINUTO_LOG_ERROR("%s: server writer ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
+                status = SSLFAILED;
+                break;
+            case CODEX_STATE_COMPLETE:
+                DIMINUTO_LOG_DEBUG("%s: server writer ssl (%d) [%d] complete\n", program, sslfd, header[WRITER]);
+                break;
+            case CODEX_STATE_START:
+            case CODEX_STATE_RESTART:
+            case CODEX_STATE_HEADER:
+            case CODEX_STATE_PAYLOAD:
+            case CODEX_STATE_SKIP:
+                /* Do nothing. */
+                break;
+            }
+        case CODEX_STATE_IDLE:
+            DIMINUTO_LOG_ERROR("%s: server writer ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
+            status = SSLFAILED;
+            break;
+        case CODEX_STATE_COMPLETE:
+            /* Do nothing. */
+            break;
+        case CODEX_STATE_FINAL:
+            DIMINUTO_LOG_ERROR("%s: server writer ssl (%d) [%d] final\n", program, sslfd, header[WRITER]);
+            status = SSLFINISHED;
+            break;
+        }
+        if (status != CONTINUE) {
+            break;
+        }
 
+        while (((muxfd >= 0) && (muxfd == sslfd)) || codex_connection_is_ready(ssl)) {
+            switch (state[READER]) {
+            case CODEX_STATE_START:
+            case CODEX_STATE_RESTART:
+                DIMINUTO_LOG_DEBUG("%s: server reader ssl (%d) [%d] start\n", program, sslfd, header[READER]);
+                /* Fall through. */
+            case CODEX_STATE_HEADER:
+            case CODEX_STATE_PAYLOAD:
+            case CODEX_STATE_SKIP:
+                state[READER] = codex_machine_reader(state[READER], expected, ssl, &(header[READER]), buffer[READER], bufsize, &(here[READER]), &(length[READER]));
+                switch (state[READER]) {
+                case CODEX_STATE_COMPLETE:
+                    DIMINUTO_LOG_DEBUG("%s: server reader ssl (%d) [%d] complete\n", program, sslfd, header[READER]);
+                    bytes = datagram_send(udptype, udpfd, buffer[READER], header[READER], serviceaddressp, serviceport);
+                    if (bytes == header[READER]) {
+                        DIMINUTO_LOG_DEBUG("%s: server reader udp (%d) [%zd] restart\n", program, udpfd, bytes);
+                        state[READER] = CODEX_STATE_RESTART;
+                    } else if (bytes == 0) {
+                        DIMINUTO_LOG_NOTICE("%s: server reader udp (%d) [%zd] final\n", program, udpfd, bytes);
+                        status = UDPFINISHED;
+                    } else {
+                        DIMINUTO_LOG_WARNING("%s: server reader udp (%d) [%zd] error\n", program, udpfd, bytes);
+                        status = UDPFAILED;
+                    }
+                    break;
+                case CODEX_STATE_FINAL:
+                    DIMINUTO_LOG_NOTICE("%s: server reader ssl (%d) [%d] final\n", program, sslfd, header[WRITER]);
+                    status = SSLFINISHED;
+                    break;
+                case CODEX_STATE_IDLE:
+                    DIMINUTO_LOG_ERROR("%s: server reader ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
+                    status = SSLFAILED;
+                    break;
+                case CODEX_STATE_START:
+                case CODEX_STATE_RESTART:
+                case CODEX_STATE_HEADER:
+                case CODEX_STATE_PAYLOAD:
+                case CODEX_STATE_SKIP:
+                    /* Do nothing. */
+                    break;
+                }
+            case CODEX_STATE_COMPLETE:
+                DIMINUTO_LOG_ERROR("%s: server reader ssl (%d) [%d] complete\n", program, sslfd, header[WRITER]);
+                status = SSLFAILED;
+                break;
+            case CODEX_STATE_IDLE:
+                DIMINUTO_LOG_ERROR("%s: server reader ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
+                status = SSLFAILED;
+                break;
+            case CODEX_STATE_FINAL:
+                DIMINUTO_LOG_NOTICE("%s: server reader ssl (%d) [%d] final\n", program, sslfd, header[WRITER]);
+                status = SSLFINISHED;
+                break;
+            }
+            if (status != CONTINUE) {
+                break;
+            }
+            muxfd = -1;
+        }
+
+    } while (false);
+
+    if (status != CONTINUE) {
+        state[READER] = CODEX_STATE_START;
+        state[WRITER] = CODEX_STATE_COMPLETE;
+        first = true;
     }
 
-    return -1;
+    return status;
 }
