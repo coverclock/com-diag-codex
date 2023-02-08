@@ -439,10 +439,10 @@ int main(int argc, char * argv[])
                 diminuto_assert(sslfd >= 0);
                 rc = connection_nearend(ssltype, sslfd, &address, &port);
                 diminuto_assert(rc >= 0);
-                DIMINUTO_LOG_NOTICE("%s: server ssl (%d) near end %s\n", program, udpfd, address2string(ssltype, &address, port));
+                DIMINUTO_LOG_NOTICE("%s: server ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
                 rc = connection_farend(ssltype, sslfd, &address, &port);
                 diminuto_assert(rc >= 0);
-                DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, udpfd, address2string(ssltype, &address, port));
+                DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                 rc = diminuto_mux_register_read(&mux, sslfd);
                 diminuto_assert(rc >= 0);
             }
@@ -504,7 +504,7 @@ int main(int argc, char * argv[])
             /* Do nothing. */
         } else {
             rc = codex_connection_close(ssl);
-            diminuto_assert(rc >= 0);
+            diminuto_expect(rc >= 0);
             ssl = codex_connection_free(ssl);
             diminuto_assert(ssl == (codex_connection_t *)0);
             rc = diminuto_ipc_close(sslfd);

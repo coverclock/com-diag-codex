@@ -8,4 +8,4 @@ ROOT=${1:-"out/host/crt/stagecoach"}
 
 export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
 
-stagecoach -C ${ROOT}/servercert.pem -K ${ROOT}/serverkey.pem -P ${ROOT} -f cadmium6:stagecoachserver -n :stagecoachssl -s
+stagecoach -C ${ROOT}/servercert.pem -K ${ROOT}/serverkey.pem -P ${ROOT}/.. -f cadmium6:stagecoachserver -n :stagecoachssl -s
