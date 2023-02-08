@@ -64,7 +64,7 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                     DIMINUTO_LOG_WARNING("%s: server writer udp (%d) [%zd] error\n", program, udpfd, bytes);
                     status = UDPRETRY;
                 } else if (bytes == 0) {
-                    DIMINUTO_LOG_NOTICE("%s: server writer udp (%d) [%zd] final\n", program, udpfd, bytes);
+                    DIMINUTO_LOG_NOTICE("%s: server writer udp (%d) [%zd] disconnect\n", program, udpfd, bytes);
                     status = UDPRETRY;
                 } else if (bytes > diminuto_maximumof(codex_header_t)) {
                     DIMINUTO_LOG_ERROR("%s: server writer udp (%d) [%zd] overflow\n", program, udpfd, bytes);
@@ -166,7 +166,7 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                         DIMINUTO_LOG_DEBUG("%s: server reader udp (%d) [%zd] restart\n", program, udpfd, bytes);
                         state[READER] = CODEX_STATE_RESTART;
                     } else if (bytes == 0) {
-                        DIMINUTO_LOG_NOTICE("%s: server reader udp (%d) [%zd] final\n", program, udpfd, bytes);
+                        DIMINUTO_LOG_NOTICE("%s: server reader udp (%d) [%zd] disconnect\n", program, udpfd, bytes);
                         status = UDPRETRY;
                     } else {
                         DIMINUTO_LOG_WARNING("%s: server reader udp (%d) [%zd] error\n", program, udpfd, bytes);

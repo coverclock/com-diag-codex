@@ -45,7 +45,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "../src/codex.h"
 #include "client.h"
 #include "globals.h"
 #include "protocols.h"
@@ -55,8 +54,8 @@
 
 int main(int argc, char * argv[])
 {
-    int opt = '\0';
     extern char * optarg;
+    int opt = '\0';
     char * endptr = (char *)0;
     const char * bytes = (const char *)0;
     const char * expected = (const char *)0;
@@ -211,18 +210,6 @@ int main(int argc, char * argv[])
         diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (milliseconds > 0));
     }
     ticks = diminuto_frequency_units2ticks(milliseconds, 1000 /* Hz */);
-    
-    /*
-     * INITIALIZATING
-     */
-
-    rc = diminuto_hangup_install(!0);
-    diminuto_assert(rc == 0);
-
-    rc = diminuto_terminator_install(!0);
-    diminuto_assert(rc == 0);
-
-    diminuto_mux_init(&mux);
 
     /*
      * INTERPRETING
@@ -267,10 +254,31 @@ int main(int argc, char * argv[])
         diminuto_assert(false);
         break;
     }
+    
+    /*
+     * INITIALIZATING
+     */
+
+    rc = diminuto_hangup_install(!0);
+    diminuto_assert(rc == 0);
+
+    rc = diminuto_terminator_install(!0);
+    diminuto_assert(rc == 0);
+
+    diminuto_mux_init(&mux);
+
+    {
+        /*
+         * Enable (or disable) self-signed certificates using
+         * private API. This must be done prior to Codex
+         * initialization.
+         */
+        extern int codex_set_self_signed_certificates(int);
+        codex_set_self_signed_certificates(!!selfsigned);
+    }
 
     rc = codex_initialize(pathdhf, pathcrl);
     diminuto_assert(rc == 0);
-    codex_set_self_signed_certificates(selfsigned ? 1 : 0);
 
     /*
      * SETTING UP
@@ -307,7 +315,7 @@ int main(int argc, char * argv[])
         biofd = codex_rendezvous_descriptor(bio);
         diminuto_assert(biofd >= 0);
         rc = connection_nearend(biotype, biofd, &address, &port);
-        DIMINUTO_LOG_INFORMATION("%s: server bio (%d) near end %s\n", program, biofd, address2string(udptype, &address, port));
+        DIMINUTO_LOG_INFORMATION("%s: server bio (%d) near end %s\n", program, biofd, address2string(biotype, &address, port));
         rc = diminuto_mux_register_accept(&mux, biofd);
         diminuto_assert(rc >= 0);
         /*
@@ -327,7 +335,6 @@ int main(int argc, char * argv[])
             break;
         }
         serviceport = farendpoint.udp;
-        DIMINUTO_LOG_INFORMATION("%s: server udp (%d) far end %s\n", program, udpfd, address2string(udptype, &serviceaddress, serviceport));
         break;
 
     default:
@@ -397,6 +404,7 @@ int main(int argc, char * argv[])
                 rc = connection_nearend(udptype, udpfd, &address, &port);
                 diminuto_assert(rc >= 0);
                 DIMINUTO_LOG_INFORMATION("%s: server udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
+                DIMINUTO_LOG_INFORMATION("%s: server udp (%d) far end %s\n", program, udpfd, address2string(udptype, &serviceaddress, serviceport));
                 rc = diminuto_mux_register_read(&mux, udpfd);
                 diminuto_assert(rc >= 0);
             }
