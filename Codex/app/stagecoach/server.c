@@ -131,6 +131,7 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                 /* Do nothing. */
                 break;
             }
+            break;
         case CODEX_STATE_IDLE:
             DIMINUTO_LOG_ERROR("%s: server writer ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
             status = SSLRETRY;
@@ -189,6 +190,7 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                     /* Do nothing. */
                     break;
                 }
+                break;
             case CODEX_STATE_COMPLETE:
                 DIMINUTO_LOG_ERROR("%s: server reader ssl (%d) [%d] complete\n", program, sslfd, header[WRITER]);
                 status = SSLRETRY;
