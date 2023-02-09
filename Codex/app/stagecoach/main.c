@@ -270,7 +270,7 @@ int main(int argc, char * argv[])
     {
         /*
          * Enable (or disable) self-signed certificates using
-         * private API. This must be done prior to Codex
+         * private API. This should be done prior to Codex
          * initialization.
          */
         extern int codex_set_self_signed_certificates(int);
@@ -422,6 +422,9 @@ int main(int argc, char * argv[])
 
         fds = diminuto_mux_wait(&mux, ticks);
         diminuto_assert((fds >= 0) || ((fds < 0) && (errno == EINTR)));
+        if (fds != 0) {
+            DIMINUTO_LOG_DEBUG("%s: main fds [%d]\n", program, fds);
+        }
 
         /*
          * SERVER SSL
@@ -523,6 +526,7 @@ int main(int argc, char * argv[])
     ctx = codex_context_free(ctx);
     diminuto_expect(ctx == (codex_context_t *)0);
     ctx = (codex_context_t *)0;
+    biofd = -1;
 
     diminuto_mux_fini(&mux);
 
