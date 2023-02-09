@@ -89,7 +89,7 @@ int main(int argc, char * argv[])
     int biofd = -1;
     int sslfd = -1;
     int udpfd = -1;
-    int muxfd = -1;
+    int acceptfd = -1;
     diminuto_mux_t mux = { 0 };
     status_t status = UNKNOWN;
     address_t address = { 0, };
@@ -351,7 +351,7 @@ int main(int argc, char * argv[])
         DIMINUTO_LOG_INFORMATION("%s: server bio (%d) near end %s\n", program, biofd, address2string(biotype, &address, port));
         rc = diminuto_mux_register_accept(&mux, biofd);
         diminuto_assert(rc >= 0);
-fprintf(stderr, "SERVER: accept bio (%d)\n", biofd);
+fprintf(stderr, "SERVER: register bio (%d)\n", biofd);
         /*
          * SERVER UDP
          */
@@ -403,8 +403,8 @@ fprintf(stderr, "SERVER: accept bio (%d)\n", biofd);
                 diminuto_assert(rc >= 0);
                 DIMINUTO_LOG_INFORMATION("%s: client udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
                 rc = diminuto_mux_register_read(&mux, udpfd);
-fprintf(stderr, "CLIENT: read udp (%d)\n", udpfd);
                 diminuto_assert(rc >= 0);
+fprintf(stderr, "CLIENT: register udp (%d)\n", udpfd);
             }
             /*
              * CLIENT SSL
@@ -422,8 +422,10 @@ fprintf(stderr, "CLIENT: read udp (%d)\n", udpfd);
                     diminuto_assert(rc >= 0);
                     DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
-fprintf(stderr, "CLIENT: read ssl (%d)\n", sslfd);
                     diminuto_assert(rc >= 0);
+                    rc = diminuto_mux_register_write(&mux, sslfd);
+                    diminuto_assert(rc >= 0);
+fprintf(stderr, "CLIENT: register ssl (%d)\n", sslfd);
                 } else {
                     /*
                      * Retry later.
@@ -447,8 +449,8 @@ fprintf(stderr, "CLIENT: read ssl (%d)\n", sslfd);
                 DIMINUTO_LOG_INFORMATION("%s: server udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
                 DIMINUTO_LOG_INFORMATION("%s: server udp (%d) far end %s\n", program, udpfd, address2string(udptype, &serviceaddress, serviceport));
                 rc = diminuto_mux_register_read(&mux, udpfd);
-fprintf(stderr, "SERVER: read udp (%d)\n", udpfd);
                 diminuto_assert(rc >= 0);
+fprintf(stderr, "SERVER: register udp (%d)\n", udpfd);
             }
             break;
 
@@ -477,10 +479,10 @@ fprintf(stderr, "SERVER: read udp (%d)\n", udpfd);
         } else if (role != SERVER) {
             /* Do nothing. */
         } else {
-            muxfd = diminuto_mux_ready_accept(&mux);
-            if (muxfd < 0) {
+            acceptfd = diminuto_mux_ready_accept(&mux);
+            if (acceptfd < 0) {
                 /* Do nothing. */
-            } else if (muxfd != biofd) {
+            } else if (acceptfd != biofd) {
                 /* Do nothing. */
             } else {
                 if (sslfd < 0) {
@@ -499,7 +501,9 @@ fprintf(stderr, "SERVER: read udp (%d)\n", udpfd);
                     DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
                     diminuto_assert(rc >= 0);
-fprintf(stderr, "SERVER: read ssd (%d)\n", biofd);
+                    rc = diminuto_mux_register_write(&mux, sslfd);
+                    diminuto_assert(rc >= 0);
+fprintf(stderr, "SERVER: register ssd (%d)\n", biofd);
                 } else {
                     DIMINUTO_LOG_WARNING("%s: server bio (%d) reject\n", program, sslfd);
                 }
@@ -574,6 +578,8 @@ fprintf(stderr, "SERVER: read ssd (%d)\n", biofd);
             (void)diminuto_ipc_close(sslfd);
             rc = diminuto_mux_unregister_read(&mux, sslfd);
             diminuto_assert(rc >= 0);
+            rc = diminuto_mux_unregister_write(&mux, sslfd);
+            diminuto_assert(rc >= 0);
             sslfd = -1;
         }
 
@@ -583,10 +589,17 @@ fprintf(stderr, "SERVER: read ssd (%d)\n", biofd);
      * FINALIZATING
      */
 
-    ctx = codex_context_free(ctx);
-    diminuto_assert(ctx == (codex_context_t *)0);
-    ctx = (codex_context_t *)0;
-    biofd = -1;
+    if (ctx != (codex_context_t *)0) {
+        ctx = codex_context_free(ctx);
+        diminuto_assert(ctx == (codex_context_t *)0);
+        ctx = (codex_context_t *)0;
+        if (biofd >= 0) {
+            (void)diminuto_ipc_close(biofd);
+            rc = diminuto_mux_unregister_accept(&mux, biofd);
+            diminuto_assert(rc >= 0);
+            biofd = -1;
+        }
+    }
 
     diminuto_mux_fini(&mux);
 

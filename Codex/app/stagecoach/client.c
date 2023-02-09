@@ -33,7 +33,7 @@ static diminuto_port_t port = 0;
 
 status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, codex_connection_t * ssl, size_t bufsize, const char * expected)
 {
-    int muxfd = -1;
+    int readfd = -1;
     int sslfd = -1;
     ssize_t bytes = -1;
     status_t status = CONTINUE;
@@ -53,12 +53,9 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
 
     while (fds > 0) {
 
-        muxfd = diminuto_mux_ready_read(muxp);
-        if (muxfd < 0) {
-            break;
-        }
+        readfd = diminuto_mux_ready_read(muxp);
 
-        if (muxfd == udpfd) {
+        if (readfd == udpfd) {
             switch (state[WRITER]) {
             case CODEX_STATE_COMPLETE:
                 bytes = datagram_receive(udptype, udpfd, buffer[WRITER], bufsize, &address, &port);
@@ -98,7 +95,7 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                 status = SSLDONE;
                 break;
             }
-            muxfd = -1;
+            readfd = -1;
             fds -= 0;
         }
 
@@ -153,7 +150,7 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
             break;
         }
 
-        while (muxfd == sslfd) {
+        while (readfd == sslfd) {
             switch (state[READER]) {
             case CODEX_STATE_START:
             case CODEX_STATE_RESTART:
@@ -217,7 +214,7 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                 break;
             }
             if (!codex_connection_is_ready(ssl)) {
-                muxfd = -1;
+                readfd = -1;
                 fds -= 1;
             }
         }
