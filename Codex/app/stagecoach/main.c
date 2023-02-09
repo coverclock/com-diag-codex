@@ -67,12 +67,14 @@ int main(int argc, char * argv[])
     const char * pathcrt = (const char *)0;
     const char * pathdhf = (const char *)0;
     const char * pathkey = (const char *)0;
+    const char * delay = (const char *)0;
     const char * timeout = (const char *)0;
     role_t role = INVALID;
     bool selfsigned = true;
     size_t bufsize = 65527; /* max(datagram)=(2^16-1)-8 */
-    unsigned long milliseconds = 250;
-    diminuto_sticks_t ticks = -1;
+    unsigned long milliseconds = 0;
+    diminuto_sticks_t delayticks = 0;
+    diminuto_sticks_t timeoutticks = 0;
     int rc = -1;
     diminuto_ipc_endpoint_t farendpoint = { 0 };
     diminuto_ipc_endpoint_t nearendpoint = { 0 };
@@ -112,7 +114,7 @@ int main(int argc, char * argv[])
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "C:D:E:K:L:P:R:b:cf:n:rst:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "C:D:E:K:L:P:R:b:cd:f:n:rst:v?")) >= 0) {
 
         switch (opt) {
 
@@ -152,6 +154,10 @@ int main(int argc, char * argv[])
             role = CLIENT;
             break;
 
+        case 'd':
+            delay = optarg;
+            break;
+
         case 'f':
         	farend = optarg;
         	break;
@@ -173,7 +179,7 @@ int main(int argc, char * argv[])
             break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -f FARENDPOINT ] [ -n NEARENDPOINT ] [ -r ] [ -t SECONDS ] [ -c | -s ]\n", program);
+        	fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -c | -s ]\n", program);
             return 1;
             break;
 
@@ -181,7 +187,7 @@ int main(int argc, char * argv[])
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: %s begin B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d t=\"%s\" %c=%d\n",
+	DIMINUTO_LOG_INFORMATION("%s: %s begin B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d t=\"%s\" %c=%d\n",
         program,
         (role == CLIENT) ? "client" : (role == SERVER) ? "server" : "unknown",
         (bytes == (const char *)0) ? "" : bytes,
@@ -191,6 +197,7 @@ int main(int argc, char * argv[])
         (pathcrl == (const char *)0) ? "" : pathcrl,
         (pathcap == (const char *)0) ? "" : pathcap,
         (pathcaf == (const char *)0) ? "" : pathcaf,
+        (delay == (const char *)0) ? "" : delay,
         (expected == (const char *)0) ? "" : expected,
         (farend == (const char *)0) ? "" : farend,
         (nearend == (const char *)0) ? "" : nearend,
@@ -206,12 +213,23 @@ int main(int argc, char * argv[])
     }
     DIMINUTO_LOG_INFORMATION("%s: bufsize=%zubytes\n", program, bufsize);
 
+    if (delay != (const char *)0) {
+        milliseconds = strtoul(delay, &endptr, 0);
+        diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (milliseconds > 0));
+    } else {
+        milliseconds = 10000;
+    }
+    delayticks = diminuto_frequency_units2ticks(milliseconds, 1000 /* Hz */);
+    DIMINUTO_LOG_INFORMATION("%s: delay=%lums=%lldticks\n", program, milliseconds, (diminuto_lld_t)delayticks);
+
     if (timeout != (const char *)0) {
         milliseconds = strtoul(timeout, &endptr, 0);
         diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (milliseconds > 0));
+    } else {
+        milliseconds = 250;
     }
-    ticks = diminuto_frequency_units2ticks(milliseconds, 1000 /* Hz */);
-    DIMINUTO_LOG_INFORMATION("%s: timeout=%lums=%lldticks\n", program, milliseconds, (diminuto_lld_t)ticks);
+    timeoutticks = diminuto_frequency_units2ticks(milliseconds, 1000 /* Hz */);
+    DIMINUTO_LOG_INFORMATION("%s: timeout=%lums=%lldticks\n", program, milliseconds, (diminuto_lld_t)timeoutticks);
 
     /*
      * INTERPRETING
@@ -397,7 +415,7 @@ int main(int argc, char * argv[])
                      * Retry later.
                      */
                     DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end failed\n", program, sslfd);
-                    diminuto_delay(ticks, !0);
+                    diminuto_delay(delayticks, !0);
                     continue;
                 }
             }
@@ -429,7 +447,7 @@ int main(int argc, char * argv[])
          * WAITING
          */
 
-        fds = diminuto_mux_wait(&mux, ticks);
+        fds = diminuto_mux_wait(&mux, timeoutticks);
         diminuto_assert((fds >= 0) || ((fds < 0) && (errno == EINTR)));
         if (fds != 0) {
             DIMINUTO_LOG_DEBUG("%s: main fds [%d]\n", program, fds);
