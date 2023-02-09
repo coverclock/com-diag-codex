@@ -399,7 +399,7 @@ int main(int argc, char * argv[])
             if (sslfd < 0) {
                 ssl = codex_client_connection_new(ctx, farend);
                 if (ssl != (codex_connection_t *)0) {
-                    diminuto_expect(!codex_connection_is_server(ssl));
+                    diminuto_assert(!codex_connection_is_server(ssl));
                     sslfd = codex_connection_descriptor(ssl);
                     diminuto_assert(sslfd >= 0);
                     rc = connection_nearend(ssltype, sslfd, &address, &port);
@@ -472,7 +472,7 @@ int main(int argc, char * argv[])
                     diminuto_assert(ssl == (codex_connection_t *)0);
                     ssl = codex_server_connection_new(ctx, bio);
                     diminuto_assert(ssl != (codex_connection_t *)0);
-                    diminuto_expect(codex_connection_is_server(ssl));
+                    diminuto_assert(codex_connection_is_server(ssl));
                     diminuto_assert(sslfd < 0);
                     sslfd = codex_connection_descriptor(ssl);
                     diminuto_assert(sslfd >= 0);
@@ -549,12 +549,13 @@ int main(int argc, char * argv[])
         } else if (sslfd < 0) {
             /* Do nothing. */
         } else {
-            rc = codex_connection_close(ssl);
-            diminuto_expect(rc >= 0);
+            /*
+             * May already be closed by virtue of far end.
+             */
+            (void)codex_connection_close(ssl);
             ssl = codex_connection_free(ssl);
             diminuto_assert(ssl == (codex_connection_t *)0);
-            rc = diminuto_ipc_close(sslfd);
-            diminuto_expect(rc < 0);
+            (void)diminuto_ipc_close(sslfd);
             rc = diminuto_mux_unregister_read(&mux, sslfd);
             diminuto_assert(rc >= 0);
             sslfd = -1;
@@ -567,7 +568,7 @@ int main(int argc, char * argv[])
      */
 
     ctx = codex_context_free(ctx);
-    diminuto_expect(ctx == (codex_context_t *)0);
+    diminuto_assert(ctx == (codex_context_t *)0);
     ctx = (codex_context_t *)0;
     biofd = -1;
 
