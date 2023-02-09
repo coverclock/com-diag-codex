@@ -17,7 +17,7 @@ typedef enum Role { INVALID = '?', CLIENT = 'c', SERVER = 's', } role_t;
 
 typedef enum Protocol { OTHER = '?', IPV4 = '4', IPV6 = '6', } protocol_t;
 
-typedef enum Status { UNKNOWN = '?', SSLRETRY = 'S', UDPRETRY = 'U', CONTINUE = '-', } status_t;
+typedef enum Status { UNKNOWN = '?', SSLDONE = 'S', UDPDONE = 'U', CONTINUE = '-', } status_t;
 
 typedef enum Direction { READER = 0, WRITER = 1, DIRECTIONS = 2, } direction_t;
 

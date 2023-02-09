@@ -353,7 +353,6 @@ int main(int argc, char * argv[])
 
         if (diminuto_hangup_check()) {
             DIMINUTO_LOG_NOTICE("%s: SIGHUP\n", program);
-            /* Unimplemented. */
             diminuto_yield();
         }
 
@@ -381,18 +380,26 @@ int main(int argc, char * argv[])
              */
             if (sslfd < 0) {
                 ssl = codex_client_connection_new(ctx, farend);
-                diminuto_assert(ssl != (codex_connection_t *)0);
-                diminuto_expect(!codex_connection_is_server(ssl));
-                sslfd = codex_connection_descriptor(ssl);
-                diminuto_assert(sslfd >= 0);
-                rc = connection_nearend(ssltype, sslfd, &address, &port);
-                diminuto_assert(rc >= 0);
-                DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
-                rc = connection_farend(ssltype, sslfd, &address, &port);
-                diminuto_assert(rc >= 0);
-                DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
-                rc = diminuto_mux_register_read(&mux, sslfd);
-                diminuto_assert(rc >= 0);
+                if (ssl != (codex_connection_t *)0) {
+                    diminuto_expect(!codex_connection_is_server(ssl));
+                    sslfd = codex_connection_descriptor(ssl);
+                    diminuto_assert(sslfd >= 0);
+                    rc = connection_nearend(ssltype, sslfd, &address, &port);
+                    diminuto_assert(rc >= 0);
+                    DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
+                    rc = connection_farend(ssltype, sslfd, &address, &port);
+                    diminuto_assert(rc >= 0);
+                    DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
+                    rc = diminuto_mux_register_read(&mux, sslfd);
+                    diminuto_assert(rc >= 0);
+                } else {
+                    /*
+                     * Retry later.
+                     */
+                    DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end failed\n", program, sslfd);
+                    diminuto_delay(ticks, !0);
+                    continue;
+                }
             }
             break;
 
@@ -432,9 +439,17 @@ int main(int argc, char * argv[])
          * SERVER SSL
          */
 
-        if ((fds > 0) && (role == SERVER)) {
+        if (fds <= 0) {
+            /* Do nothing. */
+        } else if (role != SERVER) {
+            /* Do nothing. */
+        } else {
             muxfd = diminuto_mux_ready_accept(&mux);
-            if ((muxfd >= 0) && (muxfd == biofd)) {
+            if (muxfd < 0) {
+                /* Do nothing. */
+            } else if (muxfd != biofd) {
+                /* Do nothing. */
+            } else {
                 if (sslfd < 0) {
                     diminuto_assert(ssl == (codex_connection_t *)0);
                     ssl = codex_server_connection_new(ctx, bio);
@@ -462,7 +477,13 @@ int main(int argc, char * argv[])
          * PROCESSING
          */
 
-        if ((fds > 0) && (udpfd >= 0) && (sslfd >= 0)) {
+        if (fds <= 0) {
+            /* Do nothing. */
+        } else if (udpfd < 0) {
+            /* Do nothing. */
+        } else if (sslfd < 0) {
+            /* Do nothing. */
+        } else {
             switch (role) {
             case CLIENT:
                 status = client(fds, &mux, udptype, udpfd, ssl, bufsize, expected);
@@ -473,9 +494,6 @@ int main(int argc, char * argv[])
             default:
                 diminuto_assert(false);
                 break;
-            }
-            if (status == CONTINUE) {
-                continue;
             }
         }
 
@@ -489,10 +507,10 @@ int main(int argc, char * argv[])
         }
 
         if (done) {
-            status = UDPRETRY;
+            status = UDPDONE;
         }
 
-        if (status != UDPRETRY) {
+        if (status != UDPDONE) {
             /* Do nothing. */
         } else if (udpfd < 0) {
             /* Do nothing. */
@@ -505,10 +523,10 @@ int main(int argc, char * argv[])
         }
 
         if (done) {
-            status = SSLRETRY;
+            status = SSLDONE;
         }
 
-        if (status != SSLRETRY) {
+        if (status != SSLDONE) {
             /* Do nothing. */
         } else if (sslfd < 0) {
             /* Do nothing. */

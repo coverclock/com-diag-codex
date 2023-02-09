@@ -64,13 +64,13 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                 bytes = datagram_receive(udptype, udpfd, buffer[WRITER], bufsize, &address, &port);
                 if (bytes < 0) {
                     DIMINUTO_LOG_WARNING("%s: client writer udp (%d) [%zd] error\n", program, udpfd, bytes);
-                    status = UDPRETRY;
+                    status = UDPDONE;
                 } else if (bytes == 0) {
                     DIMINUTO_LOG_NOTICE("%s: client writer udp (%d) [%zd] disconnect\n", program, udpfd, bytes);
-                    status = UDPRETRY;
+                    status = UDPDONE;
                 } else if (bytes > diminuto_maximumof(codex_header_t)) {
                     DIMINUTO_LOG_ERROR("%s: client writer udp (%d) [%zd] overflow\n", program, udpfd, bytes);
-                    status = UDPRETRY;
+                    status = UDPDONE;
                 } else {
                     DIMINUTO_LOG_DEBUG("%s: client writer udp (%d) [%zd] far end %s\n", program, udpfd, bytes, address2string(udptype, &address, port));
                     header[WRITER] = bytes;
@@ -91,11 +91,11 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                 break;
             case CODEX_STATE_FINAL:
                 DIMINUTO_LOG_ERROR("%s: client writer ssl (%d) [%d] final\n", program, sslfd, header[WRITER]);
-                status = SSLRETRY;
+                status = SSLDONE;
                 break;
             case CODEX_STATE_IDLE:
                 DIMINUTO_LOG_ERROR("%s: client writer ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
-                status = SSLRETRY;
+                status = SSLDONE;
                 break;
             }
             muxfd = -1;
@@ -118,11 +118,11 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
             switch (state[WRITER]) {
             case CODEX_STATE_FINAL:
                 DIMINUTO_LOG_NOTICE("%s: client writer ssl (%d) [%d] final\n", program, sslfd, header[WRITER]);
-                status = SSLRETRY;
+                status = SSLDONE;
                 break;
             case CODEX_STATE_IDLE:
                 DIMINUTO_LOG_ERROR("%s: client writer ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
-                status = SSLRETRY;
+                status = SSLDONE;
                 break;
             case CODEX_STATE_COMPLETE:
                 DIMINUTO_LOG_DEBUG("%s: client writer ssl (%d) [%d] complete\n", program, sslfd, header[WRITER]);
@@ -138,14 +138,14 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
             break;
         case CODEX_STATE_IDLE:
             DIMINUTO_LOG_ERROR("%s: client writer ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
-            status = SSLRETRY;
+            status = SSLDONE;
             break;
         case CODEX_STATE_COMPLETE:
             /* Do nothing. */
             break;
         case CODEX_STATE_FINAL:
             DIMINUTO_LOG_ERROR("%s: client writer ssl (%d) [%d] final\n", program, sslfd, header[WRITER]);
-            status = SSLRETRY;
+            status = SSLDONE;
             break;
         }
 
@@ -173,10 +173,10 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                             state[READER] = CODEX_STATE_RESTART;
                         } else if (bytes == 0) {
                             DIMINUTO_LOG_NOTICE("%s: client reader udp (%d) [%zd] disconnect\n", program, udpfd, bytes);
-                            status = UDPRETRY;
+                            status = UDPDONE;
                         } else {
                             DIMINUTO_LOG_WARNING("%s: client reader udp (%d) [%zd] error\n", program, udpfd, bytes);
-                            status = UDPRETRY;
+                            status = UDPDONE;
                         }
                     } else {
                         DIMINUTO_LOG_INFORMATION("%s: client reader ssl (%d) [%d] orphan\n", program, sslfd, header[WRITER]);
@@ -185,11 +185,11 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                     break;
                 case CODEX_STATE_FINAL:
                     DIMINUTO_LOG_NOTICE("%s: client reader ssl (%d) [%d] final\n", program, sslfd, header[WRITER]);
-                    status = SSLRETRY;
+                    status = SSLDONE;
                     break;
                 case CODEX_STATE_IDLE:
                     DIMINUTO_LOG_ERROR("%s: client reader ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
-                    status = SSLRETRY;
+                    status = SSLDONE;
                     break;
                 case CODEX_STATE_START:
                 case CODEX_STATE_RESTART:
@@ -202,15 +202,15 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                 break;
             case CODEX_STATE_COMPLETE:
                 DIMINUTO_LOG_ERROR("%s: client reader ssl (%d) [%d] complete\n", program, sslfd, header[WRITER]);
-                status = SSLRETRY;
+                status = SSLDONE;
                 break;
             case CODEX_STATE_IDLE:
                 DIMINUTO_LOG_ERROR("%s: client reader ssl (%d) [%d] idle\n", program, sslfd, header[WRITER]);
-                status = SSLRETRY;
+                status = SSLDONE;
                 break;
             case CODEX_STATE_FINAL:
                 DIMINUTO_LOG_ERROR("%s: client reader ssl (%d) [%d] final\n", program, sslfd, header[WRITER]);
-                status = SSLRETRY;
+                status = SSLDONE;
                 break;
             }
             if (status != CONTINUE) {
