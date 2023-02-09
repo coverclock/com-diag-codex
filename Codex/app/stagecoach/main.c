@@ -232,7 +232,7 @@ int main(int argc, char * argv[])
     DIMINUTO_LOG_INFORMATION("%s: timeout=%lums=%lldticks\n", program, milliseconds, (diminuto_lld_t)timeoutticks);
 
     /*
-     * INTERPRETING
+     * CHECKING
      */
 
     diminuto_assert(farend != (const char *)0);
@@ -274,6 +274,29 @@ int main(int argc, char * argv[])
         diminuto_assert(false);
         break;
     }
+
+    switch (role) {
+
+    case CLIENT:
+        udptype = nearendtype;
+        diminuto_assert(nearendpoint.udp != 0);
+        ssltype = farendtype;
+        diminuto_assert(farendpoint.tcp != 0);
+        break;
+
+    case SERVER:
+        biotype = nearendtype;
+        ssltype = nearendtype;
+        diminuto_assert(nearendpoint.tcp != 0);
+        udptype = farendtype;
+        diminuto_assert(farendpoint.udp != 0);
+        break;
+
+    default:
+        diminuto_assert(false);
+        break;
+
+    }
     
     /*
      * INITIALIZATING
@@ -308,15 +331,8 @@ int main(int argc, char * argv[])
 
     case CLIENT:
         /*
-         * CLIENT UDP
-         */
-        udptype = nearendtype;
-        diminuto_assert(nearendpoint.udp != 0);
-        /*
          * CLIENT SSL
          */
-        ssltype = farendtype;
-        diminuto_assert(farendpoint.tcp != 0);
         ctx = codex_client_context_new(pathcaf, pathcap, pathcrt, pathkey);
         diminuto_assert(ctx != (codex_context_t *)0);
         break;
@@ -325,9 +341,6 @@ int main(int argc, char * argv[])
         /*
          * SERVER BIO
          */
-        biotype = nearendtype;
-        ssltype = nearendtype;
-        diminuto_assert(nearendpoint.tcp != 0);
         ctx = codex_server_context_new(pathcaf, pathcap, pathcrt, pathkey);
         diminuto_assert(ctx != (codex_context_t *)0);
         bio = codex_server_rendezvous_new(nearend);
@@ -338,11 +351,10 @@ int main(int argc, char * argv[])
         DIMINUTO_LOG_INFORMATION("%s: server bio (%d) near end %s\n", program, biofd, address2string(biotype, &address, port));
         rc = diminuto_mux_register_accept(&mux, biofd);
         diminuto_assert(rc >= 0);
+fprintf(stderr, "SERVER: accept bio (%d)\n", biofd);
         /*
          * SERVER UDP
          */
-        udptype = farendtype;
-        diminuto_assert(farendpoint.udp != 0);
         switch (farendtype) {
         case IPV4:
             serviceaddress.address4 = farendpoint.ipv4;
@@ -391,6 +403,7 @@ int main(int argc, char * argv[])
                 diminuto_assert(rc >= 0);
                 DIMINUTO_LOG_INFORMATION("%s: client udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
                 rc = diminuto_mux_register_read(&mux, udpfd);
+fprintf(stderr, "CLIENT: read udp (%d)\n", udpfd);
                 diminuto_assert(rc >= 0);
             }
             /*
@@ -409,6 +422,7 @@ int main(int argc, char * argv[])
                     diminuto_assert(rc >= 0);
                     DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
+fprintf(stderr, "CLIENT: read ssl (%d)\n", sslfd);
                     diminuto_assert(rc >= 0);
                 } else {
                     /*
@@ -433,6 +447,7 @@ int main(int argc, char * argv[])
                 DIMINUTO_LOG_INFORMATION("%s: server udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
                 DIMINUTO_LOG_INFORMATION("%s: server udp (%d) far end %s\n", program, udpfd, address2string(udptype, &serviceaddress, serviceport));
                 rc = diminuto_mux_register_read(&mux, udpfd);
+fprintf(stderr, "SERVER: read udp (%d)\n", udpfd);
                 diminuto_assert(rc >= 0);
             }
             break;
@@ -484,6 +499,7 @@ int main(int argc, char * argv[])
                     DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
                     diminuto_assert(rc >= 0);
+fprintf(stderr, "SERVER: read ssd (%d)\n", biofd);
                 } else {
                     DIMINUTO_LOG_WARNING("%s: server bio (%d) reject\n", program, sslfd);
                 }
