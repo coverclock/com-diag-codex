@@ -7,8 +7,6 @@
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
- * This is based on the code I wrote for the functionaltest-machine-server
- * and the functionaltest-machine-server functional test programs.
  */
 
 #include "com/diag/codex/codex.h"
@@ -52,11 +50,14 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
     sslfd = codex_connection_descriptor(ssl);
     diminuto_assert(sslfd >= 0);
 
-    do {
+    while (fds > 0) {
 
-        muxfd = (fds > 0) ? diminuto_mux_ready_read(muxp) : -1;
+        muxfd = diminuto_mux_ready_read(muxp);
+        if (muxfd < 0) {
+            break;
+        }
 
-        if ((muxfd >= 0) && (muxfd == udpfd)) {
+        if (muxfd == udpfd) {
             switch (state[WRITER]) {
             case CODEX_STATE_COMPLETE:
                 bytes = datagram_receive(udptype, udpfd, buffer[WRITER], bufsize, &address, &port);
@@ -96,6 +97,8 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                 status = SSLRETRY;
                 break;
             }
+            muxfd = -1;
+            fds -= 1;
         }
 
         if (status != CONTINUE) {
@@ -149,7 +152,7 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
             break;
         }
 
-        while (((muxfd >= 0) && (muxfd == sslfd)) || codex_connection_is_ready(ssl)) {
+        while (muxfd == sslfd) {
             switch (state[READER]) {
             case CODEX_STATE_START:
             case CODEX_STATE_RESTART:
@@ -204,9 +207,15 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                 status = SSLRETRY;
                 break;
             }
-            muxfd = -1;
             if (status != CONTINUE) {
                 break;
+            }
+            /*
+             * Consume all the data in the SSL pipeline.
+             */
+            if (!codex_connection_is_ready(ssl)) {
+                muxfd = -1;
+                fds -= 1;
             }
         }
 

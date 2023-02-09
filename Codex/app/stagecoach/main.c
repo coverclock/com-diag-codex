@@ -181,7 +181,7 @@ int main(int argc, char * argv[])
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: %s BEGIN B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d t=\"%s\" %c=%d\n",
+	DIMINUTO_LOG_INFORMATION("%s: %s begin B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d t=\"%s\" %c=%d\n",
         program,
         (role == CLIENT) ? "client" : (role == SERVER) ? "server" : "unknown",
         (bytes == (const char *)0) ? "" : bytes,
@@ -204,12 +204,14 @@ int main(int argc, char * argv[])
         bufsize = strtoul(bytes, &endptr, 0);
         diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (bufsize > 0));
     }
+    DIMINUTO_LOG_INFORMATION("%s: bufsize=%zubytes\n", program, bufsize);
 
     if (timeout != (const char *)0) {
         milliseconds = strtoul(timeout, &endptr, 0);
         diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (milliseconds > 0));
     }
     ticks = diminuto_frequency_units2ticks(milliseconds, 1000 /* Hz */);
+    DIMINUTO_LOG_INFORMATION("%s: timeout=%lums=%lldticks\n", program, milliseconds, (diminuto_lld_t)ticks);
 
     /*
      * INTERPRETING
@@ -432,22 +434,27 @@ int main(int argc, char * argv[])
 
         if ((fds > 0) && (role == SERVER)) {
             muxfd = diminuto_mux_ready_accept(&mux);
-            if ((muxfd >= 0) && (muxfd == biofd) && (sslfd < 0)) {
-                diminuto_assert(ssl == (codex_connection_t *)0);
-                ssl = codex_server_connection_new(ctx, bio);
-                diminuto_assert(ssl != (codex_connection_t *)0);
-                diminuto_expect(codex_connection_is_server(ssl));
-                diminuto_assert(sslfd < 0);
-                sslfd = codex_connection_descriptor(ssl);
-                diminuto_assert(sslfd >= 0);
-                rc = connection_nearend(ssltype, sslfd, &address, &port);
-                diminuto_assert(rc >= 0);
-                DIMINUTO_LOG_NOTICE("%s: server ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
-                rc = connection_farend(ssltype, sslfd, &address, &port);
-                diminuto_assert(rc >= 0);
-                DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
-                rc = diminuto_mux_register_read(&mux, sslfd);
-                diminuto_assert(rc >= 0);
+            if ((muxfd >= 0) && (muxfd == biofd)) {
+                if (sslfd < 0) {
+                    diminuto_assert(ssl == (codex_connection_t *)0);
+                    ssl = codex_server_connection_new(ctx, bio);
+                    diminuto_assert(ssl != (codex_connection_t *)0);
+                    diminuto_expect(codex_connection_is_server(ssl));
+                    diminuto_assert(sslfd < 0);
+                    sslfd = codex_connection_descriptor(ssl);
+                    diminuto_assert(sslfd >= 0);
+                    rc = connection_nearend(ssltype, sslfd, &address, &port);
+                    diminuto_assert(rc >= 0);
+                    DIMINUTO_LOG_NOTICE("%s: server ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
+                    rc = connection_farend(ssltype, sslfd, &address, &port);
+                    diminuto_assert(rc >= 0);
+                    DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
+                    rc = diminuto_mux_register_read(&mux, sslfd);
+                    diminuto_assert(rc >= 0);
+                } else {
+                    DIMINUTO_LOG_WARNING("%s: server bio (%d) reject\n", program, sslfd);
+                }
+                fds -= 0;
             }
         }
 
@@ -455,7 +462,7 @@ int main(int argc, char * argv[])
          * PROCESSING
          */
 
-        if ((udpfd >= 0) && (sslfd >= 0)) {
+        if ((fds > 0) && (udpfd >= 0) && (sslfd >= 0)) {
             switch (role) {
             case CLIENT:
                 status = client(fds, &mux, udptype, udpfd, ssl, bufsize, expected);
@@ -534,7 +541,7 @@ int main(int argc, char * argv[])
      * END
      */
 
-    DIMINUTO_LOG_INFORMATION("%s: END %d\n", program, xc);
+    DIMINUTO_LOG_INFORMATION("%s: end %d\n", program, xc);
 
     exit(xc);
 }
