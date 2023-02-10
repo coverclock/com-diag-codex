@@ -288,6 +288,7 @@ int main(int argc, char * argv[])
     case CLIENT:
         udptype = nearendtype;
         diminuto_assert(nearendpoint.udp != 0);
+        biotype = farendtype;
         ssltype = farendtype;
         diminuto_assert(farendpoint.tcp != 0);
         break;
@@ -343,6 +344,21 @@ int main(int argc, char * argv[])
          */
         ctx = codex_client_context_new(pathcaf, pathcap, pathcrt, pathkey);
         diminuto_assert(ctx != (codex_context_t *)0);
+        switch (biotype) {
+        case IPV4:
+            address.address4 = farendpoint.ipv4;
+            break;
+        case IPV6:
+            address.address6 = farendpoint.ipv6;
+            break;
+        default:
+            diminuto_assert(false);
+            break;
+        }
+        port = farendpoint.tcp;
+        DIMINUTO_LOG_INFORMATION("%s: client bio (-) far end %s\n", program, address2string(biotype, &address, port));
+        break;
+
         break;
 
     case SERVER:

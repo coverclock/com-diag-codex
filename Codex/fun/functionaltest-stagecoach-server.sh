@@ -15,4 +15,4 @@ export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
 # "localhost6", etc. causes Diminuto to choose a specific protocol rather than
 # the default. I recommend it, but don't require it.
 
-stagecoach -C ${ROOT}/servercert.pem -K ${ROOT}/serverkey.pem -P ${ROOT}/.. -f cadmium6:stagecoachserver -n localhost:stagecoachssl -s
+stagecoach -C ${ROOT}/servercert.pem -K ${ROOT}/serverkey.pem -P ${ROOT}/.. -f cadmium4:stagecoachserver -n localhost:stagecoachssl -s
