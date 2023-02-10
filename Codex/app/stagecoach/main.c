@@ -350,7 +350,7 @@ int main(int argc, char * argv[])
         DIMINUTO_LOG_INFORMATION("%s: server bio (%d) near end %s\n", program, biofd, address2string(biotype, &address, port));
         rc = diminuto_mux_register_accept(&mux, biofd);
         diminuto_assert(rc >= 0);
-fprintf(stderr, "SERVER: register bio (%d)\n", biofd);
+fprintf(stderr, "SERVER: register bio (%d) accept\n", biofd);
         /*
          * SERVER UDP
          */
@@ -403,7 +403,7 @@ fprintf(stderr, "SERVER: register bio (%d)\n", biofd);
                 DIMINUTO_LOG_INFORMATION("%s: client udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
                 rc = diminuto_mux_register_read(&mux, udpfd);
                 diminuto_assert(rc >= 0);
-fprintf(stderr, "CLIENT: register udp (%d)\n", udpfd);
+fprintf(stderr, "CLIENT: register udp (%d) read\n", udpfd);
             }
             /*
              * CLIENT SSL
@@ -422,7 +422,7 @@ fprintf(stderr, "CLIENT: register udp (%d)\n", udpfd);
                     DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
                     diminuto_assert(rc >= 0);
-fprintf(stderr, "CLIENT: register ssl (%d)\n", sslfd);
+fprintf(stderr, "CLIENT: register ssl (%d) read\n", sslfd);
                 } else {
                     /*
                      * Retry later.
@@ -447,7 +447,7 @@ fprintf(stderr, "CLIENT: register ssl (%d)\n", sslfd);
                 DIMINUTO_LOG_INFORMATION("%s: server udp (%d) far end %s\n", program, udpfd, address2string(udptype, &serviceaddress, serviceport));
                 rc = diminuto_mux_register_read(&mux, udpfd);
                 diminuto_assert(rc >= 0);
-fprintf(stderr, "SERVER: register udp (%d)\n", udpfd);
+fprintf(stderr, "SERVER: register udp (%d) read\n", udpfd);
             }
             break;
 
@@ -498,7 +498,7 @@ fprintf(stderr, "SERVER: register udp (%d)\n", udpfd);
                     DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
                     diminuto_assert(rc >= 0);
-fprintf(stderr, "SERVER: register ssd (%d)\n", biofd);
+fprintf(stderr, "SERVER: register ssd (%d) read\n", biofd);
                 } else {
                     DIMINUTO_LOG_WARNING("%s: server bio (%d) reject\n", program, sslfd);
                 }
