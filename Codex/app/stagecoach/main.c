@@ -254,6 +254,15 @@ int main(int argc, char * argv[])
         break;
     }
 
+    /*
+     * If no host is specified for the endpoint, Diminuto assumes IPv6 by default.
+     * We don't technically need a host for the near-end endpoint (it will be the
+     * service port for the client, and an ephemeral for the server, since both
+     * are acting as proxies). But using a host name like "localhost", "localhost4",
+     * "localhost6", etc. causes Diminuto to choose a specific protocol rather than
+     * the default. I recommend it, but don't require it.
+     */
+
     diminuto_assert(nearend != (const char *)0);
     rc = diminuto_ipc_endpoint(nearend, &nearendpoint);
     diminuto_assert(rc == 0);

@@ -6,6 +6,11 @@
 
 ROOT=${1:-"out/host/crt/stagecoach"}
 
-export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
+# If no host is specified for the nearendpoint, Diminuto assumes IPv6 by default.
+# We don't technically need a host for the nearendpoint (it will be the
+# service port for the client, and an ephemeral for the server, since both
+# are acting as proxies). But using a host name like "localhost", "localhost4",
+# "localhost6", etc. causes Diminuto to choose a specific protocol rather than
+# the default. I recommend it, but don't require it.
 
-stagecoach -C ${ROOT}/clientcert.pem -K ${ROOT}/clientkey.pem -P ${ROOT}/.. -f cadmium4:stagecoachssl -n :stagecoachclient -c
+stagecoach -C ${ROOT}/clientcert.pem -K ${ROOT}/clientkey.pem -P ${ROOT}/.. -f cadmium4:stagecoachssl -n localhost:stagecoachclient -c
