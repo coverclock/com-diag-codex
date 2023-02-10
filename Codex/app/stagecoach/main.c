@@ -98,7 +98,6 @@ int main(int argc, char * argv[])
     port_t serviceport = 0;
     int fds = 0;
     bool done = false;
-    int xc = 0;
 
     /*
      * BEGIN
@@ -180,7 +179,7 @@ int main(int argc, char * argv[])
 
         case '?':
         	fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -c | -s ]\n", program);
-            return 1;
+            exit(1);
             break;
 
         }
@@ -423,8 +422,6 @@ fprintf(stderr, "CLIENT: register udp (%d)\n", udpfd);
                     DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
                     diminuto_assert(rc >= 0);
-                    rc = diminuto_mux_register_write(&mux, sslfd);
-                    diminuto_assert(rc >= 0);
 fprintf(stderr, "CLIENT: register ssl (%d)\n", sslfd);
                 } else {
                     /*
@@ -501,8 +498,6 @@ fprintf(stderr, "SERVER: register udp (%d)\n", udpfd);
                     DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
                     diminuto_assert(rc >= 0);
-                    rc = diminuto_mux_register_write(&mux, sslfd);
-                    diminuto_assert(rc >= 0);
 fprintf(stderr, "SERVER: register ssd (%d)\n", biofd);
                 } else {
                     DIMINUTO_LOG_WARNING("%s: server bio (%d) reject\n", program, sslfd);
@@ -553,10 +548,8 @@ fprintf(stderr, "SERVER: register ssd (%d)\n", biofd);
         } else if (udpfd < 0) {
             /* Do nothing. */
         } else {
-            rc = diminuto_ipc_close(udpfd);
-            diminuto_assert(rc >= 0);
-            rc = diminuto_mux_unregister_read(&mux, udpfd);
-            diminuto_assert(rc >= 0);
+            (void)diminuto_ipc_close(udpfd);
+            (void)diminuto_mux_unregister_read(&mux, udpfd);
             udpfd = -1;
         }
 
@@ -570,16 +563,15 @@ fprintf(stderr, "SERVER: register ssd (%d)\n", biofd);
             /* Do nothing. */
         } else {
             /*
-             * May already be closed by virtue of far end.
+             * May already be closed by virtue of far end closing.
              */
             (void)codex_connection_close(ssl);
             ssl = codex_connection_free(ssl);
             diminuto_assert(ssl == (codex_connection_t *)0);
+            ssl = (codex_connection_t *)0;
             (void)diminuto_ipc_close(sslfd);
-            rc = diminuto_mux_unregister_read(&mux, sslfd);
-            diminuto_assert(rc >= 0);
-            rc = diminuto_mux_unregister_write(&mux, sslfd);
-            diminuto_assert(rc >= 0);
+            (void)diminuto_mux_unregister_read(&mux, sslfd);
+            (void)diminuto_mux_unregister_write(&mux, sslfd);
             sslfd = -1;
         }
 
@@ -595,8 +587,7 @@ fprintf(stderr, "SERVER: register ssd (%d)\n", biofd);
         ctx = (codex_context_t *)0;
         if (biofd >= 0) {
             (void)diminuto_ipc_close(biofd);
-            rc = diminuto_mux_unregister_accept(&mux, biofd);
-            diminuto_assert(rc >= 0);
+            (void)diminuto_mux_unregister_accept(&mux, biofd);
             biofd = -1;
         }
     }
@@ -607,7 +598,7 @@ fprintf(stderr, "SERVER: register ssd (%d)\n", biofd);
      * END
      */
 
-    DIMINUTO_LOG_INFORMATION("%s: end %d\n", program, xc);
+    DIMINUTO_LOG_INFORMATION("%s: end\n", program);
 
-    exit(xc);
+    exit(0);
 }
