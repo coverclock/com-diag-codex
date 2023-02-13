@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -83,8 +83,6 @@ int codex_handshake_renegotiate(codex_connection_t * ssl)
 		/* Do nothing. */
 
 #endif
-
-		/* no break */
 
 		DIMINUTO_LOG_NOTICE("codex_handshake_renegotiate: unsupported\n");
 		break;

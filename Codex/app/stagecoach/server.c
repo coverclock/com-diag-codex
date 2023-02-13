@@ -105,6 +105,10 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
 
         if (status != CONTINUE) {
             break;
+        } else if (fds == 0) {
+            break;
+        } else {
+            /* Do nothing. */
         }
 
         if (writefd == sslfd) {
@@ -159,6 +163,10 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
 
         if (status != CONTINUE) {
             break;
+        } else if (fds == 0) {
+            break;
+        } else {
+            /* Do nothing. */
         }
 
         while (readfd == sslfd) {
@@ -230,9 +238,13 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
 
         if (status != CONTINUE) {
             break;
+        } else if (fds == 0) {
+            break;
+        } else {
+            /* Do nothing. */
         }
 
-    } while (false);
+    }
 
     if (status != CONTINUE) {
         (void)diminuto_mux_unregister_write(muxp, sslfd);

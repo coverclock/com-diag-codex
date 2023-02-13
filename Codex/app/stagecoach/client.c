@@ -101,11 +101,15 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                 break;
             }
             readfd = -1;
-            fds -= 0;
+            fds -= 1;
         }
 
         if (status != CONTINUE) {
             break;
+        } else if (fds == 0) {
+            break;
+        } else {
+            /* Do nothing. */
         }
 
         if (writefd == sslfd) {
@@ -154,10 +158,16 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                 status = SSLDONE;
                 break;
             }
+            writefd = -1;
+            fds -= 1;
         }
 
         if (status != CONTINUE) {
             break;
+        } else if (fds == 0) {
+            break;
+        } else {
+            /* Do nothing. */
         }
 
         while (readfd == sslfd) {
@@ -223,6 +233,9 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
             if (status != CONTINUE) {
                 break;
             }
+            /*
+             * Consume all the data in the SSL pipeline.
+             */
             if (!codex_connection_is_ready(ssl)) {
                 readfd = -1;
                 fds -= 1;
@@ -231,9 +244,13 @@ status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
 
         if (status != CONTINUE) {
             break;
+        } else if (fds == 0) {
+            break;
+        } else {
+            /* Do nothing. */
         }
 
-    } while (false);
+    }
 
     if (status != CONTINUE) {
         (void)diminuto_mux_unregister_write(muxp, sslfd);
