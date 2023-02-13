@@ -458,7 +458,7 @@ int main(int argc, char * argv[])
                     /*
                      * Retry later.
                      */
-                    DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end failed\n", program, sslfd);
+                    DIMINUTO_LOG_NOTICE("%s: client ssl (%d) far end failed\n", program, sslfd);
                     diminuto_delay(delayticks, !0);
                     continue;
                 }
@@ -493,6 +493,9 @@ int main(int argc, char * argv[])
 
         fds = diminuto_mux_wait(&mux, timeoutticks);
         diminuto_assert((fds >= 0) || ((fds < 0) && (errno == EINTR)));
+#if 0
+        diminuto_mux_dump(&mux);
+#endif
         if (fds != 0) {
             DIMINUTO_LOG_DEBUG("%s: main fds [%d]\n", program, fds);
         }
