@@ -70,9 +70,10 @@ int main(int argc, char * argv[])
     const char * delay = (const char *)0;
     const char * timeout = (const char *)0;
     role_t role = INVALID;
-    bool selfsigned = true;
+    bool selfsigned = true; /* Allow self-signed certificates by default. */
     size_t bufsize = 65527; /* max(datagram)=(2^16-1)-8 */
-    unsigned long milliseconds = 0;
+    unsigned long delaymilliseconds = 10000;
+    unsigned long timeoutmilliseconds = 250;
     diminuto_sticks_t delayticks = 0;
     diminuto_sticks_t timeoutticks = 0;
     int rc = -1;
@@ -118,36 +119,36 @@ int main(int argc, char * argv[])
         switch (opt) {
 
         case 'C':
-        	pathcrt = optarg;
-        	break;
+            pathcrt = optarg;
+            break;
 
         case 'D':
-        	pathdhf = optarg;
-			break;
+            pathdhf = optarg;
+            break;
 
         case 'E':
             expected = (*optarg != '\0') ? optarg : (const char *)0;
             break;
 
         case 'K':
-        	pathkey = optarg;
-        	break;
+            pathkey = optarg;
+            break;
 
         case 'L':
-        	pathcrl = (*optarg != '\0') ? optarg : (const char *)0;
-        	break;
+            pathcrl = (*optarg != '\0') ? optarg : (const char *)0;
+            break;
 
         case 'P':
-        	pathcap = (*optarg != '\0') ? optarg : (const char *)0;
-        	break;
+            pathcap = (*optarg != '\0') ? optarg : (const char *)0;
+            break;
 
         case 'R':
-        	pathcaf = (*optarg != '\0') ? optarg : (const char *)0;
-        	break;
+            pathcaf = (*optarg != '\0') ? optarg : (const char *)0;
+            break;
 
         case 'b':
             bytes = optarg;
-        	break;
+            break;
 
         case 'c':
             role = CLIENT;
@@ -158,16 +159,16 @@ int main(int argc, char * argv[])
             break;
 
         case 'f':
-        	farend = optarg;
-        	break;
+            farend = optarg;
+            break;
 
         case 'n':
-        	nearend = optarg;
-        	break;
+            nearend = optarg;
+            break;
 
         case 'r':
-        	selfsigned = false;
-        	break;
+            selfsigned = false; /* Require certificates signed by a CA. */
+            break;
 
         case 's':
             role = SERVER;
@@ -178,7 +179,7 @@ int main(int argc, char * argv[])
             break;
 
         case '?':
-        	fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -c | -s ]\n", program);
+            fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -c | -s ]\n", program);
             exit(1);
             break;
 
@@ -186,7 +187,7 @@ int main(int argc, char * argv[])
 
     }
 
-	DIMINUTO_LOG_INFORMATION("%s: %s begin B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d t=\"%s\" %c=%d\n",
+    DIMINUTO_LOG_INFORMATION("%s: %s begin B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d t=\"%s\" %c=%d\n",
         program,
         (role == CLIENT) ? "client" : (role == SERVER) ? "server" : "unknown",
         (bytes == (const char *)0) ? "" : bytes,
@@ -200,7 +201,7 @@ int main(int argc, char * argv[])
         (expected == (const char *)0) ? "" : expected,
         (farend == (const char *)0) ? "" : farend,
         (nearend == (const char *)0) ? "" : nearend,
-        selfsigned,
+        !selfsigned,
         (timeout == (const char *)0) ? "" : timeout,
         role, !0);
 
@@ -213,22 +214,18 @@ int main(int argc, char * argv[])
     DIMINUTO_LOG_INFORMATION("%s: bufsize=%zubytes\n", program, bufsize);
 
     if (delay != (const char *)0) {
-        milliseconds = strtoul(delay, &endptr, 0);
-        diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (milliseconds > 0));
-    } else {
-        milliseconds = 10000;
+        delaymilliseconds = strtoul(delay, &endptr, 0);
+        diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (delaymilliseconds > 0));
     }
-    delayticks = diminuto_frequency_units2ticks(milliseconds, 1000 /* Hz */);
-    DIMINUTO_LOG_INFORMATION("%s: delay=%lums=%lldticks\n", program, milliseconds, (diminuto_lld_t)delayticks);
+    delayticks = diminuto_frequency_units2ticks(delaymilliseconds, 1000 /* Hz */);
+    DIMINUTO_LOG_INFORMATION("%s: delay=%lums=%lldticks\n", program, delaymilliseconds, (diminuto_lld_t)delayticks);
 
     if (timeout != (const char *)0) {
-        milliseconds = strtoul(timeout, &endptr, 0);
-        diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (milliseconds > 0));
-    } else {
-        milliseconds = 250;
+        timeoutmilliseconds = strtoul(timeout, &endptr, 0);
+        diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (timeoutmilliseconds > 0));
     }
-    timeoutticks = diminuto_frequency_units2ticks(milliseconds, 1000 /* Hz */);
-    DIMINUTO_LOG_INFORMATION("%s: timeout=%lums=%lldticks\n", program, milliseconds, (diminuto_lld_t)timeoutticks);
+    timeoutticks = diminuto_frequency_units2ticks(timeoutmilliseconds, 1000 /* Hz */);
+    DIMINUTO_LOG_INFORMATION("%s: timeout=%lums=%lldticks\n", program, timeoutmilliseconds, (diminuto_lld_t)timeoutticks);
 
     /*
      * CHECKING
@@ -256,11 +253,21 @@ int main(int argc, char * argv[])
 
     /*
      * If no host is specified for the endpoint, Diminuto assumes IPv6 by default.
-     * We don't technically need a host for the near-end endpoint (it will be the
-     * service port for the client, and an ephemeral for the server, since both
-     * are acting as proxies). But using a host name like "localhost", "localhost4",
-     * "localhost6", etc. causes Diminuto to choose a specific protocol rather than
-     * the default. I recommend it, but don't require it.
+     * Using a host name like "0.0.0.0" causes Diminuto to pick IPv4 rather than
+     * the default. Note, however, that choosing hostname of "localhost" or
+     * "localhost4", while forcing IPv4 as the protocol, also binds the socket to
+     * the local host address and prevents remote clients from connecting to it,
+     * while using the unspecified ("0.0.0.0") address serves as a wildcard.
+     * An IPv6 address of "0:0:0:0:0:0:0:0" (or equivalently "::") similarly
+     * forces IPv6 to be selected while not binding the socket to a specific
+     * address. Since the implementation doesn't use the address except to
+     * select IPv4 or IPv6, we require that it be the "unspecified" address for
+     * that protocol. Leaving the address off will result in it being
+     * unspecified, but as said above, results in the selection of IPv6 by
+     * default. I recommend specifying the appropriate unspecified address
+     * specifically (so to speak). And why IPv6 by default? Because IPv6
+     * sockets can accept either IPv6 or IPv4 connections, but the opposite
+     * is not true.
      */
 
     diminuto_assert(nearend != (const char *)0);
@@ -269,12 +276,12 @@ int main(int argc, char * argv[])
     switch (nearendpoint.type) {
 
     case DIMINUTO_IPC_TYPE_IPV4:
-        diminuto_assert(diminuto_ipc4_is_unspecified(&nearendpoint.ipv4) || diminuto_ipc4_is_loopback(&nearendpoint.ipv4));
+        diminuto_assert(diminuto_ipc4_is_unspecified(&nearendpoint.ipv4));
         nearendtype = IPV4;
         break;
 
     case DIMINUTO_IPC_TYPE_IPV6:
-        diminuto_assert(diminuto_ipc6_is_unspecified(&nearendpoint.ipv6) || diminuto_ipc6_is_loopback(&nearendpoint.ipv6));
+        diminuto_assert(diminuto_ipc6_is_unspecified(&nearendpoint.ipv6));
         nearendtype = IPV6;
         break;
 
@@ -326,7 +333,7 @@ int main(int argc, char * argv[])
          * initialization.
          */
         extern int codex_set_self_signed_certificates(int);
-        codex_set_self_signed_certificates(!!selfsigned);
+        codex_set_self_signed_certificates(selfsigned);
     }
 
     rc = codex_initialize(pathdhf, pathcrl);
@@ -375,7 +382,6 @@ int main(int argc, char * argv[])
         DIMINUTO_LOG_INFORMATION("%s: server bio (%d) near end %s\n", program, biofd, address2string(biotype, &address, port));
         rc = diminuto_mux_register_accept(&mux, biofd);
         diminuto_assert(rc >= 0);
-fprintf(stderr, "SERVER: register bio (%d) accept\n", biofd);
         /*
          * SERVER UDP
          */
@@ -428,7 +434,6 @@ fprintf(stderr, "SERVER: register bio (%d) accept\n", biofd);
                 DIMINUTO_LOG_INFORMATION("%s: client udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
                 rc = diminuto_mux_register_read(&mux, udpfd);
                 diminuto_assert(rc >= 0);
-fprintf(stderr, "CLIENT: register udp (%d) read\n", udpfd);
             }
             /*
              * CLIENT SSL
@@ -447,7 +452,6 @@ fprintf(stderr, "CLIENT: register udp (%d) read\n", udpfd);
                     DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
                     diminuto_assert(rc >= 0);
-fprintf(stderr, "CLIENT: register ssl (%d) read\n", sslfd);
                 } else {
                     /*
                      * Retry later.
@@ -472,7 +476,6 @@ fprintf(stderr, "CLIENT: register ssl (%d) read\n", sslfd);
                 DIMINUTO_LOG_INFORMATION("%s: server udp (%d) far end %s\n", program, udpfd, address2string(udptype, &serviceaddress, serviceport));
                 rc = diminuto_mux_register_read(&mux, udpfd);
                 diminuto_assert(rc >= 0);
-fprintf(stderr, "SERVER: register udp (%d) read\n", udpfd);
             }
             break;
 
@@ -523,7 +526,6 @@ fprintf(stderr, "SERVER: register udp (%d) read\n", udpfd);
                     DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
                     diminuto_assert(rc >= 0);
-fprintf(stderr, "SERVER: register ssd (%d) read\n", biofd);
                 } else {
                     DIMINUTO_LOG_WARNING("%s: server bio (%d) reject\n", program, sslfd);
                 }

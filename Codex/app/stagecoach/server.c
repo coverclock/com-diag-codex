@@ -75,7 +75,6 @@ status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, c
                     header[WRITER] = bytes;
                     rc = diminuto_mux_register_write(muxp, sslfd);
                     diminuto_assert(rc >= 0);
-fprintf(stderr, "SERVER: register ssl (%d) write\n", sslfd);
                     if (first) {
                         state[WRITER] = CODEX_STATE_START;
                         first = false;
