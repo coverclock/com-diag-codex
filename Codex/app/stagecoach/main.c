@@ -227,6 +227,8 @@ int main(int argc, char * argv[])
     timeoutticks = diminuto_frequency_units2ticks(timeoutmilliseconds, 1000 /* Hz */);
     DIMINUTO_LOG_INFORMATION("%s: timeout=%lums=%lldticks\n", program, timeoutmilliseconds, (diminuto_lld_t)timeoutticks);
 
+    DIMINUTO_LOG_INFORMATION("%s: selfsigned=%d\n", program, selfsigned);
+
     /*
      * CHECKING
      */
