@@ -8,6 +8,9 @@
  * https://github.com/coverclock/com-diag-codex<BR>
  *
  * See the README.md for a list of references.
+ *
+ * This module was written under the assumption that the SSL socket
+ * is being multiplexed (see the Mux feature).
  */
 
 /*******************************************************************************
@@ -33,12 +36,9 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
     codex_state_t prior = state;
     int verification = ~0;
     ssize_t bytes = -1;
-    int pending = -1;
     codex_serror_t error = CODEX_SERROR_SUCCESS;
 
-    pending = codex_connection_is_ready(ssl);
-
-    DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: begin ssl=%p state='%c' expected=%p bytes=%zd header=0x%8.8x buffer=%p size=%zu here=%p length=%zu serror=%p pending=%d\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, serror, pending);
+    DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: begin ssl=%p state='%c' expected=%p bytes=%zd header=0x%8.8x buffer=%p size=%zu here=%p length=%zu serror=%p\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, serror);
 
     switch (state) {
 
@@ -61,16 +61,17 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
             if (!codex_connection_verified(verification)) {
                 DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected farend=server ssl=%p\n", ssl);
                 state = CODEX_STATE_FINAL;
+                /* Do NOT fall through. */
                 break;
             }
-            if (!pending) {
+            if (!codex_connection_is_ready(ssl)) {
                 state = CODEX_STATE_RESTART;
+                /* Do NOT fall through. */
                 break;
             }
         }
         state = CODEX_STATE_RESTART;
-
-         /* Fall through. */
+        /* Fall through. */
 
     case CODEX_STATE_RESTART:
 
@@ -78,7 +79,6 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
         *here = (uint8_t *)header;
         *length = sizeof(*header);
         state = CODEX_STATE_HEADER;
-
         /* Fall through. */
 
     case CODEX_STATE_HEADER:
@@ -130,8 +130,15 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
             if (*length == 0) {
                 *header = ntohl(*header);
                 if (*header < 0) {
+                    /*
+                     * This is an indication with no payload.
+                     */
                     state = CODEX_STATE_COMPLETE;
                 } else if (*header == 0) {
+                    /*
+                     * A zero length segment is not only legitimate, but
+                     * sometimes necessary.
+                     */
                     state = CODEX_STATE_RESTART;
                 } else if (*header > size) {
                     DIMINUTO_LOG_WARNING("codex_machine_reader_generic: incompatible ssl=%p header=0x%8.8x size=%zu\n", ssl, *header, size);
@@ -151,7 +158,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
          * Authenticate the farend by traversing its certificate and verifying
          * it via its common name (CN) or its fully qualified domain name
          * (FQDN). The client certificate is available only after the nearend
-         * has done its first I/O.
+         * has successfully completed its first read.
          */
 
         if (!codex_connection_is_server(ssl)) {
@@ -268,8 +275,6 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
 
     }
 
-    pending = codex_connection_is_ready(ssl);
-
     if (prior == state) {
         /* Do nothing. */
     } else if (state != CODEX_STATE_FINAL) {
@@ -278,7 +283,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
         (void)codex_connection_close(ssl);
     }
 
-    DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: end ssl=%p state='%c' expected=%p bytes=%zd header=0x%8.8x buffer=%p size=%zu here=%p length=%zu error='%c' pending=%d\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, error, pending);
+    DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: end ssl=%p state='%c' expected=%p bytes=%zd header=0x%8.8x buffer=%p size=%zu here=%p length=%zu error='%c'\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, error);
 
     return state;
 }
@@ -311,11 +316,11 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
             if (!codex_connection_verified(verification)) {
                 DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected farend=server ssl=%p\n", ssl);
                 state = CODEX_STATE_FINAL;
+                /* Do NOT fall through. */
                 break;
             }
         }
         state = CODEX_STATE_RESTART;
-
         /* Fall through. */
 
     case CODEX_STATE_RESTART:
@@ -325,7 +330,6 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
         *here = (uint8_t *)header;
         *length = sizeof(*header);
         state = CODEX_STATE_HEADER;
-
         /* Fall through. */
 
     case CODEX_STATE_HEADER:

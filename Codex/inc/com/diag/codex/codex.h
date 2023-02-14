@@ -455,7 +455,7 @@ static inline ssize_t codex_connection_write(codex_connection_t * ssl, const voi
  */
 static inline bool codex_connection_is_ready(codex_connection_t * ssl)
 {
-	return !!SSL_pending(ssl);
+	return (SSL_pending(ssl) > 0);
 }
 
 /*******************************************************************************

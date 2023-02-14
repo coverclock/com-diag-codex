@@ -8,10 +8,6 @@ ROOT=${1:-"out/host/crt/stagecoach"}
 
 export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
 
-# Note that the use of the IPv4 "unspecified" address for the near end
-# SSL server end point serves two purposes: it forces Diminuto to choose
-# IPv4 instead of the default of IPv6, and serves as a wild card for the
-# socket binding address. Using "localhost" or "localhost4" will prevent
-# remote clients from connecting.
+. $(readlink -e $(dirname ${0}))/functionaltest-stagecoach
 
-stagecoach -C ${ROOT}/servercert.pem -K ${ROOT}/serverkey.pem -P ${ROOT}/.. -f cadmium4:stagecoachserver -n 0.0.0.0:stagecoachssl -s
+stagecoach -C ${ROOT}/servercert.pem -K ${ROOT}/serverkey.pem -P ${ROOT}/.. -f ${STAGECOACHFAREND}:${STAGECOACHSERVER} -n ${STAGECOACHNEAREND}:${STAGECOACHSSL} -s

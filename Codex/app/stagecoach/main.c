@@ -16,6 +16,13 @@
  * In this manner, this utility serves as a proxy for the server on
  * the client end, and proxy for the client on the server end.
  *
+ * The nomenclature is a little confusing here. The server role runs
+ * on the server side of the connection, but acts as a client proxy
+ * to the actual server. Similarly, the client role runs on the client
+ * side of the connection, but acts as a server proxy for the actual
+ * client. The role specifies on which side of the SSL connection the
+ * Stagecoach program is running, not how it relates to the application.
+ *
  * I really really wanted NOT to have to write this program. I felt
  * that I should be able to script it using some combination of maybe
  * socat and ssh. But I didn't see a way to preserve the record boundaries
@@ -534,7 +541,7 @@ int main(int argc, char * argv[])
                 } else {
                     DIMINUTO_LOG_WARNING("%s: server bio (%d) reject\n", program, sslfd);
                 }
-                fds -= 0;
+                fds -= 1;
             }
         }
 
