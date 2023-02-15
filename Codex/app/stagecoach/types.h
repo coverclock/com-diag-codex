@@ -13,12 +13,26 @@
 
 #include "com/diag/diminuto/diminuto_types.h"
 
+/**
+ * The nomenclature is a little confusing here. The SERVER role runs
+ * on the server side of the connection, but acts as a client proxy
+ * to the actual server. Similarly, the CLIENT role runs on the client
+ * side of the connection, but acts as a server proxy for the actual
+ * client. The role specifies on which side of the SSL connection the
+ * Stagecoach program is running, not how it relates to the application.
+ */
 typedef enum Role { INVALID = '?', CLIENT = 'c', SERVER = 's', } role_t;
 
 typedef enum Protocol { OTHER = '?', IPV4 = '4', IPV6 = '6', } protocol_t;
 
 typedef enum Status { UNKNOWN = '?', SSLDONE = 'S', UDPDONE = 'U', CONTINUE = '-', } status_t;
 
+/**
+ * Once again, the nomenclature can be a little confusing. In this
+ * context, the READER is the SSL reading state machine, and the
+ * WRITER is the SSL writing state machine. The READER sends to the
+ * UDP port, and the WRITER receives from the UDP port.
+ */
 typedef enum Direction { READER = 0, WRITER = 1, DIRECTIONS = 2, } direction_t;
 
 typedef union Address {

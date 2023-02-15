@@ -16,13 +16,6 @@
  * In this manner, this utility serves as a proxy for the server on
  * the client end, and proxy for the client on the server end.
  *
- * The nomenclature is a little confusing here. The server role runs
- * on the server side of the connection, but acts as a client proxy
- * to the actual server. Similarly, the client role runs on the client
- * side of the connection, but acts as a server proxy for the actual
- * client. The role specifies on which side of the SSL connection the
- * Stagecoach program is running, not how it relates to the application.
- *
  * I really really wanted NOT to have to write this program. I felt
  * that I should be able to script it using some combination of maybe
  * socat and ssh. But I didn't see a way to preserve the record boundaries
@@ -58,6 +51,7 @@
 #include "server.h"
 #include "types.h"
 
+static const size_t MAXDATAGRAM = 65527; /* max(datagram)=(2^16-1)-8 */
 
 int main(int argc, char * argv[])
 {
@@ -78,7 +72,7 @@ int main(int argc, char * argv[])
     const char * timeout = (const char *)0;
     role_t role = INVALID;
     bool selfsigned = true; /* Allow self-signed certificates by default. */
-    size_t bufsize = 65527; /* max(datagram)=(2^16-1)-8 */
+    size_t bufsize = MAXDATAGRAM;
     unsigned long delaymilliseconds = 10000;
     unsigned long timeoutmilliseconds = 250;
     diminuto_sticks_t delayticks = 0;
@@ -216,7 +210,8 @@ int main(int argc, char * argv[])
 
     if (bytes != (const char *)0) {
         bufsize = strtoul(bytes, &endptr, 0);
-        diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (bufsize > 0));
+        diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (0 < bufsize) && (bufsize < diminuto_maximumof(codex_header_t)));
+        if (bufsize > MAXDATAGRAM) { bufsize = MAXDATAGRAM; }
     }
     DIMINUTO_LOG_INFORMATION("%s: bufsize=%zubytes\n", program, bufsize);
 
