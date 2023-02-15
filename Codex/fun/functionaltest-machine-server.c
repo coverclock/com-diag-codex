@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -40,6 +40,7 @@ typedef struct Client {
 	codex_indication_t indication;
 	stream_t source;
 	stream_t sink;
+    bool checked;
 } client_t;
 
 static const char * program = "unittest-machine-server";
@@ -93,6 +94,8 @@ static client_t * create(void)
 		client->sink.state = CODEX_STATE_IDLE;
 		client->sink.buffer = malloc(bufsize);
 		ASSERT(client->sink.buffer != (void *)0);
+
+        client->checked = false;
 
 		fd = codex_connection_descriptor(client->ssl);
 		ASSERT(fd >= 0);
@@ -178,11 +181,12 @@ static bool indicate(client_t * client)
 		codex_header_t header = 0;
 		uint8_t * here = (uint8_t *)0;
 		size_t length = 0;
+        bool checked = false;
 
 		DIMINUTO_LOG_INFORMATION("%s: NEAREND client=%p\n", program, client);
 
 		do {
-			state = codex_machine_writer(state, (char *)0, client->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length);
+			state = codex_machine_writer(state, (char *)0, client->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length, &checked);
 		} while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
 
 		if (state == CODEX_STATE_FINAL) {
@@ -374,7 +378,7 @@ int main(int argc, char ** argv)
 
 			do {
 
-				state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length));
+				state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length), &(client->checked));
 
 				if (state == CODEX_STATE_FINAL) {
 
@@ -442,7 +446,7 @@ int main(int argc, char ** argv)
 				continue;
 			}
 
-			state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length));
+			state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length), &(client->checked));
 
 			if (state == CODEX_STATE_FINAL) {
 

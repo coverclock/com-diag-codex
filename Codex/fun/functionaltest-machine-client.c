@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -52,6 +52,7 @@ int main(int argc, char ** argv)
 	codex_header_t headers[2] = { 0, 0 };
 	uint8_t * heres[2] = { (uint8_t *)0, (uint8_t *)0 };
 	size_t lengths[2] = { 0, 0 };
+    bool checked = false;
 	codex_connection_t * ssl = (codex_connection_t *)0;
 	codex_state_t state = CODEX_STATE_FINAL;
 	int rc = -1;
@@ -231,7 +232,7 @@ int main(int argc, char ** argv)
 				/* Do nothing. */
 			} else {
 
-				state = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
+				state = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]), &checked);
 
 				if (state == CODEX_STATE_FINAL) {
 					break;
@@ -264,7 +265,7 @@ int main(int argc, char ** argv)
 
 				do {
 
-					state = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
+					state = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]), &checked);
 
 					if (state == CODEX_STATE_FINAL) {
 						/* Do nothing. */
@@ -354,11 +355,12 @@ int main(int argc, char ** argv)
 				codex_header_t header = 0;
 				uint8_t * here = (uint8_t *)0;
 				size_t length = 0;
+                bool checked = false;
 
 				DIMINUTO_LOG_INFORMATION("%s: NEAREND\n", program);
 
 				do {
-					state = codex_machine_writer(state, (char *)0, ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length);
+					state = codex_machine_writer(state, (char *)0, ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length, &checked);
 				} while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
 
 				if (state == CODEX_STATE_FINAL) {

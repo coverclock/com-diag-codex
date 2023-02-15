@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -53,6 +53,7 @@ int main(int argc, char ** argv)
 	codex_header_t headers[2] = { 0, 0 };
 	uint8_t * heres[2] = { (uint8_t *)0, (uint8_t *)0 };
 	size_t lengths[2] = { 0, 0 };
+    bool checked = false;
 	codex_connection_t * ssl = (codex_connection_t *)0;
 	int rc = -1;
 	codex_context_t * ctx = (codex_context_t *)0;
@@ -243,7 +244,7 @@ int main(int argc, char ** argv)
 
 				if (states[WRITER] != CODEX_STATE_IDLE) {
 
-					states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
+					states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]), &checked);
 
 					if (states[WRITER] == CODEX_STATE_FINAL) {
 
@@ -300,7 +301,7 @@ int main(int argc, char ** argv)
 
 					do {
 
-						states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]));
+						states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]), &checked);
 
 						if (states[READER] == CODEX_STATE_FINAL) {
 
@@ -411,7 +412,7 @@ int main(int argc, char ** argv)
 			states[WRITER] = CODEX_STATE_RESTART;
 			DIMINUTO_LOG_INFORMATION("%s: WRITE DONE header=%d state=`%c` indication=%d\n", program, headers[WRITER], states[WRITER], indication);
 			do {
-				states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
+				states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]), &checked);
 			} while ((states[WRITER] != CODEX_STATE_FINAL) && (states[WRITER] != CODEX_STATE_COMPLETE));
 			if (states[WRITER] == CODEX_STATE_FINAL) {
 				break;
@@ -435,7 +436,7 @@ int main(int argc, char ** argv)
 			states[WRITER] = CODEX_STATE_RESTART;
 			DIMINUTO_LOG_INFORMATION("%s: WRITE READY header=%d state=`%c` indication=%d\n", program, headers[WRITER], states[WRITER], indication);
 			do {
-				states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]));
+				states[WRITER] = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]), &checked);
 			} while ((states[WRITER] != CODEX_STATE_FINAL) && (states[WRITER] != CODEX_STATE_COMPLETE));
 			if (states[WRITER] == CODEX_STATE_FINAL) {
 				break;
@@ -451,7 +452,7 @@ int main(int argc, char ** argv)
 
 			states[READER] = CODEX_STATE_RESTART;
 			do {
-				states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), (void *)0, 0, &(heres[READER]), &(lengths[READER]));
+				states[READER] = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), (void *)0, 0, &(heres[READER]), &(lengths[READER]), &checked);
 			} while ((states[READER] != CODEX_STATE_FINAL) && (states[READER] != CODEX_STATE_COMPLETE));
 			if (states[READER] == CODEX_STATE_FINAL) {
 				break;

@@ -5,7 +5,7 @@
 /**
  * @file
  *
- * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA.
+ * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA.
  * Licensed under the terms in LICENSE.txt.
  *
  * The Codex package implements a slightly simpler interface to the
@@ -583,7 +583,7 @@ extern int codex_handshake_renegotiate(codex_connection_t * ssl);
 
 /**
  * Implement a state machine for reading packet data from an SSL, handling
- * verification and closing automatically. Except for ssl and size, all of the
+ * verification automatically. Except for ssl and size, all of the
  * parameters for the reader must be independent of those of the writer. If the
  * received header indicates a packet size larger than the buffer, only as much
  * of the packet as will fit in the buffer will be returned; the header will
@@ -592,7 +592,7 @@ extern int codex_handshake_renegotiate(codex_connection_t * ssl);
  * is supplied; otherwise the connection may be automatically shut down. If no
  * exceptional condition occurred, serror will be set to CODEX_SERROR_SUCCESS.
  * Basic verification is performed on the connection in the START state, and if
- * it fails, the connection is closed and transitions immediately to FINAL.
+ * it fails, the connection immediately to FINAL.
  * The verification mask is returned to the caller if so desired, upon transition
  * from the START state, where it can be further examined.
  * @param state is the current state whose initial value depends on the application.
@@ -603,21 +603,22 @@ extern int codex_handshake_renegotiate(codex_connection_t * ssl);
  * @param size is the size of the payload buffer in bytes.
  * @param here points to where the current buffer pointer will be stored.
  * @param length points to where the remaining buffer length will be stored.
- * @param serror points to the variable into which an OpenSSL error is returned.
- * @param mask points to the variable into which the verification mask is returned.
+ * @param checked points to the boolean in which the initially false checked flag is stored.
+ * @param serror points to the variable into which an OpenSSL error is returned, or NULL.
+ * @param mask points to the variable into which the verification mask is returned, or NULL
  * @return the new state.
  */
-extern codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, codex_serror_t * serror, int * mask);
+extern codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, bool * checked, codex_serror_t * serror, int * mask);
 
 /**
  * Implement a state machine for reading packet data from an SSL, handling
- * verification and closing automatically. Except for ssl and size, all of the
+ * verification automatically. Except for ssl and size, all of the
  * parameters for the reader must be independent of those of the writer. If the
  * received header indicates a packet size larger than the buffer, only as much
  * of the packet as will fit in the buffer will be returned; the header will
  * still indicate the original received packet size.
  * Basic verification is performed on the connection in the START state, and if
- * it fails, the connection is closed and transitions immediately to FINAL.
+ * it fails, the connection transitions immediately to FINAL.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
@@ -626,23 +627,24 @@ extern codex_state_t codex_machine_reader_generic(codex_state_t state, const cha
  * @param size is the size of the payload buffer in bytes.
  * @param here points to where the current buffer pointer will be stored.
  * @param length points to where the remaining buffer length will be stored.
+ * @param checked points to the boolean in which the initially false checked flag is stored.
  * @return the new state.
  */
-static inline codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length)
+static inline codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, bool * checked)
 {
-	return codex_machine_reader_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0, (int *)0);
+	return codex_machine_reader_generic(state, expected, ssl, header, buffer, size, here, length, checked, (codex_serror_t *)0, (int *)0);
 }
 
 /**
  * Implement a state machine for writing packet data to an SSL, handling
- * verification and closing automatically. Except for ssl and size, all of the
+ * verification automatically. Except for ssl and size, all of the
  * parameters for the reader must be independent of those of the writer. If an
  * exceptional condition occurred, a note will be passed back in the serror
  * variable if it is supplied; otherwise the connection may be automatically
  * shut down. If no exceptional condition occurred, serror will be set to
  * CODEX_SERROR_SUCCESS.
  * Basic verification is performed on the connection in the START state, and if
- * it fails, the connection is closed and transitions immediately to FINAL.
+ * it fails, the connection transitions immediately to FINAL.
  * The verification mask is returned to the caller if so desired, upon transition
  * from the START state, where it can be further examined.
  * @param state is the current state whose initial value depends on the application.
@@ -653,18 +655,19 @@ static inline codex_state_t codex_machine_reader(codex_state_t state, const char
  * @param size is the size of the payload buffer in bytes (or if negative an indication).
  * @param here points to where the current buffer pointer will be stored.
  * @param length points to where the remaining buffer length will be stored.
- * @param serror points to the variable into which an OpenSSL error is returned.
- * @param mask points to the variable into which the verification mask is returned.
+ * @param checked points to the boolean in which the initially false checked flag is stored.
+ * @param serror points to the variable into which an OpenSSL error is returned, or NULL.
+ * @param mask points to the variable into which the verification mask is returned, or NULL.
  * @return the new state.
  */
-extern codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length, codex_serror_t * serror, int * mask);
+extern codex_state_t codex_machine_writer_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length, bool * checked, codex_serror_t * serror, int * mask);
 
 /**
  * Implement a state machine for writing packet data to an SSL, handling
- * verification and closing automatically. Except for ssl and size, all of the
+ * verification automatically. Except for ssl and size, all of the
  * parameters for the reader must be independent of those of the writer.
  * Basic verification is performed on the connection in the START state, and if
- * it fails, the connection is closed and transitions immediately to FINAL.
+ * it fails, the connection transitions immediately to FINAL.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
@@ -673,11 +676,12 @@ extern codex_state_t codex_machine_writer_generic(codex_state_t state, const cha
  * @param size is the size of the payload buffer in bytes (or if negative an indication).
  * @param here points to where the current buffer pointer will be stored.
  * @param length points to where the remaining buffer length will be stored.
+ * @param checked points to the boolean in which the initially false checked flag is stored.
  * @return the new state.
  */
-static inline codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length)
+static inline codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length, bool * checked)
 {
-	return codex_machine_writer_generic(state, expected, ssl, header, buffer, size, here, length, (codex_serror_t *)0, (int *)0);
+	return codex_machine_writer_generic(state, expected, ssl, header, buffer, size, here, length, checked, (codex_serror_t *)0, (int *)0);
 }
 
 #endif

@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -47,6 +47,7 @@ typedef struct Client {
 	stream_t source;
 	stream_t sink;
 	codex_indication_t indication;
+    bool checked;
 } client_t;
 
 static const char * program = "unittest-handshake-server";
@@ -146,6 +147,8 @@ static client_t * create(void)
 		client->sink.buffer = (buffer_t *)0;
 		diminuto_list_nullinit(&(client->queue));
 
+        client->checked = false;
+
 		fd = codex_connection_descriptor(client->ssl);
 		ASSERT(fd >= 0);
 
@@ -229,6 +232,7 @@ static bool renegotiate(client_t * client)
 	codex_state_t state = CODEX_STATE_IDLE;
 	uint8_t * here = (uint8_t *)0;
 	size_t length = 0;
+    bool checked = false;
 	codex_serror_t serror = CODEX_SERROR_OTHER;
 	int mask = 0;
 
@@ -259,7 +263,7 @@ static bool renegotiate(client_t * client)
 		DIMINUTO_LOG_INFORMATION("%s: WRITE DONE client=%p header=%d state='%c' indication=%d\n", program, client, header, state, client->indication);
 
 		do {
-			state = codex_machine_writer_generic(state, expected, client->ssl, &header, (void *)0, header, &here, &length, &serror, &mask);
+			state = codex_machine_writer_generic(state, expected, client->ssl, &header, (void *)0, header, &here, &length, &checked, &serror, &mask);
 		} while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
 
 		if (state == CODEX_STATE_FINAL) {
@@ -289,7 +293,7 @@ static bool renegotiate(client_t * client)
 		DIMINUTO_LOG_INFORMATION("%s: WRITE READY client=%p header=%d state='%c' indication=%d\n", program, client, header, state, client->indication);
 
 		do {
-			state = codex_machine_writer_generic(state, expected, client->ssl, &header, (void *)0, header, &here, &length, &serror, &mask);
+			state = codex_machine_writer_generic(state, expected, client->ssl, &header, (void *)0, header, &here, &length, &checked, &serror, &mask);
 		} while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
 
 		if (state == CODEX_STATE_FINAL) {
@@ -309,7 +313,7 @@ static bool renegotiate(client_t * client)
 		state = CODEX_STATE_RESTART;
 
 		do {
-			state = codex_machine_reader_generic(state, expected, client->ssl, &header, (void *)0, 0, &here, &length, &serror, &mask);
+			state = codex_machine_reader_generic(state, expected, client->ssl, &header, (void *)0, 0, &here, &length, &checked, &serror, &mask);
 		} while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
 
 		if (state == CODEX_STATE_FINAL) {
@@ -529,7 +533,7 @@ int main(int argc, char ** argv)
 					}
 					ASSERT(client->source.buffer != (buffer_t *)0);
 
-					client->source.state = codex_machine_reader_generic(client->source.state, expected, client->ssl, &(client->source.buffer->header), &(client->source.buffer->payload), bufsize, &(client->source.here), &(client->source.length), &serror, &mask);
+					client->source.state = codex_machine_reader_generic(client->source.state, expected, client->ssl, &(client->source.buffer->header), &(client->source.buffer->payload), bufsize, &(client->source.here), &(client->source.length), &(client->checked), &serror, &mask);
 
 					if (client->source.state == CODEX_STATE_FINAL) {
 
@@ -625,7 +629,7 @@ int main(int argc, char ** argv)
 
 				}
 
-				client->sink.state = codex_machine_writer_generic(client->sink.state, expected, client->ssl, &(client->sink.buffer->header), &(client->sink.buffer->payload), client->sink.buffer->header, &(client->sink.here), &(client->sink.length), &serror, &mask);
+				client->sink.state = codex_machine_writer_generic(client->sink.state, expected, client->ssl, &(client->sink.buffer->header), &(client->sink.buffer->payload), client->sink.buffer->header, &(client->sink.here), &(client->sink.length), &(client->checked),  &serror, &mask);
 
 				if (client->sink.state == CODEX_STATE_FINAL) {
 
