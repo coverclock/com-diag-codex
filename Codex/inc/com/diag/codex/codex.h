@@ -207,7 +207,6 @@ typedef enum CodexState {
 	CODEX_STATE_RESTART		= 'R',	/* Read header. */
 	CODEX_STATE_HEADER		= 'H',	/* Continue reading header. */
 	CODEX_STATE_PAYLOAD		= 'P',	/* Read payload. */
-	CODEX_STATE_SKIP		= 'K',	/* Skip payload. */
 	CODEX_STATE_COMPLETE	= 'C',	/* Payload (or SSL serror) available. */
 	CODEX_STATE_IDLE		= 'I',	/* Do nothing. */
 	CODEX_STATE_FINAL		= 'F',	/* Connection closed. */
@@ -591,10 +590,13 @@ extern int codex_handshake_renegotiate(codex_connection_t * ssl);
  * condition occurred, a note will be passed back in the serror variable if it
  * is supplied; otherwise the connection may be automatically shut down. If no
  * exceptional condition occurred, serror will be set to CODEX_SERROR_SUCCESS.
- * Basic verification is performed on the connection in the START state, and if
- * it fails, the connection immediately to FINAL.
- * The verification mask is returned to the caller if so desired, upon transition
- * from the START state, where it can be further examined.
+ * Basic verification is performed on the connection in the START state (if the
+ * caller is a client), or after the first successful read (if the caller
+ * is a server), and if it fails, the connection immediately set to FINAL.
+ * The verification mask is returned to the caller if so desired, upon
+ * transition from the START state, where it can be further examined. The
+ * checked flag, which can be shared between the reader and writer state
+ * machines, indicates whether or not the verification step has been completed.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.
@@ -617,8 +619,13 @@ extern codex_state_t codex_machine_reader_generic(codex_state_t state, const cha
  * received header indicates a packet size larger than the buffer, only as much
  * of the packet as will fit in the buffer will be returned; the header will
  * still indicate the original received packet size.
- * Basic verification is performed on the connection in the START state, and if
- * it fails, the connection transitions immediately to FINAL.
+ * Basic verification is performed on the connection in the START state (if the
+ * caller is a client), or after the first successful read (if the caller
+ * is a server), and if it fails, the connection immediately is set to FINAL.
+ * The verification mask is returned to the caller if so desired, upon
+ * transition from the START state, where it can be further examined. The
+ * checked flag, which can be shared between the reader and writer state
+ * machines, indicates whether or not the verification step has been completed.
  * @param state is the current state whose initial value depends on the application.
  * @param expected is the expected FQDN or CN for verification.
  * @param ssl points to the SSL.

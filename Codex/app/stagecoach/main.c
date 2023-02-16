@@ -493,60 +493,52 @@ int main(int argc, char * argv[])
          * WAITING
          */
 
-        fds = diminuto_mux_wait(&mux, timeoutticks);
-        diminuto_assert((fds >= 0) || ((fds < 0) && (errno == EINTR)));
 #if 0
         diminuto_mux_dump(&mux);
 #endif
-        if (fds != 0) {
-            DIMINUTO_LOG_DEBUG("%s: main fds [%d]\n", program, fds);
-        }
+
+        fds = diminuto_mux_wait(&mux, timeoutticks);
+        diminuto_assert((fds >= 0) || ((fds < 0) && (errno == EINTR)));
 
         /*
          * SERVER SSL
          */
 
-        if (fds <= 0) {
+        if (role != SERVER) {
             /* Do nothing. */
-        } else if (role != SERVER) {
+        } else if (fds <= 0) {
             /* Do nothing. */
+        } else if ((acceptfd = diminuto_mux_ready_accept(&mux)) < 0) {
+            /* Do nothing. */
+        } else if (acceptfd != biofd) {
+            diminuto_assert(false);
+        } else if (sslfd < 0) {
+            fds -= 1;
+            diminuto_assert(ssl == (codex_connection_t *)0);
+            ssl = codex_server_connection_new(ctx, bio);
+            diminuto_assert(ssl != (codex_connection_t *)0);
+            diminuto_assert(codex_connection_is_server(ssl));
+            diminuto_assert(sslfd < 0);
+            sslfd = codex_connection_descriptor(ssl);
+            diminuto_assert(sslfd >= 0);
+            rc = connection_nearend(ssltype, sslfd, &address, &port);
+            diminuto_assert(rc >= 0);
+            DIMINUTO_LOG_NOTICE("%s: server ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
+            rc = connection_farend(ssltype, sslfd, &address, &port);
+            diminuto_assert(rc >= 0);
+            DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
+            rc = diminuto_mux_register_read(&mux, sslfd);
+            diminuto_assert(rc >= 0);
         } else {
-            acceptfd = diminuto_mux_ready_accept(&mux);
-            if (acceptfd < 0) {
-                /* Do nothing. */
-            } else if (acceptfd != biofd) {
-                /* Do nothing. */
-            } else {
-                if (sslfd < 0) {
-                    diminuto_assert(ssl == (codex_connection_t *)0);
-                    ssl = codex_server_connection_new(ctx, bio);
-                    diminuto_assert(ssl != (codex_connection_t *)0);
-                    diminuto_assert(codex_connection_is_server(ssl));
-                    diminuto_assert(sslfd < 0);
-                    sslfd = codex_connection_descriptor(ssl);
-                    diminuto_assert(sslfd >= 0);
-                    rc = connection_nearend(ssltype, sslfd, &address, &port);
-                    diminuto_assert(rc >= 0);
-                    DIMINUTO_LOG_NOTICE("%s: server ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
-                    rc = connection_farend(ssltype, sslfd, &address, &port);
-                    diminuto_assert(rc >= 0);
-                    DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
-                    rc = diminuto_mux_register_read(&mux, sslfd);
-                    diminuto_assert(rc >= 0);
-                } else {
-                    DIMINUTO_LOG_WARNING("%s: server bio (%d) reject\n", program, sslfd);
-                }
-                fds -= 1;
-            }
+            fds -= 1;
+            DIMINUTO_LOG_NOTICE("%s: server bio (%d) reject\n", program, sslfd);
         }
 
         /*
          * PROCESSING
          */
 
-        if (fds <= 0) {
-            /* Do nothing. */
-        } else if (udpfd < 0) {
+        if (udpfd < 0) {
             /* Do nothing. */
         } else if (sslfd < 0) {
             /* Do nothing. */
