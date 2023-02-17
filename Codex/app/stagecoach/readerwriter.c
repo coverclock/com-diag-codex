@@ -154,6 +154,9 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                     break;
                 case CODEX_SERROR_READ:
                     DIMINUTO_LOG_NOTICE("%s: %s writer ssl (%d) [%d] need read\n", program, label, sslfd, header[WRITER]);
+                    /*
+                     * We're always reading, so we can ignore this.
+                     */
                     break;
                 default:
                     DIMINUTO_LOG_ERROR("%s: %s writer ssl (%d) [%d] error %c %c\n", program, label, sslfd, header[WRITER], (char)state[WRITER], (char)serror);
@@ -242,6 +245,10 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                         break;
                     case CODEX_SERROR_WRITE:
                         DIMINUTO_LOG_NOTICE("%s: %s reader ssl (%d) [%d] need write\n", program, label, sslfd, header[READER]);
+                        /*
+                         * If the WRITER is IDLE, start it with a zero-length
+                         * packet.
+                         */
                         switch (state[WRITER]) {
                         case CODEX_STATE_IDLE:
                             header[WRITER] = 0;
