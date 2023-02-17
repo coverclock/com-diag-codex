@@ -1004,6 +1004,13 @@ functional:
 	unittest-core
 	unittest-machine
 
+# The handshake feature is not supported on all OpenSSL
+# implementations.
+
+# The control feature runs a unit test with the same
+# programming model as the SSL unit tests but without
+# using SSL.
+
 extra:
 	unittest-handshake
 	unittest-control

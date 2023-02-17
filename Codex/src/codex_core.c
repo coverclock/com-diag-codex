@@ -534,11 +534,13 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
 
 	} while (retry);
 
+	DIMINUTO_LOG_DEBUG("codex_connection_read_generic: ssl=%p buffer=%p size=%zu rc=%d error='%c'\n", ssl, buffer, size, rc, error);
+
 	if (serror != (codex_serror_t *)0) {
 		*serror = error;
 	}
 
-	return rc;
+	return (ssize_t)rc;
 }
 
 ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, size_t size, codex_serror_t * serror)
@@ -584,11 +586,14 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
 
 	} while (retry);
 
+	DIMINUTO_LOG_DEBUG("codex_connection_write: ssl=%p buffer=%p size=%zu rc=%d error='%c'\n", ssl, buffer, size, rc, error);
+
+
 	if (serror != (codex_serror_t *)0) {
 		*serror = error;
 	}
 
-	return rc;
+	return (ssize_t)rc;
 }
 
 /*******************************************************************************

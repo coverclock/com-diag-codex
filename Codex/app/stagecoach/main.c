@@ -73,7 +73,7 @@ int main(int argc, char * argv[])
     role_t role = INVALID;
     bool selfsigned = true; /* Allow self-signed certificates by default. */
     size_t bufsize = MAXDATAGRAM;
-    unsigned long delaymilliseconds = 10000;
+    unsigned long delaymilliseconds = 5000;
     unsigned long timeoutmilliseconds = 250;
     diminuto_sticks_t delayticks = 0;
     diminuto_sticks_t timeoutticks = 0;
@@ -456,6 +456,8 @@ int main(int argc, char * argv[])
                     DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
                     diminuto_assert(rc >= 0);
+                    rc = diminuto_mux_register_write(&mux, sslfd);
+                    diminuto_assert(rc >= 0);
                 } else {
                     /*
                      * Retry later.
@@ -493,10 +495,6 @@ int main(int argc, char * argv[])
          * WAITING
          */
 
-#if 0
-        diminuto_mux_dump(&mux);
-#endif
-
         fds = diminuto_mux_wait(&mux, timeoutticks);
         diminuto_assert((fds >= 0) || ((fds < 0) && (errno == EINTR)));
 
@@ -529,32 +527,37 @@ int main(int argc, char * argv[])
             DIMINUTO_LOG_NOTICE("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
             rc = diminuto_mux_register_read(&mux, sslfd);
             diminuto_assert(rc >= 0);
+            rc = diminuto_mux_register_write(&mux, sslfd);
+            diminuto_assert(rc >= 0);
         } else {
             fds -= 1;
             DIMINUTO_LOG_NOTICE("%s: server bio (%d) reject\n", program, sslfd);
         }
 
         /*
+         * WAITING
+         */
+
+        if (ssl == (codex_connection_t *)0) {
+            diminuto_delay(delayticks, !0);
+            continue;
+        }
+
+        /*
          * PROCESSING
          */
 
-        if (udpfd < 0) {
-            /* Do nothing. */
-        } else if (sslfd < 0) {
-            /* Do nothing. */
-        } else {
-            switch (role) {
-            case CLIENT:
-                status = client(fds, &mux, udptype, udpfd, ssl, bufsize, expected);
-                break;
-            case SERVER:
-                status = server(fds, &mux, udptype, udpfd, &serviceaddress, serviceport, ssl, bufsize, expected);
-                break;
-            default:
-                diminuto_assert(false);
-                break;
-            }
-        }
+         switch (role) {
+         case CLIENT:
+             status = client(fds, &mux, udptype, udpfd, ssl, bufsize, expected);
+             break;
+         case SERVER:
+             status = server(fds, &mux, udptype, udpfd, &serviceaddress, serviceport, ssl, bufsize, expected);
+             break;
+         default:
+             diminuto_assert(false);
+             break;
+         }
 
         /*
          * RECOVERING
@@ -585,19 +588,21 @@ int main(int argc, char * argv[])
 
         if (status != SSLDONE) {
             /* Do nothing. */
-        } else if (sslfd < 0) {
+        } else if (ssl == (codex_connection_t *)0) {
             /* Do nothing. */
         } else {
             /*
-             * May already be closed by virtue of far end closing.
+             * May already be closed by virtue of far end closing,
+             * so we ignore the value returned.
              */
             (void)codex_connection_close(ssl);
             ssl = codex_connection_free(ssl);
             diminuto_assert(ssl == (codex_connection_t *)0);
             ssl = (codex_connection_t *)0;
-            (void)diminuto_ipc_close(sslfd);
-            (void)diminuto_mux_unregister_read(&mux, sslfd);
-            (void)diminuto_mux_unregister_write(&mux, sslfd);
+            if (sslfd >= 0) {
+                (void)diminuto_mux_unregister_read(&mux, sslfd);
+                (void)diminuto_mux_unregister_write(&mux, sslfd);
+            }
             sslfd = -1;
         }
 
@@ -607,15 +612,20 @@ int main(int argc, char * argv[])
      * FINALIZATING
      */
 
+    if (bio != (codex_rendezvous_t *)0) {
+        bio = codex_server_rendezvous_free(bio);
+        diminuto_assert(bio == (codex_rendezvous_t *)0);
+        bio = (codex_rendezvous_t *)0;
+        if (biofd >= 0) {
+            (void)diminuto_mux_unregister_accept(&mux, biofd);
+        }
+        biofd = -1;
+    }
+
     if (ctx != (codex_context_t *)0) {
         ctx = codex_context_free(ctx);
         diminuto_assert(ctx == (codex_context_t *)0);
         ctx = (codex_context_t *)0;
-        if (biofd >= 0) {
-            (void)diminuto_ipc_close(biofd);
-            (void)diminuto_mux_unregister_accept(&mux, biofd);
-            biofd = -1;
-        }
     }
 
     diminuto_mux_fini(&mux);

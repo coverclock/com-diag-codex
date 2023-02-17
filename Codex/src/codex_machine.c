@@ -117,38 +117,32 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
         case CODEX_STATE_HEADER:
     
             bytes = codex_connection_read_generic(ssl, *here, *length, &error);
-            if (bytes < 0) {
+            if (bytes <= 0) {
     
                 /*
-                 * The SSL stack piggybacks all its own read and write needs for
-                 * its own protocol on the application reads and writes. So it's
-                 * possible that the stack needs to write (read) for its own needs
-                 * before it can service the application read (write). The Codex
-                 * state machines handle this by [1] passing this information back
-                 * to the application if the application asked for it in the API by
-                 * providing a pointer to a variable in which this information is
-                 * stored, [2] ignoring it and remaining in the same state in the
-                 * hopes the application will do the requisite read or write as
-                 * part of its normal behavior. (Option [3] is if the read or write
-                 * failed for some other reason, the state machine just makes the
-                 * state as FINAL and shuts down the connection.
+                 * The SSL stack piggybacks all its own read and write needs
+                 * for its own protocol on the application reads and writes.
+                 * So it's possible that the stack needs to write (read) for
+                 * its own needs before it can service the application read
+                 * (write). The Codex state machines handle this by [1] passing
+                 * this information back to the application if the application
+                 * asked for it in the API call by providing a pointer to a
+                 * variable in which this information is stored; [2] ignoring
+                 * it and remaining in the same state in the hopes the
+                 * application will do the requisite read or write as part of
+                 * its normal behavior; [3] if the read or write failed for
+                 * some other reason, the state machine just makes the state
+                 * as FINAL and shuts down the connection.
                  */
     
-                if (serror != (codex_serror_t *)0) {
-                    *serror = error;
-                }
                 if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_reader: writeful ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_reader: need write ssl=%p\n", ssl);
                     diminuto_yield();
                 } else {
                     /* Do nothing. */
                 }
-    
-            } else if (bytes == 0) {
-    
-                state = CODEX_STATE_FINAL;
     
             } else if (bytes > *length) {
     
@@ -218,29 +212,22 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
         case CODEX_STATE_PAYLOAD:
    
             bytes = codex_connection_read_generic(ssl, *here, *length, &error);
-            if (bytes < 0) {
+            if (bytes <= 0) {
     
                 /*
                  * (Same comments as above regarding SSL needing to write in
                  * order to read, or read in order to write.)
                  */
     
-                if (serror != (codex_serror_t *)0) {
-                    *serror = error;
-                }
                 if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_reader: writeful ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_reader: need write ssl=%p\n", ssl);
                     diminuto_yield();
                 } else {
                     /* Do nothing. */
                 }
         
-            } else if (bytes == 0) {
-    
-                state = CODEX_STATE_FINAL;
-    
             } else if (bytes > *length) {
     
                 DIMINUTO_LOG_ERROR("codex_machine_reader_generic: overflow ssl=%p bytes=%zd length=%zu\n", ssl, bytes, *length);
@@ -269,6 +256,10 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
         DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: end ssl=%p state='%c' expected=%p bytes=%zd header=0x%8.8x buffer=%p size=%zu here=%p length=%zu checked=%d error='%c' repeat=%d\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, *checked, error, repeat);
 
     } while (repeat);
+
+    if (serror != (codex_serror_t *)0) {
+        *serror = error;
+    }
 
     return state;
 }
@@ -327,38 +318,32 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
         case CODEX_STATE_HEADER:
     
             bytes = codex_connection_write_generic(ssl, *here, *length, &error);
-            if (bytes < 0) {
-    
+            if (bytes <= 0) {
+
                 /*
-                 * The SSL stack piggybacks all its own read and write needs for
-                 * its own protocol on the application reads and writes. So it's
-                 * possible that the stack needs to write (read) for its own needs
-                 * before it can service the application read (write). The Codex
-                 * state machines handle this by [1] passing this information back
-                 * to the application if the application asked for it in the API by
-                 * providing a pointer to a variable in which this information is
-                 * stored, [2] ignoring it and remaining in the same state in the
-                 * hopes the application will do the requisite read or write as
-                 * part of its normal behavior. (Option [3] is if the read or write
-                 * failed for some other reason, the state machine just makes the
-                 * state as FINAL and shuts down the connection.
+                 * The SSL stack piggybacks all its own read and write needs
+                 * for its own protocol on the application reads and writes.
+                 * So it's possible that the stack needs to write (read) for
+                 * its own needs before it can service the application read
+                 * (write). The Codex state machines handle this by [1] passing
+                 * this information back to the application if the application
+                 * asked for it in the API call by providing a pointer to a
+                 * variable in which this information is stored; [2] ignoring
+                 * it and remaining in the same state in the hopes the
+                 * application will do the requisite read or write as part of
+                 * its normal behavior; [3] if the read or write failed for
+                 * some other reason, the state machine just makes the state
+                 * as FINAL and shuts down the connection.
                  */
     
-                if (serror != (codex_serror_t *)0) {
-                    *serror = error;
-                }
                 if (error != CODEX_SERROR_READ) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_writer: read ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_writer: need read ssl=%p\n", ssl);
                     diminuto_yield();
                 } else {
                     /* Do nothing. */
                 }
-    
-            } else if (bytes == 0) {
-    
-                state = CODEX_STATE_FINAL;
     
             } else if (bytes > *length) {
     
@@ -385,28 +370,21 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
         case CODEX_STATE_PAYLOAD:
     
             bytes = codex_connection_write_generic(ssl, *here, *length, &error);
-            if (bytes < 0) {
+            if (bytes <= 0) {
     
                 /*
                  * (Same comments as above regarding SSL needing to write in
                  * order to read, or read in order to write.)
                  */
     
-                if (serror != (codex_serror_t *)0) {
-                    *serror = error;
-                }
                 if (error != CODEX_SERROR_READ) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_writer: readful ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_writer: need read ssl=%p\n", ssl);
                     diminuto_yield();
                 } else {
                     /* Do nothing. */
                 }
-    
-            } else if (bytes == 0) {
-    
-                state = CODEX_STATE_FINAL;
     
             } else if (bytes > *length) {
     
@@ -434,6 +412,10 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
         DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: end ssl=%p state='%c' expected=%p bytes=%zd header=0x%8.8x buffer=%p size=%zu here=%p length=%zu checked=%d error='%c'\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, *checked, error);
 
     } while (repeat);
+
+    if (serror != (codex_serror_t *)0) {
+        *serror = error;
+    }
 
     return state;
 }
