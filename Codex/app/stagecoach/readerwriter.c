@@ -16,6 +16,7 @@
 #include "com/diag/diminuto/diminuto_ipc4.h"
 #include "com/diag/diminuto/diminuto_ipc6.h"
 #include "com/diag/diminuto/diminuto_log.h"
+#include "com/diag/diminuto/diminuto_time.h"
 #include "client.h"
 #include "globals.h"
 #include "protocols.h"
@@ -28,8 +29,9 @@ static void * buffer[DIRECTIONS] = { (void *)0, (void *)0, };
 static uint8_t * here[DIRECTIONS] = { (uint8_t *)0, (uint8_t *)0, };
 static size_t length[DIRECTIONS] = { 0, 0, };
 static bool checked = false;
+static ticks_t then = 0;
 
-status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, address_t * receivedaddressp, port_t * receivedportp, const address_t * sendingaddressp, const port_t sendingport, codex_connection_t * ssl, size_t bufsize, const char * expected)
+status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, address_t * receivedaddressp, port_t * receivedportp, const address_t * sendingaddressp, const port_t sendingport, codex_connection_t * ssl, size_t bufsize, const char * expected, ticks_t keepalive)
 {
     status_t status = CONTINUE;
     int readfd = -1;
@@ -40,6 +42,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
     int mask = 0;
     const char * label = (const char *)0;
     bool pending = false;
+    static ticks_t now = 0;
 
     if (!initialized) {
         diminuto_assert(bufsize > 0);
@@ -49,6 +52,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
         diminuto_assert(buffer[WRITER] != (void *)0);
         checked = false;
         initialized = true;
+        then = diminuto_time_elapsed();
     }
 
     switch (role) {
@@ -69,6 +73,13 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
 
     do {
 
+        /*
+         * Get next socket file descriptors ready
+         * read for reading or writing. Also see
+         * if there is data pending inside the SSL
+         * buffer.
+         */
+
         readfd = diminuto_mux_ready_read(muxp);
         writefd = diminuto_mux_ready_write(muxp);
         pending = codex_connection_is_ready(ssl);
@@ -82,6 +93,10 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
         } else {
             break;
         }
+
+        /*
+         * Do UDP reads.
+         */
 
         if (readfd == udpfd) {
             switch (state[WRITER]) {
@@ -106,6 +121,10 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
         if (status != CONTINUE) {
             break;
         }
+
+        /*
+         * Do SSL writes.
+         */
 
         if (writefd == sslfd) {
             switch (state[WRITER]) {
@@ -148,15 +167,23 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                 status = SSLDONE;
                 break;
             case CODEX_STATE_IDLE:
-                header[WRITER] = 0;
-#if 0
                 /*
-                 * Even DEBUG is too much of a firehose.
+                 * If the WRITER is IDLE, and the keepalive
+                 * has elapsed, send an empty segment (a
+                 * header containing zero) to the far end.
+                 * (This can firehose the log if DEBUG is
+                 * enabled and the keepalive is too small.
+                 * Keeping DEBUG off, or increasing the
+                 * keepalive, e.g. 250ms maybe, is okay.)
                  */
-                DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] synthesize\n", program, label, sslfd, header[WRITER]);
-#endif
-                state[WRITER] = restate;
-                restate = CODEX_STATE_RESTART;
+                now = diminuto_time_elapsed();
+                if ((now - then) >= keepalive) {
+                    header[WRITER] = 0;
+                    DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] synthesize\n", program, label, sslfd, header[WRITER]);
+                    state[WRITER] = restate;
+                    restate = CODEX_STATE_RESTART;
+                    then = now;
+                }
                 break;
             }
         }
@@ -164,6 +191,10 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
         if (status != CONTINUE) {
             break;
         }
+
+        /*
+         * Do SSL reads and UDP writes.
+         */
 
         if ((readfd == sslfd) || pending) {
             do {

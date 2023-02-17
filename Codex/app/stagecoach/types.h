@@ -44,4 +44,6 @@ typedef union Address {
 
 typedef diminuto_port_t port_t;
 
+typedef diminuto_sticks_t ticks_t;
+
 #endif

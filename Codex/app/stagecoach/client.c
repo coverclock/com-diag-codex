@@ -19,7 +19,7 @@
 static address_t address = { 0, };
 static diminuto_port_t port = 0;
 
-status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, codex_connection_t * ssl, size_t bufsize, const char * expected)
+status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, codex_connection_t * ssl, size_t bufsize, const char * expected, ticks_t keepalive)
 {
-    return readerwriter(CLIENT, fds, muxp, udptype, udpfd, &address, &port, &address, port, ssl, bufsize, expected);
+    return readerwriter(CLIENT, fds, muxp, udptype, udpfd, &address, &port, &address, port, ssl, bufsize, expected, keepalive);
 }

@@ -70,13 +70,16 @@ int main(int argc, char * argv[])
     const char * pathkey = (const char *)0;
     const char * delay = (const char *)0;
     const char * timeout = (const char *)0;
+    const char * keepalive = (const char *)0;
     role_t role = INVALID;
     bool selfsigned = true; /* Allow self-signed certificates by default. */
     size_t bufsize = MAXDATAGRAM;
     unsigned long delaymilliseconds = 5000;
     unsigned long timeoutmilliseconds = 250;
-    diminuto_sticks_t delayticks = 0;
-    diminuto_sticks_t timeoutticks = 0;
+    unsigned long keepalivemilliseconds = 0;
+    ticks_t delayticks = 0;
+    ticks_t timeoutticks = 0;
+    ticks_t keepaliveticks = 0;
     int rc = -1;
     diminuto_ipc_endpoint_t farendpoint = { 0 };
     diminuto_ipc_endpoint_t nearendpoint = { 0 };
@@ -115,7 +118,7 @@ int main(int argc, char * argv[])
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "C:D:E:K:L:P:R:b:cd:f:n:rst:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "C:D:E:K:L:P:R:b:cd:f:k:n:rst:v?")) >= 0) {
 
         switch (opt) {
 
@@ -163,6 +166,10 @@ int main(int argc, char * argv[])
             farend = optarg;
             break;
 
+        case 'k':
+            keepalive = optarg;
+            break;
+
         case 'n':
             nearend = optarg;
             break;
@@ -180,7 +187,7 @@ int main(int argc, char * argv[])
             break;
 
         case '?':
-            fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -c | -s ]\n", program);
+            fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -k MILLISECONDS ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -c | -s ]\n", program);
             exit(1);
             break;
 
@@ -188,7 +195,7 @@ int main(int argc, char * argv[])
 
     }
 
-    DIMINUTO_LOG_INFORMATION("%s: %s begin B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" n=\"%s\" r=%d t=\"%s\" %c=%d\n",
+    DIMINUTO_LOG_INFORMATION("%s: %s begin B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" k=\"%s\" n=\"%s\" r=%d t=\"%s\" %c=%d\n",
         program,
         (role == CLIENT) ? "client" : (role == SERVER) ? "server" : "unknown",
         (bytes == (const char *)0) ? "" : bytes,
@@ -201,6 +208,7 @@ int main(int argc, char * argv[])
         (delay == (const char *)0) ? "" : delay,
         (expected == (const char *)0) ? "" : expected,
         (farend == (const char *)0) ? "" : farend,
+        (keepalive == (const char *)0) ? "" : keepalive,
         (nearend == (const char *)0) ? "" : nearend,
         !selfsigned,
         (timeout == (const char *)0) ? "" : timeout,
@@ -221,6 +229,13 @@ int main(int argc, char * argv[])
     }
     delayticks = diminuto_frequency_units2ticks(delaymilliseconds, 1000 /* Hz */);
     DIMINUTO_LOG_INFORMATION("%s: delay=%lums=%lldticks\n", program, delaymilliseconds, (diminuto_lld_t)delayticks);
+
+    if (keepalive != (const char *)0) {
+        keepalivemilliseconds = strtoul(keepalive, &endptr, 0);
+        diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (keepalivemilliseconds > 0));
+    }
+    keepaliveticks = diminuto_frequency_units2ticks(keepalivemilliseconds, 1000 /* Hz */);
+    DIMINUTO_LOG_INFORMATION("%s: keepalive=%lums=%lldticks\n", program, keepalivemilliseconds, (diminuto_lld_t)keepaliveticks);
 
     if (timeout != (const char *)0) {
         timeoutmilliseconds = strtoul(timeout, &endptr, 0);
@@ -549,10 +564,10 @@ int main(int argc, char * argv[])
 
          switch (role) {
          case CLIENT:
-             status = client(fds, &mux, udptype, udpfd, ssl, bufsize, expected);
+             status = client(fds, &mux, udptype, udpfd, ssl, bufsize, expected, keepaliveticks);
              break;
          case SERVER:
-             status = server(fds, &mux, udptype, udpfd, &serviceaddress, serviceport, ssl, bufsize, expected);
+             status = server(fds, &mux, udptype, udpfd, &serviceaddress, serviceport, ssl, bufsize, expected, keepaliveticks);
              break;
          default:
              diminuto_assert(false);
