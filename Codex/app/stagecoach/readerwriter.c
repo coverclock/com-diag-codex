@@ -149,7 +149,12 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                 break;
             case CODEX_STATE_IDLE:
                 header[WRITER] = 0;
+#if 0
+                /*
+                 * Even DEBUG is too much of a firehose.
+                 */
                 DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] synthesize\n", program, label, sslfd, header[WRITER]);
+#endif
                 state[WRITER] = restate;
                 restate = CODEX_STATE_RESTART;
                 break;
@@ -184,7 +189,13 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                                     status = UDPDONE;
                                 }
                             } else {
-                                DIMINUTO_LOG_NOTICE("%s: %s reader ssl (%d) [%d] empty\n", program, label, sslfd, header[READER]);
+                                /*
+                                 * This should never happen because the lower
+                                 * layers already filter out zero-length
+                                 * packets. But if it does happen, it is such
+                                 * a firehose that we limit it to DEBUG level.
+                                 */
+                                DIMINUTO_LOG_DEBUG("%s: %s reader ssl (%d) [%d] empty\n", program, label, sslfd, header[READER]);
                                 state[READER] = CODEX_STATE_RESTART;
                             }
                             break;
