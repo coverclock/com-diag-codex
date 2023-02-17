@@ -72,7 +72,6 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
         readfd = diminuto_mux_ready_read(muxp);
         writefd = diminuto_mux_ready_write(muxp);
         pending = codex_connection_is_ready(ssl);
-fprintf(stderr, "READERWRITER fds=%d readfd=%d writefd=%d udpfd=%d sslfd=%d pending=%d\n", fds, readfd, writefd, udpfd, sslfd, pending);
 
         if (readfd >= 0) {
             /* Do nothing. */
@@ -149,14 +148,10 @@ fprintf(stderr, "READERWRITER fds=%d readfd=%d writefd=%d udpfd=%d sslfd=%d pend
                 status = SSLDONE;
                 break;
             case CODEX_STATE_IDLE:
-#if !0
                 header[WRITER] = 0;
+                DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] synthesize\n", program, label, sslfd, header[WRITER]);
                 state[WRITER] = restate;
                 restate = CODEX_STATE_RESTART;
-                DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] synthesize\n", program, label, sslfd, header[WRITER]);
-#else
-                /* Do nothing. */
-#endif
                 break;
             }
         }
