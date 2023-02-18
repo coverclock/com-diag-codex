@@ -152,17 +152,17 @@ typedef SSL codex_connection_t;
  * assume.
  */
 typedef enum CodexSerror {
-	CODEX_SERROR_NONE		= '!', /* SSL_ERROR_NONE */
-	CODEX_SERROR_SSL		= 'S', /* SSL_ERROR_SSL */
-	CODEX_SERROR_READ		= 'R', /* SSL_ERROR_WANT_READ */
-	CODEX_SERROR_WRITE		= 'W', /* SSL_ERROR_WANT_WRITE */
-	CODEX_SERROR_LOOKUP		= 'L', /* SSL_ERROR_WANT_X509_LOOKUP */
-	CODEX_SERROR_SYSCALL	= 'K', /* SSL_ERROR_SYSCALL */
-	CODEX_SERROR_ZERO		= '0', /* SSL_ERROR_ZERO_RETURN */
-	CODEX_SERROR_CONNECT	= 'C', /* SSL_ERROR_WANT_CONNECT */
-	CODEX_SERROR_ACCEPT		= 'A', /* SSL_ERROR_WANT_ACCEPT */
-	CODEX_SERROR_OTHER		= '?', /* Undefined SSL error. */
-	CODEX_SERROR_SUCCESS	= '-', /* No SSL error occurred. */
+    CODEX_SERROR_NONE        = '!', /* SSL_ERROR_NONE */
+    CODEX_SERROR_SSL        = 'S', /* SSL_ERROR_SSL */
+    CODEX_SERROR_READ        = 'R', /* SSL_ERROR_WANT_READ */
+    CODEX_SERROR_WRITE        = 'W', /* SSL_ERROR_WANT_WRITE */
+    CODEX_SERROR_LOOKUP        = 'L', /* SSL_ERROR_WANT_X509_LOOKUP */
+    CODEX_SERROR_SYSCALL    = 'K', /* SSL_ERROR_SYSCALL */
+    CODEX_SERROR_ZERO        = '0', /* SSL_ERROR_ZERO_RETURN */
+    CODEX_SERROR_CONNECT    = 'C', /* SSL_ERROR_WANT_CONNECT */
+    CODEX_SERROR_ACCEPT        = 'A', /* SSL_ERROR_WANT_ACCEPT */
+    CODEX_SERROR_OTHER        = '?', /* Undefined SSL error. */
+    CODEX_SERROR_SUCCESS    = '-', /* No SSL error occurred. */
 } codex_serror_t;
 
 /**
@@ -171,13 +171,13 @@ typedef enum CodexSerror {
  * what is sufficient verification.
  */
 typedef enum CodexVerify {
-	CODEX_VERIFY_FAILED	= (0     ),	/* 0x0 Verification failed. */
-	CODEX_VERIFY_PASSED	= (1 << 0),	/* 0x1 Nothing expected but otherwise valid. */
-	CODEX_VERIFY_CN		= (1 << 1),	/* 0x2 CN matched expected. */
-	CODEX_VERIFY_IPV4	= (1 << 2),	/* 0x4 DNS matched IPv4 far end. */
-	CODEX_VERIFY_IPV6	= (1 << 3),	/* 0x4 DNS matched IPv6 far end. */
-	CODEX_VERIFY_DNS	= (1 << 4),	/* 0x4 DNS matched either IP far end. */
-	CODEX_VERIFY_FQDN	= (1 << 5),	/* 0x8 FQDN matched expected. */
+    CODEX_VERIFY_FAILED    = (0     ),    /* 0x0 Verification failed. */
+    CODEX_VERIFY_PASSED    = (1 << 0),    /* 0x1 Nothing expected but otherwise valid. */
+    CODEX_VERIFY_CN        = (1 << 1),    /* 0x2 CN matched expected. */
+    CODEX_VERIFY_IPV4    = (1 << 2),    /* 0x4 DNS matched IPv4 far end. */
+    CODEX_VERIFY_IPV6    = (1 << 3),    /* 0x4 DNS matched IPv6 far end. */
+    CODEX_VERIFY_DNS    = (1 << 4),    /* 0x4 DNS matched either IP far end. */
+    CODEX_VERIFY_FQDN    = (1 << 5),    /* 0x8 FQDN matched expected. */
 } codex_verify_t;
 
 /**
@@ -203,13 +203,13 @@ typedef int32_t codex_header_t;
  * do-nothing state that can be used to quiesce the state machine.
  */
 typedef enum CodexState {
-	CODEX_STATE_START		= 'S',	/* Verify identity and read header. */
-	CODEX_STATE_RESTART		= 'R',	/* Read header. */
-	CODEX_STATE_HEADER		= 'H',	/* Continue reading header. */
-	CODEX_STATE_PAYLOAD		= 'P',	/* Read payload. */
-	CODEX_STATE_COMPLETE	= 'C',	/* Payload (or SSL serror) available. */
-	CODEX_STATE_IDLE		= 'I',	/* Do nothing. */
-	CODEX_STATE_FINAL		= 'F',	/* Connection closed. */
+    CODEX_STATE_START        = 'S',    /* Verify identity and read header. */
+    CODEX_STATE_RESTART        = 'R',    /* Read header. */
+    CODEX_STATE_HEADER        = 'H',    /* Continue reading header. */
+    CODEX_STATE_PAYLOAD        = 'P',    /* Read payload. */
+    CODEX_STATE_COMPLETE    = 'C',    /* Payload (or SSL serror) available. */
+    CODEX_STATE_IDLE        = 'I',    /* Do nothing. */
+    CODEX_STATE_FINAL        = 'F',    /* Connection closed. */
 } codex_state_t;
 
 /**
@@ -220,12 +220,12 @@ typedef enum CodexState {
  * But they're useful enough to include here as a common convention.
  */
 typedef enum CodexIndication {
-	CODEX_INDICATION_PENDING	= -5,	/* NE told FE to prepare for action. */
-	CODEX_INDICATION_NEAREND	= -4,	/* NE preparing for action. */
-	CODEX_INDICATION_DONE		= -3,	/* Tell FE action complete. */
-	CODEX_INDICATION_READY		= -2,	/* Tell NE that FE ready for action. */
-	CODEX_INDICATION_FAREND		= -1,	/* Tell FE to prepare for action. */
-	CODEX_INDICATION_NONE		=  0,	/* No action pending or in progress. */
+    CODEX_INDICATION_PENDING    = -5,    /* NE told FE to prepare for action. */
+    CODEX_INDICATION_NEAREND    = -4,    /* NE preparing for action. */
+    CODEX_INDICATION_DONE        = -3,    /* Tell FE action complete. */
+    CODEX_INDICATION_READY        = -2,    /* Tell NE that FE ready for action. */
+    CODEX_INDICATION_FAREND        = -1,    /* Tell FE to prepare for action. */
+    CODEX_INDICATION_NONE        =  0,    /* No action pending or in progress. */
 } codex_indication_t;
 
 /**
@@ -395,7 +395,7 @@ extern int codex_connection_verify(codex_connection_t * ssl, const char * expect
  * @return true if the bit mask fits some common criteria.
  */
 static inline bool codex_connection_verified(int mask) {
-	return (((mask & CODEX_VERIFY_DNS) != 0) && ((mask & (CODEX_VERIFY_PASSED | CODEX_VERIFY_CN | CODEX_VERIFY_FQDN)) != 0));
+    return (((mask & CODEX_VERIFY_DNS) != 0) && ((mask & (CODEX_VERIFY_PASSED | CODEX_VERIFY_CN | CODEX_VERIFY_FQDN)) != 0));
 }
 
 /*******************************************************************************
@@ -421,7 +421,7 @@ extern ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * bu
  */
 static inline ssize_t codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 {
-	return codex_connection_read_generic(ssl, buffer, size, (codex_serror_t *)0);
+    return codex_connection_read_generic(ssl, buffer, size, (codex_serror_t *)0);
 }
 
 /**
@@ -443,7 +443,7 @@ extern ssize_t codex_connection_write_generic(codex_connection_t * ssl, const vo
  */
 static inline ssize_t codex_connection_write(codex_connection_t * ssl, const void * buffer, size_t size)
 {
-	return codex_connection_write_generic(ssl, buffer, size, (codex_serror_t *)0);
+    return codex_connection_write_generic(ssl, buffer, size, (codex_serror_t *)0);
 }
 
 /**
@@ -454,7 +454,7 @@ static inline ssize_t codex_connection_write(codex_connection_t * ssl, const voi
  */
 static inline bool codex_connection_is_ready(codex_connection_t * ssl)
 {
-	return (SSL_pending(ssl) > 0);
+    return (SSL_pending(ssl) > 0);
 }
 
 /*******************************************************************************
@@ -486,7 +486,7 @@ static inline bool codex_connection_is_ready(codex_connection_t * ssl)
  */
 static inline int codex_rendezvous_descriptor(codex_rendezvous_t * bio)
 {
-	return BIO_get_fd(bio, (int *)0);
+    return BIO_get_fd(bio, (int *)0);
 }
 
 /**
@@ -497,7 +497,7 @@ static inline int codex_rendezvous_descriptor(codex_rendezvous_t * bio)
  */
 static inline int codex_connection_descriptor(codex_connection_t * ssl)
 {
-	return SSL_get_fd(ssl);
+    return SSL_get_fd(ssl);
 }
 
 /*******************************************************************************
@@ -639,7 +639,7 @@ extern codex_state_t codex_machine_reader_generic(codex_state_t state, const cha
  */
 static inline codex_state_t codex_machine_reader(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, bool * checked)
 {
-	return codex_machine_reader_generic(state, expected, ssl, header, buffer, size, here, length, checked, (codex_serror_t *)0, (int *)0);
+    return codex_machine_reader_generic(state, expected, ssl, header, buffer, size, here, length, checked, (codex_serror_t *)0, (int *)0);
 }
 
 /**
@@ -688,7 +688,7 @@ extern codex_state_t codex_machine_writer_generic(codex_state_t state, const cha
  */
 static inline codex_state_t codex_machine_writer(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, ssize_t size, uint8_t ** here, size_t * length, bool * checked)
 {
-	return codex_machine_writer_generic(state, expected, ssl, header, buffer, size, here, length, checked, (codex_serror_t *)0, (int *)0);
+    return codex_machine_writer_generic(state, expected, ssl, header, buffer, size, here, length, checked, (codex_serror_t *)0, (int *)0);
 }
 
 #endif

@@ -58,38 +58,38 @@ int codex_initialize_f(const CONF * cfg, const char * app, int flags, const char
  */
 
 #if !defined(COM_DIAG_CODEX_METHOD)
-#	warning COM_DIAG_CODEX_METHOD undefined!
-#	define COM_DIAG_CODEX_METHOD ((SSL_METHOD *)0)
+#   warning COM_DIAG_CODEX_METHOD undefined!
+#   define COM_DIAG_CODEX_METHOD ((SSL_METHOD *)0)
 #endif
 
 #if !defined(COM_DIAG_CODEX_CIPHER_LIST)
-#	warning COM_DIAG_CODEX_CIPER_LIST undefined!
-#	define COM_DIAG_CODEX_CIPHER_LIST ""
+#   warning COM_DIAG_CODEX_CIPER_LIST undefined!
+#   define COM_DIAG_CODEX_CIPHER_LIST ""
 #endif
 
 #if !defined(COM_DIAG_CODEX_SESSION_ID_CONTEXT)
-#	warning COM_DIAG_CODEX_SESSION_ID_CONTEXT undefined!
-#	define COM_DIAG_CODEX_SESSION_ID_CONTEXT ""
+#   warning COM_DIAG_CODEX_SESSION_ID_CONTEXT undefined!
+#   define COM_DIAG_CODEX_SESSION_ID_CONTEXT ""
 #endif
 
 #if !defined(COM_DIAG_CODEX_CERTIFICATE_DEPTH)
-#	warning COM_DIAG_CODEX_CERTIFICATE_DEPTH undefined!
-#	define COM_DIAG_CODEX_CERTIFICATE_DEPTH 0
+#   warning COM_DIAG_CODEX_CERTIFICATE_DEPTH undefined!
+#   define COM_DIAG_CODEX_CERTIFICATE_DEPTH 0
 #endif
 
 #if !defined(COM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES)
-#	warning COM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES undefined!
-#	define COM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES 0
+#   warning COM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES undefined!
+#   define COM_DIAG_CODEX_SELF_SIGNED_CERTIFICATES 0
 #endif
 
 #if !defined(COM_DIAG_CODEX_SERVER_PASSWORD_ENV)
-#	warning COM_DIAG_CODEX_SERVER_PASSWORD_ENV undefined!
-#	define COM_DIAG_CODEX_SERVER_PASSWORD_ENV ""
+#   warning COM_DIAG_CODEX_SERVER_PASSWORD_ENV undefined!
+#   define COM_DIAG_CODEX_SERVER_PASSWORD_ENV ""
 #endif
 
 #if !defined(COM_DIAG_CODEX_CLIENT_PASSWORD_ENV)
-#	warning COM_DIAG_CODEX_CLIENT_PASSWORD_ENV undefined!
-#	define COM_DIAG_CODEX_CLIENT_PASSWORD_ENV ""
+#   warning COM_DIAG_CODEX_CLIENT_PASSWORD_ENV undefined!
+#   define COM_DIAG_CODEX_CLIENT_PASSWORD_ENV ""
 #endif
 
 /*******************************************************************************
@@ -114,7 +114,7 @@ int codex_initialize_f(const CONF * cfg, const char * app, int flags, const char
 
 #undef CODEX_PARAMETER
 #define CODEX_PARAMETER(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
-	extern _TYPE_ codex_##_NAME_;
+    extern _TYPE_ codex_##_NAME_;
 
 #include "codex_parameters.h"
 
@@ -139,7 +139,7 @@ extern void codex_wtf(const char * file, int line, const codex_connection_t * ss
  */
 static inline void codex_cerror(void)
 {
-	while (ERR_get_error() != 0) { /* Do nothing. */ }
+    while (ERR_get_error() != 0) { /* Do nothing. */ }
 }
 
 /*******************************************************************************
@@ -148,7 +148,7 @@ static inline void codex_cerror(void)
 
 #undef CODEX_PARAMETER
 #define CODEX_PARAMETER(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_) \
-	extern _TYPE_ codex_set_##_NAME_(_TYPE_ now);
+    extern _TYPE_ codex_set_##_NAME_(_TYPE_ now);
 
 #include "codex_parameters.h"
 

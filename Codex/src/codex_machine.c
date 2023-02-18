@@ -92,7 +92,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                     *mask = verification;
                 }
                 if (!codex_connection_verified(verification)) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected farend=server ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unverified farend=server ssl=%p\n", ssl);
                     state = CODEX_STATE_FINAL;
                 } else {
                     DIMINUTO_LOG_INFORMATION("codex_machine_reader_generic: verified farend=server ssl=%p\n", ssl);
@@ -171,7 +171,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                         *mask = verification;
                     }
                     if (!codex_connection_verified(verification)) {
-                        DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unexpected farend=client ssl=%p\n", ssl);
+                        DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unverified farend=client ssl=%p\n", ssl);
                         state = CODEX_STATE_FINAL;
                     } else {
                         DIMINUTO_LOG_INFORMATION("codex_machine_reader_generic: verified farend=client ssl=%p\n", ssl);

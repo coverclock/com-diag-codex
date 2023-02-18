@@ -13,8 +13,8 @@
  */
 
 #if !defined(CODEX_PARAMETER)
-#	warning CODEX_PARAMETER undefined!
-#	define CODEX_PARAMETER(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_)
+#   warning CODEX_PARAMETER undefined!
+#   define CODEX_PARAMETER(_NAME_, _TYPE_, _UNDEFINED_, _DEFAULT_)
 #endif
 
 CODEX_PARAMETER(method, codex_method_t, 0, (COM_DIAG_CODEX_METHOD))

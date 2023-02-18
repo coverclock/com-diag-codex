@@ -549,11 +549,10 @@ int main(int argc, char * argv[])
             DIMINUTO_LOG_NOTICE("%s: server bio (%d) reject\n", program, sslfd);
         }
 
-        /*
-         * WAITING
-         */
-
         if (ssl == (codex_connection_t *)0) {
+            /*
+             * Retry later.
+             */
             diminuto_delay(delayticks, !0);
             continue;
         }
@@ -561,6 +560,8 @@ int main(int argc, char * argv[])
         /*
          * PROCESSING
          */
+
+         diminuto_assert((udpfd >= 0) && (sslfd >= 0));
 
          switch (role) {
          case CLIENT:

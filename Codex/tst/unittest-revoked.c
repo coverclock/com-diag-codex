@@ -25,65 +25,65 @@
 int main(int argc, char ** argv)
 {
 
-	(void)diminuto_core_enable();
+    (void)diminuto_core_enable();
 
-	diminuto_log_setmask();
+    diminuto_log_setmask();
 
-	{
-		int rc;
+    {
+        int rc;
 
-		TEST();
+        TEST();
 
-		rc = codex_revoked_free();
-		ASSERT(rc == 0);
+        rc = codex_revoked_free();
+        ASSERT(rc == 0);
 
-		STATUS();
-	}
+        STATUS();
+    }
 
-	{
-		int rc;
+    {
+        int rc;
 
-		TEST();
+        TEST();
 
-		rc = codex_revoked_import("/dev/null");
-		ASSERT(rc == 0);
-		rc = codex_revoked_export("/dev/stderr");
-		ASSERT(rc == 0);
-		rc = codex_revoked_free();
-		ASSERT(rc == 0);
+        rc = codex_revoked_import("/dev/null");
+        ASSERT(rc == 0);
+        rc = codex_revoked_export("/dev/stderr");
+        ASSERT(rc == 0);
+        rc = codex_revoked_free();
+        ASSERT(rc == 0);
 
-		STATUS();
-	}
+        STATUS();
+    }
 
-	{
-		int rc;
+    {
+        int rc;
 
-		TEST();
+        TEST();
 
-		rc = codex_revoked_import(COM_DIAG_CODEX_OUT_CRT_PATH "/crl.txt");
-		ASSERT(rc == 2);
-		rc = codex_revoked_export("/dev/stderr");
-		ASSERT(rc == 2);
-		rc = codex_revoked_free();
-		ASSERT(rc == 2);
+        rc = codex_revoked_import(COM_DIAG_CODEX_OUT_CRT_PATH "/crl.txt");
+        ASSERT(rc == 2);
+        rc = codex_revoked_export("/dev/stderr");
+        ASSERT(rc == 2);
+        rc = codex_revoked_free();
+        ASSERT(rc == 2);
 
-		STATUS();
-	}
+        STATUS();
+    }
 
-	{
-		int rc;
+    {
+        int rc;
 
-		TEST();
+        TEST();
 
-		rc = codex_revoked_import(COM_DIAG_CODEX_OUT_CRT_PATH "/crltwo.txt");
-		ASSERT(rc == 4);
-		rc = codex_revoked_export("/dev/stderr");
-		ASSERT(rc == 2);
-		rc = codex_revoked_free();
-		ASSERT(rc == 2);
+        rc = codex_revoked_import(COM_DIAG_CODEX_OUT_CRT_PATH "/crltwo.txt");
+        ASSERT(rc == 4);
+        rc = codex_revoked_export("/dev/stderr");
+        ASSERT(rc == 2);
+        rc = codex_revoked_free();
+        ASSERT(rc == 2);
 
-		STATUS();
-	}
+        STATUS();
+    }
 
-	EXIT();
+    EXIT();
 }
