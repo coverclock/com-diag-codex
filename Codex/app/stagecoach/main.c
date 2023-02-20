@@ -16,6 +16,32 @@
  * In this manner, this utility serves as a proxy for the server on
  * the client end, and proxy for the client on the server end.
  *
+ * NOTES
+ *
+ * OpenSSL clients and servers have to do a *lot* of talking to each other
+ * that all happens "under the hood" with respect to the application:
+ * exchanging encryption keys, authenticating each other's certificates, etc.
+ *
+ * The OpenSSL library doesn't autonomously do any reads or writes. It piggy
+ * backs reads and writes when the application does a read or a write. So
+ * it has to wait for the application to read if it needs to do a read,
+ * and same for a write. Sometimes you get an error return that says "I
+ * need to read" or "I need to write", and you have to accommodate that no
+ * matter what your state.
+ *
+ * The OpenSSL connection object that the application uses to direct reads
+ * and writes isn't thread-safe, according to the docs, so you can't just
+ * use a reader thread or a writer thread that run concurrently.
+ *
+ * This makes common approaches, like multiplexing using select(2) (Diminuto
+ * Mux), a real challenge, since the system call knows nothing about that's
+ * going on in the OpenSSL stack.
+ * 
+ * You make a mistake, and your application can block on a read
+ * indefinitely. Sometimes the answer to that is to keep a flow of "bit
+ * bucket" writes going; I got that solution working, but it's not
+ * practical for applications using limited or expensive bandwidth WANs.
+ *
  * I really really wanted NOT to have to write this program. I felt
  * that I should be able to script it using some combination of maybe
  * socat and ssh. But I didn't see a way to preserve the record boundaries
@@ -24,7 +50,7 @@
  * the solutions I saw worked most of the time by coincidence, in my
  * opinion.
  *
- * WORK IN PROGRESS
+ * THIS IS A WORK IN PROGRESS
  */
 
 #include "com/diag/codex/codex.h"
@@ -76,10 +102,10 @@ int main(int argc, char * argv[])
     size_t bufsize = MAXDATAGRAM;
     unsigned long delaymilliseconds = 5000;
     unsigned long timeoutmilliseconds = 250;
-    unsigned long keepalivemilliseconds = 0;
+    signed long keepalivemilliseconds = -1;
     ticks_t delayticks = 0;
     ticks_t timeoutticks = 0;
-    ticks_t keepaliveticks = 0;
+    sticks_t keepaliveticks = 0;
     int rc = -1;
     diminuto_ipc_endpoint_t farendpoint = { 0 };
     diminuto_ipc_endpoint_t nearendpoint = { 0 };
@@ -228,21 +254,21 @@ int main(int argc, char * argv[])
         diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (delaymilliseconds > 0));
     }
     delayticks = diminuto_frequency_units2ticks(delaymilliseconds, 1000 /* Hz */);
-    DIMINUTO_LOG_INFORMATION("%s: delay=%lums=%lldticks\n", program, delaymilliseconds, (diminuto_lld_t)delayticks);
+    DIMINUTO_LOG_INFORMATION("%s: delay=%lums=%lluticks\n", program, delaymilliseconds, (diminuto_llu_t)delayticks);
 
     if (keepalive != (const char *)0) {
-        keepalivemilliseconds = strtoul(keepalive, &endptr, 0);
-        diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (keepalivemilliseconds > 0));
+        keepalivemilliseconds = strtol(keepalive, &endptr, 0);
+        diminuto_assert((endptr != (const char *)0) && (*endptr == '\0'));
     }
-    keepaliveticks = diminuto_frequency_units2ticks(keepalivemilliseconds, 1000 /* Hz */);
-    DIMINUTO_LOG_INFORMATION("%s: keepalive=%lums=%lldticks\n", program, keepalivemilliseconds, (diminuto_lld_t)keepaliveticks);
+    keepaliveticks = (keepalivemilliseconds >= 0) ? diminuto_frequency_units2ticks(keepalivemilliseconds, 1000 /* Hz */) : -1;
+    DIMINUTO_LOG_INFORMATION("%s: keepalive=%ldms=%lldticks\n", program, keepalivemilliseconds, (diminuto_lld_t)keepaliveticks);
 
     if (timeout != (const char *)0) {
         timeoutmilliseconds = strtoul(timeout, &endptr, 0);
         diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (timeoutmilliseconds > 0));
     }
     timeoutticks = diminuto_frequency_units2ticks(timeoutmilliseconds, 1000 /* Hz */);
-    DIMINUTO_LOG_INFORMATION("%s: timeout=%lums=%lldticks\n", program, timeoutmilliseconds, (diminuto_lld_t)timeoutticks);
+    DIMINUTO_LOG_INFORMATION("%s: timeout=%lums=%lluticks\n", program, timeoutmilliseconds, (diminuto_llu_t)timeoutticks);
 
     DIMINUTO_LOG_INFORMATION("%s: selfsigned=%d\n", program, selfsigned);
 
@@ -271,22 +297,22 @@ int main(int argc, char * argv[])
     }
 
     /*
-     * If no host is specified for the endpoint, Diminuto assumes IPv6 by default.
-     * Using a host name like "0.0.0.0" causes Diminuto to pick IPv4 rather than
-     * the default. Note, however, that choosing hostname of "localhost" or
-     * "localhost4", while forcing IPv4 as the protocol, also binds the socket to
-     * the local host address and prevents remote clients from connecting to it,
-     * while using the unspecified ("0.0.0.0") address serves as a wildcard.
-     * An IPv6 address of "0:0:0:0:0:0:0:0" (or equivalently "::") similarly
-     * forces IPv6 to be selected while not binding the socket to a specific
-     * address. Since the implementation doesn't use the address except to
-     * select IPv4 or IPv6, we require that it be the "unspecified" address for
-     * that protocol. Leaving the address off will result in it being
-     * unspecified, but as said above, results in the selection of IPv6 by
-     * default. I recommend specifying the appropriate unspecified address
-     * specifically (so to speak). And why IPv6 by default? Because IPv6
-     * sockets can accept either IPv6 or IPv4 connections, but the opposite
-     * is not true.
+     * If no host is specified for the endpoint, Diminuto assumes IPv6 by
+     * default. Using a host name like "0.0.0.0" causes Diminuto to pick IPv4
+     * rather than the default. Note, however, that choosing hostname of
+     * "localhost" or "localhost4", while forcing IPv4 as the protocol, also
+     * binds the socket to the local host address and prevents remote clients
+     * from connecting to it, while using the unspecified ("0.0.0.0") address
+     * serves as a wildcard. An IPv6 address of "0:0:0:0:0:0:0:0" (or
+     * equivalently "::") similarly forces IPv6 to be selected while not
+     * binding the socket to a specific address. Since the implementation
+     * doesn't use the address except to choose IPv4 or IPv6, we require that
+     * it be the "unspecified" address for that protocol. Leaving the address
+     * off will result in it being unspecified, but as said above, results in
+     * the selection of IPv6 by default. I recommend specifying the appropriate
+     * unspecified address specifically (so to speak). And why IPv6 by default?
+     *  Because IPv6 sockets can accept either IPv6 or IPv4 connections, but
+     * the opposite is not true.
      */
 
     diminuto_assert(nearend != (const char *)0);
@@ -348,7 +374,7 @@ int main(int argc, char * argv[])
     {
         /*
          * Enable (or disable) self-signed certificates using
-         * private API. This should be done prior to Codex
+         * the private API. This should be done prior to Codex
          * initialization.
          */
         extern int codex_set_self_signed_certificates(int);
@@ -430,11 +456,6 @@ int main(int argc, char * argv[])
 
     while (!done) {
 
-        if (diminuto_hangup_check()) {
-            DIMINUTO_LOG_NOTICE("%s: SIGHUP\n", program);
-            diminuto_yield();
-        }
-
         /*
          * CONNECTING
          */
@@ -470,8 +491,6 @@ int main(int argc, char * argv[])
                     diminuto_assert(rc >= 0);
                     DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                     rc = diminuto_mux_register_read(&mux, sslfd);
-                    diminuto_assert(rc >= 0);
-                    rc = diminuto_mux_register_write(&mux, sslfd);
                     diminuto_assert(rc >= 0);
                 } else {
                     /*
@@ -513,11 +532,25 @@ int main(int argc, char * argv[])
         fds = diminuto_mux_wait(&mux, timeoutticks);
         diminuto_assert((fds >= 0) || ((fds < 0) && (errno == EINTR)));
 
+        if (diminuto_hangup_check()) {
+            DIMINUTO_LOG_NOTICE("%s: SIGHUP\n", program);
+            diminuto_yield();
+        }
+
+        if (diminuto_terminator_check()) {
+            DIMINUTO_LOG_NOTICE("%s: SIGTERM\n", program);
+            done = true;
+        }
+
+        DIMINUTO_LOG_DEBUG("%s: main fds=%d\n", program, fds);
+
         /*
          * SERVER SSL
          */
 
-        if (role != SERVER) {
+        if (done) {
+            /* Do nothing. */
+        } else if (role != SERVER) {
             /* Do nothing. */
         } else if (fds <= 0) {
             /* Do nothing. */
@@ -542,14 +575,16 @@ int main(int argc, char * argv[])
             DIMINUTO_LOG_INFORMATION("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
             rc = diminuto_mux_register_read(&mux, sslfd);
             diminuto_assert(rc >= 0);
-            rc = diminuto_mux_register_write(&mux, sslfd);
-            diminuto_assert(rc >= 0);
         } else {
             fds -= 1;
             DIMINUTO_LOG_NOTICE("%s: server bio (%d) reject\n", program, sslfd);
         }
 
-        if (ssl == (codex_connection_t *)0) {
+        if (done) {
+            /* Do nothing. */
+        } else if (ssl != (codex_connection_t *)0) {
+            /* Do nothing. */
+        } else {
             /*
              * Retry later.
              */
@@ -561,28 +596,24 @@ int main(int argc, char * argv[])
          * PROCESSING
          */
 
-         diminuto_assert((udpfd >= 0) && (sslfd >= 0));
-
-         switch (role) {
-         case CLIENT:
-             status = client(fds, &mux, udptype, udpfd, ssl, bufsize, expected, keepaliveticks);
-             break;
-         case SERVER:
-             status = server(fds, &mux, udptype, udpfd, &serviceaddress, serviceport, ssl, bufsize, expected, keepaliveticks);
-             break;
-         default:
-             diminuto_assert(false);
-             break;
-         }
+        if (!done) {
+            diminuto_assert((udpfd >= 0) && (sslfd >= 0));
+            switch (role) {
+            case CLIENT:
+                status = client(fds, &mux, udptype, udpfd, ssl, bufsize, expected, keepaliveticks);
+                break;
+            case SERVER:
+                status = server(fds, &mux, udptype, udpfd, &serviceaddress, serviceport, ssl, bufsize, expected, keepaliveticks);
+                break;
+            default:
+                diminuto_assert(false);
+                break;
+            }
+        }
 
         /*
          * RECOVERING
          */
-
-        if (diminuto_terminator_check()) {
-            DIMINUTO_LOG_NOTICE("%s: SIGTERM\n", program);
-            done = true;
-        }
 
         if (done) {
             status = UDPDONE;
