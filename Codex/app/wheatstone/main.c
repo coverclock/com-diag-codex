@@ -12,7 +12,7 @@
  * them as UDP datagrams to the specified port.
  * This program is based on the code in functionaltest-core-server.
  *
- * WORK IN PROGRESS
+ * THIS IS A WORK IN PROGRESS
  */
 
 #include "com/diag/diminuto/diminuto_assert.h"
