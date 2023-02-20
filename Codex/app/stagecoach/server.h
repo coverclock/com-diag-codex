@@ -15,6 +15,6 @@
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "types.h"
 
-extern status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, const address_t * serviceaddressp, port_t serviceport, codex_connection_t * ssl, size_t bufsize, const char * expected, ticks_t keepalive);
+extern status_t server(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, const address_t * serviceaddressp, port_t serviceport, codex_connection_t * ssl, size_t bufsize, const char * expected, sticks_t keepalive);
 
 #endif
