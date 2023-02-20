@@ -428,7 +428,6 @@ int codex_connection_close(codex_connection_t * ssl)
                 diminuto_yield();
             } else {
                 codex_serror_t serror = CODEX_SERROR_SUCCESS;
-
                 serror = codex_serror("SSL_shutdown", ssl, rc);
                 switch (serror) {
                 case CODEX_SERROR_NONE:
@@ -520,8 +519,13 @@ ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, s
                 break;
             }
 
-            if (rc < 0) {
+            if (retry) {
+                DIMINUTO_LOG_INFORMATION("codex_connection_read_generic: ssl=%p buffer=%p size=%zu rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
+                error = CODEX_SERROR_SUCCESS;
+            } else if (rc < 0) {
                 DIMINUTO_LOG_ERROR("codex_connection_read_generic: ssl=%p buffer=%p size=%zu rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
+            } else {
+                /* Do nothing. */
             }
 
         }
@@ -574,8 +578,13 @@ ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * bu
                 break;
             }
 
-            if (rc < 0) {
+            if (retry) {
+                DIMINUTO_LOG_INFORMATION("codex_connection_write: ssl=%p buffer=%p size=%zu rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
+                error = CODEX_SERROR_SUCCESS;
+            } else if (rc < 0) {
                 DIMINUTO_LOG_ERROR("codex_connection_write: ssl=%p buffer=%p size=%zu rc=%d error='%c' retry=%d\n", ssl, buffer, size, rc, error, retry);
+            } else {
+                /* Do nothing. */
             }
 
         }
@@ -660,6 +669,9 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
         }
 
         SSL_set_bio(ssl, bio, bio);
+
+        (void)SSL_set_mode(ssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
+        (void)SSL_clear_mode(ssl, SSL_MODE_AUTO_RETRY);
 
         codex_cerror();
         rc = SSL_connect(ssl);
@@ -874,6 +886,9 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
         }
 
         SSL_set_bio(ssl, tmp, tmp);
+
+        (void)SSL_set_mode(ssl, SSL_MODE_ENABLE_PARTIAL_WRITE);
+        (void)SSL_clear_mode(ssl, SSL_MODE_AUTO_RETRY);
 
         rc = SSL_accept(ssl);
         if (rc > 0) {
