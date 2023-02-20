@@ -15,6 +15,6 @@
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "types.h"
 
-extern status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, address_t * receivedaddressp, port_t * receivedportp, const address_t * sendingaddressp, port_t sendingport, codex_connection_t * ssl, size_t bufsize, const char * expected, ticks_t keepalive);
+extern status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, address_t * receivedaddressp, port_t * receivedportp, const address_t * sendingaddressp, port_t sendingport, codex_connection_t * ssl, size_t bufsize, const char * expected, sticks_t keepalive);
 
 #endif
