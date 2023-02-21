@@ -10,7 +10,7 @@
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
  *
- * This declares the API for the helper functions.
+ * This describes the API for the helper functions.
  */
 
 #include "types.h"

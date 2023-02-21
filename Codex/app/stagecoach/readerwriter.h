@@ -10,8 +10,8 @@
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
  *
- * This declares the common reader-writer implementation used by the
- * client and server functions.
+ * This describes the API for the common reader-writer implementation used
+ * by both the client and server functions.
  */
 
 #include "com/diag/codex/codex.h"
