@@ -6,6 +6,7 @@
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
+ *
  * This program provides an SSL tunnel between two UDP endpoints
  * while preserving datagram boundaries. It is agnostic as to the
  * data being passed via UDP, but it was written specifically to
@@ -216,6 +217,23 @@ int main(int argc, char * argv[])
 
         case '?':
             fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -k MILLISECONDS ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -c | -s ]\n", program);
+            fprintf(stderr, "       -?                   prints this help menu and exits.\n");
+            fprintf(stderr, "       -C CERTIFICATEFILE   is the .pem certificate.\n");
+            fprintf(stderr, "       -D DHPARMSFILE       is the .pem Diffie-Hellman parameters file.\n");
+            fprintf(stderr, "       -E EXPECTEDDOMAIN    is the expected fully-qualified domain name.\n");
+            fprintf(stderr, "       -K PRIVATEKEYFILE    is the .pem private key file.\n");
+            fprintf(stderr, "       -L REVOCATIONFILE    is the .pea revocation file.\n");
+            fprintf(stderr, "       -P CERTIFICATESPATH  is the directory where CA certs can be found.\n");
+            fprintf(stderr, "       -R ROOTFILE          is the .pem root certificate file.\n");
+            fprintf(stderr, "       -b BYTES             is the allocated buffer size in bytes.\n");
+            fprintf(stderr, "       -c                   sets the mode to client.\n");
+            fprintf(stderr, "       -d MILLISECONDS      is the connection retry delay in milliseconds.\n");
+            fprintf(stderr, "       -f FARENDPOINT       is the HOST:PORT far end point.\n");
+            fprintf(stderr, "       -k MILLISECONDS      is the keepalive interval in milliseconds.\n");
+            fprintf(stderr, "       -n NEARENDPOINT      is the :PORT near end point.\n");
+            fprintf(stderr, "       -r                   requires certificates signed by a CA.\n");
+            fprintf(stderr, "       -s                   sets the mode to server.\n");
+            fprintf(stderr, "       -t MILLISECONDS      sets the multiplexor timeout in milliseconds.\n");
             exit(1);
             break;
 

@@ -148,7 +148,6 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
          */
 
         if (((writefd == sslfd) && !needread) || ((readfd == sslfd) && needwrite)) {
-            needwrite = false;
             switch (state[WRITER]) {
             case CODEX_STATE_START:
             case CODEX_STATE_RESTART:
@@ -157,6 +156,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
             case CODEX_STATE_HEADER:
             case CODEX_STATE_PAYLOAD:
                 state[WRITER] = codex_machine_writer_generic(state[WRITER], expected, ssl,  &(header[WRITER]), buffer[WRITER], header[WRITER], &(here[WRITER]), &(length[WRITER]), &checked, &serror, &mask);
+                needwrite = false;
                 switch (serror) {
                 case CODEX_SERROR_SUCCESS:
                     switch (state[WRITER]) {
@@ -228,7 +228,6 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
          */
 
         if (((readfd == sslfd) && !needwrite) || ((writefd == sslfd) && needwrite) || pendingssl) {
-            needread = false;
             do {
                 switch (state[READER]) {
                 case CODEX_STATE_START:
@@ -238,6 +237,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                 case CODEX_STATE_HEADER:
                 case CODEX_STATE_PAYLOAD:
                     state[READER] = codex_machine_reader_generic(state[READER], expected, ssl, &(header[READER]), buffer[READER], bufsize, &(here[READER]), &(length[READER]), &checked, &serror, &mask);
+                    needread = false;
                     switch (serror) {
                     case CODEX_SERROR_SUCCESS:
                         switch (state[READER]) {
