@@ -224,6 +224,17 @@ test robust against a client and a server simultaneously requesting
 a renegotiation. But that's a legitimate concern that a real-world
 application should worry about.
 
+# Applications
+
+I have written two applications included in this repo that are named for
+the sub-projects that they support in other repositories. Both of these
+applications are works in progress. These applications are in the ```app```
+directory.
+
+* Wheatstone supports experiments with LTE-M modems used with remote sensors.
+
+* Stagecoach supports remote GNSS rovers communicating with a GNSS base station.
+
 # Dependencies
 
 OpenSSL 1.0.1t
