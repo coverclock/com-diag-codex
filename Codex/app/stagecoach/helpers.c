@@ -9,7 +9,7 @@
  * https://github.com/coverclock/com-diag-codex<BR>
  */
 
-#include "protocols.h"
+#include "helpers.h"
 #include "com/diag/diminuto/diminuto_assert.h"
 #include "com/diag/diminuto/diminuto_ipc4.h"
 #include "com/diag/diminuto/diminuto_ipc6.h"
@@ -53,7 +53,7 @@ ssize_t datagram_send(protocol_t type, int sock, void * bufferp, size_t size, co
     return bytes;
 }
 
-int rendezvous_service(protocol_t type, int port)
+int rendezvous_service(protocol_t type, port_t port)
 {
     int sock = -1;
 

@@ -9,11 +9,14 @@
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
+ *
+ * This defines the types used by this application.
  */
 
 #include "com/diag/diminuto/diminuto_types.h"
 
 /**
+ * Enumerate the roles.
  * The nomenclature is a little confusing here. The SERVER role runs
  * on the server side of the connection, but acts as a client proxy
  * to the actual server. Similarly, the CLIENT role runs on the client
@@ -23,11 +26,20 @@
  */
 typedef enum Role { INVALID = '?', CLIENT = 'c', SERVER = 's', } role_t;
 
+/**
+ * Enumerate the protocols used for the UDP port and the SSL tunnel.
+ */
 typedef enum Protocol { OTHER = '?', IPV4 = '4', IPV6 = '6', } protocol_t;
 
+/**
+ * Enumerate the status that may be returned by the client and the server,
+ * indicating whether the process should continue, shutdown and restart the
+ * SSL tunnel, or close and recreate the UDP port.
+ */
 typedef enum Status { UNKNOWN = '?', SSLDONE = 'S', UDPDONE = 'U', CONTINUE = '-', } status_t;
 
 /**
+ * Enumerate the direction of the state machine: reading or writing.
  * Once again, the nomenclature can be a little confusing. In this
  * context, the READER is the SSL reading state machine, and the
  * WRITER is the SSL writing state machine. The READER sends to the
@@ -35,6 +47,10 @@ typedef enum Status { UNKNOWN = '?', SSLDONE = 'S', UDPDONE = 'U', CONTINUE = '-
  */
 typedef enum Direction { READER = 0, WRITER = 1, DIRECTIONS = 2, } direction_t;
 
+/**
+ * This describes the format of an address object, which can encapsulate
+ * either an IPv6 or an IPv4 address.
+ */
 typedef union Address {
     diminuto_ipv6_t address6;
     diminuto_ipv4_t address4;
@@ -42,10 +58,19 @@ typedef union Address {
     uint8_t byte[sizeof(diminuto_ipv6_t) / sizeof(uint8_t)];
 } address_t;
 
+/**
+ * This describes the type of a port number variable.
+ */
 typedef diminuto_port_t port_t;
 
+/**
+ * This decribes the type of an unsigned value of ticks.
+ */
 typedef diminuto_ticks_t ticks_t;
 
+/**
+ * This decribes the type of a signed value of ticks.
+ */
 typedef diminuto_sticks_t sticks_t;
 
 #endif

@@ -9,14 +9,16 @@
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
+ *
+ * This declares the variables that are global.
  */
 
 #include "types.h"
 
-/*
- * PARAMETERS
+/**
+ * This points to the constant string that is the name of the program
+ * being run. It is extracted from the command line.
  */
-
 extern const char * program;
 
 #endif

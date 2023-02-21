@@ -11,7 +11,7 @@
 
 #include "com/diag/codex/codex.h"
 #include "globals.h"
-#include "protocols.h"
+#include "helpers.h"
 #include "readerwriter.h"
 #include "server.h"
 #include "types.h"

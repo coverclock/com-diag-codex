@@ -25,7 +25,7 @@
 #include "com/diag/diminuto/diminuto_time.h"
 #include "client.h"
 #include "globals.h"
-#include "protocols.h"
+#include "helpers.h"
 
 static bool initialized = false;
 static codex_state_t state[DIRECTIONS] = { CODEX_STATE_START, CODEX_STATE_IDLE, };
@@ -122,8 +122,8 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
             case CODEX_STATE_IDLE:
                 bytes = datagram_receive(udptype, udpfd, buffer[WRITER], bufsize, receivedaddressp, receivedportp);
                 if ((0 < bytes) && (bytes <= bufsize)) {
-                    DIMINUTO_LOG_DEBUG("%s: %s writer udp (%d) [%zd] received %s\n", program, label, udpfd, bytes, address2string(udptype, receivedaddressp, *receivedportp));
                     header[WRITER] = bytes;
+                    DIMINUTO_LOG_DEBUG("%s: %s writer udp (%d) [%d] received %s\n", program, label, udpfd, header[WRITER], address2string(udptype, receivedaddressp, *receivedportp));
                     state[WRITER] = restate;
                     restate = CODEX_STATE_RESTART;
                     rc = diminuto_mux_register_write(muxp, sslfd);

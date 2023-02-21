@@ -75,7 +75,7 @@
 #include <stdlib.h>
 #include "client.h"
 #include "globals.h"
-#include "protocols.h"
+#include "helpers.h"
 #include "server.h"
 #include "types.h"
 
