@@ -50,6 +50,8 @@
  * the solutions I saw worked most of the time by coincidence, in my
  * opinion.
  *
+ * Note also the useful reference in the header file for this translation unit.
+ *
  * THIS IS A WORK IN PROGRESS
  */
 
@@ -101,7 +103,7 @@ int main(int argc, char * argv[])
     bool selfsigned = true; /* Allow self-signed certificates by default. */
     size_t bufsize = MAXDATAGRAM;
     unsigned long delaymilliseconds = 5000;
-    unsigned long timeoutmilliseconds = 250;
+    unsigned long timeoutmilliseconds = 1000;
     signed long keepalivemilliseconds = -1;
     ticks_t delayticks = 0;
     ticks_t timeoutticks = 0;
@@ -494,7 +496,7 @@ int main(int argc, char * argv[])
                     diminuto_assert(rc >= 0);
                 } else {
                     /*
-                     * Retry later.
+                     * No server; try again later.
                      */
                     DIMINUTO_LOG_NOTICE("%s: client ssl (%d) far end failed\n", program, sslfd);
                     diminuto_delay(delayticks, !0);
@@ -531,6 +533,7 @@ int main(int argc, char * argv[])
 
         fds = diminuto_mux_wait(&mux, timeoutticks);
         diminuto_assert((fds >= 0) || ((fds < 0) && (errno == EINTR)));
+        DIMINUTO_LOG_DEBUG("%s: main fds=%d\n", program, fds);
 
         if (diminuto_hangup_check()) {
             DIMINUTO_LOG_NOTICE("%s: SIGHUP\n", program);
@@ -542,62 +545,56 @@ int main(int argc, char * argv[])
             done = true;
         }
 
-        DIMINUTO_LOG_DEBUG("%s: main fds=%d\n", program, fds);
-
-        /*
-         * SERVER SSL
-         */
-
-        if (done) {
-            /* Do nothing. */
-        } else if (role != SERVER) {
-            /* Do nothing. */
-        } else if (fds <= 0) {
-            /* Do nothing. */
-        } else if ((acceptfd = diminuto_mux_ready_accept(&mux)) < 0) {
-            /* Do nothing. */
-        } else if (acceptfd != biofd) {
-            diminuto_assert(false);
-        } else if (sslfd < 0) {
-            fds -= 1;
-            diminuto_assert(ssl == (codex_connection_t *)0);
-            ssl = codex_server_connection_new(ctx, bio);
-            diminuto_assert(ssl != (codex_connection_t *)0);
-            diminuto_assert(codex_connection_is_server(ssl));
-            diminuto_assert(sslfd < 0);
-            sslfd = codex_connection_descriptor(ssl);
-            diminuto_assert(sslfd >= 0);
-            rc = connection_nearend(ssltype, sslfd, &address, &port);
-            diminuto_assert(rc >= 0);
-            DIMINUTO_LOG_INFORMATION("%s: server ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
-            rc = connection_farend(ssltype, sslfd, &address, &port);
-            diminuto_assert(rc >= 0);
-            DIMINUTO_LOG_INFORMATION("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
-            rc = diminuto_mux_register_read(&mux, sslfd);
-            diminuto_assert(rc >= 0);
-        } else {
-            fds -= 1;
-            DIMINUTO_LOG_NOTICE("%s: server bio (%d) reject\n", program, sslfd);
-        }
-
-        if (done) {
-            /* Do nothing. */
-        } else if (ssl != (codex_connection_t *)0) {
-            /* Do nothing. */
-        } else {
-            /*
-             * Retry later.
-             */
-            diminuto_delay(delayticks, !0);
-            continue;
-        }
-
-        /*
-         * PROCESSING
-         */
-
         if (!done) {
+    
+            /*
+             * SERVER SSL
+             */
+    
+            if (role != SERVER) {
+                /* Do nothing. */
+            } else if (fds <= 0) {
+                /* Do nothing. */
+            } else if ((acceptfd = diminuto_mux_ready_accept(&mux)) < 0) {
+                /* Do nothing. */
+            } else if (acceptfd != biofd) {
+                diminuto_assert(false);
+            } else if (sslfd < 0) {
+                fds -= 1;
+                diminuto_assert(ssl == (codex_connection_t *)0);
+                ssl = codex_server_connection_new(ctx, bio);
+                diminuto_assert(ssl != (codex_connection_t *)0);
+                diminuto_assert(codex_connection_is_server(ssl));
+                diminuto_assert(sslfd < 0);
+                sslfd = codex_connection_descriptor(ssl);
+                diminuto_assert(sslfd >= 0);
+                rc = connection_nearend(ssltype, sslfd, &address, &port);
+                diminuto_assert(rc >= 0);
+                DIMINUTO_LOG_INFORMATION("%s: server ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
+                rc = connection_farend(ssltype, sslfd, &address, &port);
+                diminuto_assert(rc >= 0);
+                DIMINUTO_LOG_INFORMATION("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
+                rc = diminuto_mux_register_read(&mux, sslfd);
+                diminuto_assert(rc >= 0);
+            } else {
+                fds -= 1;
+                DIMINUTO_LOG_NOTICE("%s: server bio (%d) reject\n", program, sslfd);
+            }
+    
+            if (ssl == (codex_connection_t *)0) {
+                /*
+                 * No client, try again later.
+                 */
+                diminuto_delay(delayticks, !0);
+                continue;
+            }
+    
+            /*
+             * PROCESSING
+             */
+    
             diminuto_assert((udpfd >= 0) && (sslfd >= 0));
+
             switch (role) {
             case CLIENT:
                 status = client(fds, &mux, udptype, udpfd, ssl, bufsize, expected, keepaliveticks);
@@ -609,6 +606,7 @@ int main(int argc, char * argv[])
                 diminuto_assert(false);
                 break;
             }
+
         }
 
         /*
@@ -659,6 +657,8 @@ int main(int argc, char * argv[])
      * FINALIZATING
      */
 
+    DIMINUTO_LOG_INFORMATION("%s: end\n", program);
+
     if (bio != (codex_rendezvous_t *)0) {
         bio = codex_server_rendezvous_free(bio);
         diminuto_assert(bio == (codex_rendezvous_t *)0);
@@ -676,12 +676,6 @@ int main(int argc, char * argv[])
     }
 
     diminuto_mux_fini(&mux);
-
-    /*
-     * END
-     */
-
-    DIMINUTO_LOG_INFORMATION("%s: end\n", program);
 
     exit(0);
 }

@@ -116,7 +116,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
     
         case CODEX_STATE_HEADER:
     
-            bytes = codex_connection_read_generic(ssl, *here, *length, &error);
+            bytes = codex_connection_read_extended(ssl, *here, *length, &error, true);
             if (bytes <= 0) {
     
                 /*
@@ -134,8 +134,12 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                  * some other reason, the state machine just makes the state
                  * as FINAL and shuts down the connection.
                  */
-    
-                if (error != CODEX_SERROR_WRITE) {
+   
+                if (error == CODEX_SERROR_NONE) {
+                    /* Do nothing. */
+                } else if (error == CODEX_SERROR_READ) {
+                    /* Do nothing. */ 
+                } else if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
                     DIMINUTO_LOG_NOTICE("codex_machine_reader: need write ssl=%p\n", ssl);
@@ -211,15 +215,19 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
     
         case CODEX_STATE_PAYLOAD:
    
-            bytes = codex_connection_read_generic(ssl, *here, *length, &error);
+            bytes = codex_connection_read_extended(ssl, *here, *length, &error, true);
             if (bytes <= 0) {
     
                 /*
                  * (Same comments as above regarding SSL needing to write in
                  * order to read, or read in order to write.)
                  */
-    
-                if (error != CODEX_SERROR_WRITE) {
+   
+                if (error == CODEX_SERROR_NONE) {
+                    /* Do nothing. */
+                } else if (error == CODEX_SERROR_READ) {
+                    /* Do nothing. */
+                } else  if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
                     DIMINUTO_LOG_NOTICE("codex_machine_reader: need write ssl=%p\n", ssl);
@@ -335,8 +343,12 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                  * some other reason, the state machine just makes the state
                  * as FINAL and shuts down the connection.
                  */
-    
-                if (error != CODEX_SERROR_READ) {
+   
+                if (error == CODEX_SERROR_NONE) {
+                    /* Do nothing. */
+                } else if (error == CODEX_SERROR_WRITE) {
+                    /* Do nothing. */
+                } else if (error != CODEX_SERROR_READ) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
                     DIMINUTO_LOG_NOTICE("codex_machine_writer: need read ssl=%p\n", ssl);
@@ -377,7 +389,11 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                  * order to read, or read in order to write.)
                  */
     
-                if (error != CODEX_SERROR_READ) {
+                if (error == CODEX_SERROR_NONE) {
+                    /* Do nothing. */
+                } else if (error == CODEX_SERROR_WRITE) {
+                    /* Do nothing. */
+                } else if (error != CODEX_SERROR_READ) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
                     DIMINUTO_LOG_NOTICE("codex_machine_writer: need read ssl=%p\n", ssl);

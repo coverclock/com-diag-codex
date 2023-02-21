@@ -403,21 +403,36 @@ static inline bool codex_connection_verified(int mask) {
  ******************************************************************************/
 
 /**
- * Read data from a connection into a buffer of a specified size.
+ * Read data from a connection into a buffer of a specified size while
+ * optionallytrying not to block on retries.
  * @param ssl points to the connection.
  * @param buffer points to the buffer.
  * @param size is the size of the buffer in bytes.
  * @param serror points to the variable into which an OpenSSL error is returned.
- * @return the number of bytes actually read, 0 if closed, <0 if in error.
+ * @param nonblocking if true tries not to block on retries.
+ * @return the number of bytes actually read, <=0 if error.
  */
-extern ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, size_t size, codex_serror_t * serror);
+ssize_t codex_connection_read_extended(codex_connection_t * ssl, void * buffer, size_t size, codex_serror_t * serror, bool nonblocking);
 
 /**
  * Read data from a connection into a buffer of a specified size.
  * @param ssl points to the connection.
  * @param buffer points to the buffer.
  * @param size is the size of the buffer in bytes.
- * @return the number of bytes actually read, 0 if closed, <0 if in error.
+ * @param serror points to the variable into which an OpenSSL error is returned.
+ * @return the number of bytes actually read, 0 if closed, <0 if error.
+ */
+static inline ssize_t codex_connection_read_generic(codex_connection_t * ssl, void * buffer, size_t size, codex_serror_t * serror) {
+    return codex_connection_read_extended(ssl, buffer, size, serror, false);
+}
+
+
+/**
+ * Read data from a connection into a buffer of a specified size.
+ * @param ssl points to the connection.
+ * @param buffer points to the buffer.
+ * @param size is the size of the buffer in bytes.
+ * @return the number of bytes actually read, 0 if closed, <0 if error.
  */
 static inline ssize_t codex_connection_read(codex_connection_t * ssl, void * buffer, int size)
 {
@@ -430,7 +445,7 @@ static inline ssize_t codex_connection_read(codex_connection_t * ssl, void * buf
  * @param buffer points to the buffer.
  * @param size is the size of the buffer in bytes.
  * @param serror points to the variable into which an OpenSSL error is returned.
- * @return the number of bytes actually written, 0 if closed, <0 if in error.
+ * @return the number of bytes actually written, 0 if closed, <0 if error.
  */
 extern ssize_t codex_connection_write_generic(codex_connection_t * ssl, const void * buffer, size_t size, codex_serror_t * serror);
 
@@ -439,7 +454,7 @@ extern ssize_t codex_connection_write_generic(codex_connection_t * ssl, const vo
  * @param ssl points to the connection.
  * @param buffer points to the buffer.
  * @param size is the size of the buffer in bytes.
- * @return the number of bytes actually written, 0 if closed, <0 if in error.
+ * @return the number of bytes actually written, 0 if closed, <0 if error.
  */
 static inline ssize_t codex_connection_write(codex_connection_t * ssl, const void * buffer, size_t size)
 {
@@ -482,7 +497,7 @@ static inline bool codex_connection_is_ready(codex_connection_t * ssl)
  * Return the file descriptor associated with a rendezvous. This should ONLY
  * be used for multiplexing.
  * @param bio points to the rendezvous (a BIO).
- * @return a file descriptor >=0, or <0 if in error.
+ * @return a file descriptor >=0, or <0 if error.
  */
 static inline int codex_rendezvous_descriptor(codex_rendezvous_t * bio)
 {
@@ -493,7 +508,7 @@ static inline int codex_rendezvous_descriptor(codex_rendezvous_t * bio)
  * Return the file descriptor associated with a connection. This should ONLY
  * be used for multiplexing or similar socket management, *never* for I/O.
  * @param ssl points to the connection (an SSL).
- * @return a file descriptor >=0, or <0 if in error.
+ * @return a file descriptor >=0, or <0 if error.
  */
 static inline int codex_connection_descriptor(codex_connection_t * ssl)
 {
