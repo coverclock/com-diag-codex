@@ -378,7 +378,7 @@ int main(int argc, char * argv[])
         break;
 
     }
-    
+
     /*
      * INITIALIZATING
      */
@@ -474,84 +474,7 @@ int main(int argc, char * argv[])
      * WORK LOOP
      */
 
-    while (!done) {
-
-        /*
-         * CONNECTING
-         */
-
-        switch (role) {
-
-        case CLIENT:
-            /*
-             * CLIENT UDP
-             */
-            if (udpfd < 0) {
-                udpfd = rendezvous_service(udptype, nearendpoint.udp);
-                diminuto_assert(udpfd >= 0);
-                rc = connection_nearend(udptype, udpfd, &address, &port);
-                diminuto_assert(rc >= 0);
-                DIMINUTO_LOG_INFORMATION("%s: client udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
-                rc = diminuto_mux_register_read(&mux, udpfd);
-                diminuto_assert(rc >= 0);
-            }
-            /*
-             * CLIENT SSL
-             */
-            if (sslfd < 0) {
-                ssl = codex_client_connection_new(ctx, farend);
-                if (ssl != (codex_connection_t *)0) {
-                    diminuto_assert(!codex_connection_is_server(ssl));
-                    sslfd = codex_connection_descriptor(ssl);
-                    diminuto_assert(sslfd >= 0);
-                    rc = connection_nearend(ssltype, sslfd, &address, &port);
-                    diminuto_assert(rc >= 0);
-                    DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
-                    rc = connection_farend(ssltype, sslfd, &address, &port);
-                    diminuto_assert(rc >= 0);
-                    DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
-                    rc = diminuto_mux_register_read(&mux, sslfd);
-                    diminuto_assert(rc >= 0);
-                } else {
-                    /*
-                     * No server; try again later.
-                     */
-                    DIMINUTO_LOG_NOTICE("%s: client ssl (%d) far end failed\n", program, sslfd);
-                    diminuto_delay(delayticks, !0);
-                    continue;
-                }
-            }
-            break;
-
-        case SERVER:
-            /*
-             * SERVER UDP
-            */
-            if (udpfd < 0) {
-                udpfd = rendezvous_ephemeral(udptype);
-                diminuto_assert(udpfd >= 0);
-                rc = connection_nearend(udptype, udpfd, &address, &port);
-                diminuto_assert(rc >= 0);
-                DIMINUTO_LOG_INFORMATION("%s: server udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
-                DIMINUTO_LOG_INFORMATION("%s: server udp (%d) far end %s\n", program, udpfd, address2string(udptype, &serviceaddress, serviceport));
-                rc = diminuto_mux_register_read(&mux, udpfd);
-                diminuto_assert(rc >= 0);
-            }
-            break;
-
-        default:
-            diminuto_assert(false);
-            break;
-
-        }
-
-        /*
-         * WAITING
-         */
-
-        fds = diminuto_mux_wait(&mux, timeoutticks);
-        diminuto_assert((fds >= 0) || ((fds < 0) && (errno == EINTR)));
-        DIMINUTO_LOG_DEBUG("%s: main fds=%d\n", program, fds);
+    do {
 
         if (diminuto_hangup_check()) {
             DIMINUTO_LOG_NOTICE("%s: SIGHUP\n", program);
@@ -564,20 +487,102 @@ int main(int argc, char * argv[])
         }
 
         if (!done) {
-    
+
+            /*
+             * CONNECTING
+             */
+
+            switch (role) {
+
+            case CLIENT:
+                /*
+                 * CLIENT UDP
+                 */
+                if (udpfd < 0) {
+                    udpfd = rendezvous_service(udptype, nearendpoint.udp);
+                    diminuto_assert(udpfd >= 0);
+                    rc = connection_nearend(udptype, udpfd, &address, &port);
+                    diminuto_assert(rc >= 0);
+                    DIMINUTO_LOG_INFORMATION("%s: client udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
+                    rc = diminuto_mux_register_read(&mux, udpfd);
+                    diminuto_assert(rc >= 0);
+                }
+                /*
+                 * CLIENT SSL
+                 */
+                if (sslfd < 0) {
+                    ssl = codex_client_connection_new(ctx, farend);
+                    if (ssl != (codex_connection_t *)0) {
+                        diminuto_assert(!codex_connection_is_server(ssl));
+                        sslfd = codex_connection_descriptor(ssl);
+                        diminuto_assert(sslfd >= 0);
+                        rc = connection_nearend(ssltype, sslfd, &address, &port);
+                        diminuto_assert(rc >= 0);
+                        DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) near end %s\n", program, sslfd, address2string(ssltype, &address, port));
+                        rc = connection_farend(ssltype, sslfd, &address, &port);
+                        diminuto_assert(rc >= 0);
+                        DIMINUTO_LOG_INFORMATION("%s: client ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
+                        rc = diminuto_mux_register_read(&mux, sslfd);
+                        diminuto_assert(rc >= 0);
+                    } else {
+                        /*
+                         * No server; try again later.
+                         */
+                        DIMINUTO_LOG_NOTICE("%s: client ssl (%d) far end failed\n", program, sslfd);
+                        diminuto_delay(delayticks, !0);
+                        continue;
+                    }
+                }
+                break;
+
+            case SERVER:
+                /*
+                 * SERVER UDP
+                */
+                if (udpfd < 0) {
+                    udpfd = rendezvous_ephemeral(udptype);
+                    diminuto_assert(udpfd >= 0);
+                    rc = connection_nearend(udptype, udpfd, &address, &port);
+                    diminuto_assert(rc >= 0);
+                    DIMINUTO_LOG_INFORMATION("%s: server udp (%d) near end %s\n", program, udpfd, address2string(udptype, &address, port));
+                    DIMINUTO_LOG_INFORMATION("%s: server udp (%d) far end %s\n", program, udpfd, address2string(udptype, &serviceaddress, serviceport));
+                    rc = diminuto_mux_register_read(&mux, udpfd);
+                    diminuto_assert(rc >= 0);
+                }
+                break;
+
+            default:
+                diminuto_assert(false);
+                break;
+
+            }
+
+            /*
+             * WAITING
+             */
+
+            fds = diminuto_mux_wait(&mux, timeoutticks);
+            diminuto_assert((fds >= 0) || ((fds < 0) && (errno == EINTR)));
+            if ((fds < 0) && (errno == EINTR)) {
+                continue;
+            }
+            DIMINUTO_LOG_DEBUG("%s: main fds=%d\n", program, fds);
+
             /*
              * SERVER SSL
              */
-    
+
             if (role != SERVER) {
                 /* Do nothing. */
             } else if (fds <= 0) {
+                /* Do nothing. */
+            } else if (sslfd >= 0) {
                 /* Do nothing. */
             } else if ((acceptfd = diminuto_mux_ready_accept(&mux)) < 0) {
                 /* Do nothing. */
             } else if (acceptfd != biofd) {
                 diminuto_assert(false);
-            } else if (sslfd < 0) {
+            } else {
                 fds -= 1;
                 diminuto_assert(ssl == (codex_connection_t *)0);
                 ssl = codex_server_connection_new(ctx, bio);
@@ -594,11 +599,10 @@ int main(int argc, char * argv[])
                 DIMINUTO_LOG_INFORMATION("%s: server ssl (%d) far end %s\n", program, sslfd, address2string(ssltype, &address, port));
                 rc = diminuto_mux_register_read(&mux, sslfd);
                 diminuto_assert(rc >= 0);
-            } else {
-                fds -= 1;
-                DIMINUTO_LOG_NOTICE("%s: server bio (%d) reject\n", program, sslfd);
+                rc = diminuto_mux_unregister_accept(&mux, biofd);
+                diminuto_assert(rc >= 0);
             }
-    
+
             if (ssl == (codex_connection_t *)0) {
                 /*
                  * No client, try again later.
@@ -606,11 +610,11 @@ int main(int argc, char * argv[])
                 diminuto_delay(delayticks, !0);
                 continue;
             }
-    
+
             /*
              * PROCESSING
              */
-    
+
             diminuto_assert((udpfd >= 0) && (sslfd >= 0));
 
             switch (role) {
@@ -667,9 +671,13 @@ int main(int argc, char * argv[])
                 (void)diminuto_mux_unregister_write(&mux, sslfd);
             }
             sslfd = -1;
+            if (role == SERVER) {
+                rc = diminuto_mux_register_accept(&mux, biofd);
+                diminuto_assert(rc >= 0);
+            }
         }
 
-    }
+    } while (!done);
 
     /*
      * FINALIZATING
