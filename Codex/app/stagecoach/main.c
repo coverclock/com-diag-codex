@@ -27,12 +27,12 @@
  * backs reads and writes when the application does a read or a write. So
  * it has to wait for the application to read if it needs to do a read,
  * and same for a write. Sometimes you get an error return that says "I
- * need to read" or "I need to write", and you have to accommodate that no
- * matter what your state.
+ * need to read", or "I need to write", or even "I got nothin'", and you
+ * have to accommodate that no matter what your state.
  *
  * The OpenSSL connection object that the application uses to direct reads
  * and writes isn't thread-safe, according to the docs, so you can't just
- * use a reader thread or a writer thread that run concurrently.
+ * use a reader thread and a writer thread that run concurrently.
  *
  * This makes common approaches, like multiplexing using select(2) (Diminuto
  * Mux), a real challenge, since the system call knows nothing about that's

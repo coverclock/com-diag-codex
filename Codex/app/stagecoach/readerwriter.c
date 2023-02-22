@@ -227,7 +227,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
          * Do SSL reads and UDP writes.
          */
 
-        if (((readfd == sslfd) && !needwrite) || ((writefd == sslfd) && needwrite) || pendingssl) {
+        if (((readfd == sslfd) && !needwrite) || ((writefd == sslfd) && needread) || pendingssl) {
             do {
                 switch (state[READER]) {
                 case CODEX_STATE_START:
