@@ -15,7 +15,7 @@
  * gpstool can forward NMEA sentences, RTK messages, or CSV packets
  * to UDP port, but lacks any authentication or encryption capability.
  * In this manner, this utility serves as a proxy for the server on
- * the client end, and proxy for the client on the server end.
+ * the client end, and as a proxy for the client on the server end.
  *
  * NOTES
  *
