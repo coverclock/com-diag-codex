@@ -3,11 +3,16 @@
 # Licensed under the terms in LICENSE.txt
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
+# USAGE: stagecoachserver [ -x ]
 
-ROOT=${1:-"out/host/crt/stagecoach"}
+ROOT=$(readlink -e $(dirname ${0}))
+DAMN=${1:-"-s"}
+CERT=${2:-${ROOT}/../crt/stagecoach}
 
-export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
+. ${ROOT}/stagecoach
 
-. $(readlink -e $(dirname ${0}))/stagecoach
+if [ "$COM_DIAG_CODEX_SERVER_PASSWORD" = "" ]; then
+    export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
+fi
 
-stagecoach -C ${ROOT}/servercert.pem -K ${ROOT}/serverkey.pem -P ${ROOT}/.. -f ${STAGECOACH_SERVER_FAREND} -n ${STAGECOACH_SERVER_NEAREND} -s
+exec coreable stagecoach -C ${CERT}/servercert.pem -K ${CERT}/serverkey.pem -P ${CERT}/.. -f ${STAGECOACH_SERVER_FAREND} -n ${STAGECOACH_SERVER_NEAREND} -s ${DAMN}

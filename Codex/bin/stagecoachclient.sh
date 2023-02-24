@@ -3,9 +3,12 @@
 # Licensed under the terms in LICENSE.txt
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
+# USAGE: stagecoachclient [ -x ]
 
-ROOT=${1:-"out/host/crt/stagecoach"}
+ROOT=$(readlink -e $(dirname ${0}))
+DAMN=${1:-"-c"}
+CERT=${2:-${ROOT}/../crt/stagecoach}
 
-. $(readlink -e $(dirname ${0}))/stagecoach
+. ${ROOT}/stagecoach
 
-stagecoach -C ${ROOT}/clientcert.pem -K ${ROOT}/clientkey.pem -P ${ROOT}/.. -f ${STAGECOACH_CLIENT_FAREND} -n ${STAGECOACH_CLIENT_NEAREND} -c
+exec coreable stagecoach -C ${CERT}/clientcert.pem -K ${CERT}/clientkey.pem -P ${CERT}/.. -f ${STAGECOACH_CLIENT_FAREND} -n ${STAGECOACH_CLIENT_NEAREND} -c ${DAMN}

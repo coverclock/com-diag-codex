@@ -59,6 +59,7 @@
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_assert.h"
 #include "com/diag/diminuto/diminuto_core.h"
+#include "com/diag/diminuto/diminuto_daemon.h"
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/diminuto/diminuto_frequency.h"
@@ -102,7 +103,9 @@ int main(int argc, char * argv[])
     const char * keepalive = (const char *)0;
     role_t role = INVALID;
     bool selfsigned = true; /* Allow self-signed certificates by default. */
+    bool daemonize = false;
     size_t bufsize = MAXDATAGRAM;
+    const char * name = (const char *)0;
     unsigned long delaymilliseconds = 5000;
     unsigned long timeoutmilliseconds = 1000;
     signed long keepalivemilliseconds = -1;
@@ -147,7 +150,7 @@ int main(int argc, char * argv[])
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "C:D:E:K:L:P:R:b:cd:f:k:n:rst:v?")) >= 0) {
+    while ((opt = getopt(argc, argv, "C:D:E:K:L:P:R:b:cd:f:k:n:rst:x?")) >= 0) {
 
         switch (opt) {
 
@@ -215,8 +218,12 @@ int main(int argc, char * argv[])
             timeout = optarg;
             break;
 
+        case 'x':
+            daemonize = true;
+            break;
+
         case '?':
-            fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -k MILLISECONDS ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -c | -s ]\n", program);
+            fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -k MILLISECONDS ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -x ] [ -c | -s ]\n", program);
             fprintf(stderr, "       -?                   prints this help menu and exits.\n");
             fprintf(stderr, "       -C CERTIFICATEFILE   is the .pem certificate.\n");
             fprintf(stderr, "       -D DHPARMSFILE       is the .pem Diffie-Hellman parameters file.\n");
@@ -234,6 +241,7 @@ int main(int argc, char * argv[])
             fprintf(stderr, "       -r                   requires certificates signed by a CA.\n");
             fprintf(stderr, "       -s                   sets the mode to server.\n");
             fprintf(stderr, "       -t MILLISECONDS      sets the multiplexor timeout in milliseconds.\n");
+            fprintf(stderr, "       -x                   daemonizes the process.\n");
             exit(1);
             break;
 
@@ -241,7 +249,24 @@ int main(int argc, char * argv[])
 
     }
 
-    DIMINUTO_LOG_INFORMATION("%s: %s begin B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" k=\"%s\" n=\"%s\" r=%d t=\"%s\" %c=%d\n",
+    switch (role) {
+    case CLIENT:
+        name = "stagecoachclient";
+        break;
+    case SERVER:
+        name = "stagecoachserver";
+        break;
+    default:
+        diminuto_assert(false);
+        break;
+    }
+
+    if (daemonize) {
+        rc = diminuto_daemon(name);
+        diminuto_assert(rc == 0);
+    }
+
+    DIMINUTO_LOG_INFORMATION("%s: %s begin B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" k=\"%s\" n=\"%s\" r=%d t=\"%s\" x=%d %c=%d\n",
         program,
         (role == CLIENT) ? "client" : (role == SERVER) ? "server" : "unknown",
         (bytes == (const char *)0) ? "" : bytes,
@@ -258,9 +283,8 @@ int main(int argc, char * argv[])
         (nearend == (const char *)0) ? "" : nearend,
         !selfsigned,
         (timeout == (const char *)0) ? "" : timeout,
+        daemonize,
         role, !0);
-
-    diminuto_assert((role == SERVER) || (role == CLIENT));
 
     if (bytes != (const char *)0) {
         bufsize = strtoul(bytes, &endptr, 0);
