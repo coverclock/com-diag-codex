@@ -35,6 +35,6 @@
 # UDP: User Datagram Protocol, a protocol on top of IP.
 
 STAGECOACH_CLIENT_NEAREND=0.0.0.0:tumbleweed
-STAGECOACH_CLIENT_FAREND=localhost:stagecoachssl
-STAGECOACH_SERVER_NEAREND=0.0.0.0:stagecoachssl
+STAGECOACH_CLIENT_FAREND=localhost:stagecoach
+STAGECOACH_SERVER_NEAREND=0.0.0.0:stagecoach
 STAGECOACH_SERVER_FAREND=eljefe:tumbleweed
