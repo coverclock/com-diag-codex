@@ -11,7 +11,7 @@
  * while preserving datagram boundaries. It is agnostic as to the
  * data being passed via UDP, but it was written specifically to
  * provide this capability for the gpstool utility that is part of
- * the Hazer project (https://github.com/coverclock/com-diag-hazer).
+ * the Hazer project <https://github.com/coverclock/com-diag-hazer>.
  * gpstool can forward NMEA sentences, RTK messages, or CSV packets
  * to UDP port, but lacks any authentication or encryption capability.
  * In this manner, this utility serves as a proxy for the server on
@@ -50,10 +50,6 @@
  * searching didn't change my mind, despite the claims of many commenters;
  * the solutions I saw worked most of the time by coincidence, in my
  * opinion.
- *
- * Note also the useful reference in the header file for this translation unit.
- *
- * THIS IS A WORK IN PROGRESS
  */
 
 #include "com/diag/codex/codex.h"
