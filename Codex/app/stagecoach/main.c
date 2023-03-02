@@ -62,6 +62,7 @@
 #include "com/diag/diminuto/diminuto_daemon.h"
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_fd.h"
+#include "com/diag/diminuto/diminuto_fs.h"
 #include "com/diag/diminuto/diminuto_frequency.h"
 #include "com/diag/diminuto/diminuto_hangup.h"
 #include "com/diag/diminuto/diminuto_ipc4.h"
@@ -83,8 +84,11 @@
 
 static const size_t MAXDATAGRAM = 65527; /* max(datagram)=(2^16-1)-8 */
 
+static const char MASKPATH[] = "/var/run";
+
 int main(int argc, char * argv[])
 {
+    diminuto_path_t pathname = { '\0', };
     extern char * optarg;
     int opt = '\0';
     char * endptr = (char *)0;
@@ -141,8 +145,6 @@ int main(int argc, char * argv[])
      */
 
     (void)diminuto_core_enable();
-
-    diminuto_log_setmask();
 
     /*
      * PARSING
@@ -260,6 +262,12 @@ int main(int argc, char * argv[])
         diminuto_assert(false);
         break;
     }
+
+    (void)snprintf(pathname, sizeof(pathname), "%s/%s-%d.msk", MASKPATH, program, getpid());
+    if (diminuto_fs_type(pathname) == DIMINUTO_FS_TYPE_FILE) {
+        (void)diminuto_log_importmask(pathname);
+    }
+    (void)diminuto_log_setmask();
 
     if (daemonize) {
         rc = diminuto_daemon(name);
@@ -502,6 +510,9 @@ int main(int argc, char * argv[])
 
         if (diminuto_hangup_check()) {
             DIMINUTO_LOG_NOTICE("%s: SIGHUP\n", program);
+            if (diminuto_fs_type(pathname) == DIMINUTO_FS_TYPE_FILE) {
+                (void)diminuto_log_importmask(pathname);
+            }
             diminuto_yield();
         }
 
