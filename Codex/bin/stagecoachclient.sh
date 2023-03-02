@@ -4,6 +4,12 @@
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
 # USAGE: stagecoachclient [ -x ]
+#
+# Use the stagecoach -x option to cause this to run as a daemon.
+#
+# IMPORTANT SAFETY TIP: The certs and keys used in this script are
+# *not* built by default by the Codex "all" make target. Use the
+# "stagecoach" make target to generate them.
 
 ROOT=$(readlink -e $(dirname ${0}))
 DAMN=${1:-"-c"}
