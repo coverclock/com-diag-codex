@@ -46,7 +46,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
     ssize_t bytes = -1;
     codex_serror_t serror = CODEX_SERROR_NONE;
     int mask = 0;
-    const char * label = (const char *)0;
+    const char * name = (const char *)0;
     ticks_t now = 0;
     bool pendingssl = false;
     bool needread = false;
@@ -66,10 +66,10 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
 
     switch (role) {
     case CLIENT:
-        label = "client";
+        name = "stagecoachclient";
         break;
     case SERVER:
-        label = "server";
+        name = "stagecoachserver";
         break;
     default:
         diminuto_assert(false);
@@ -92,7 +92,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
         writefd = diminuto_mux_ready_write(muxp);
         pendingssl = codex_connection_is_ready(ssl);
 
-        DIMINUTO_LOG_DEBUG("%s: %s readfd=(%d) readudp=%d readssl=%d writefd=(%d) writessl=%d pendingssl=%d needread=%d needwrite=%d\n", program, label, readfd, (readfd == udpfd), (readfd == sslfd), writefd, (writefd == sslfd), pendingssl, needread, needwrite);
+        DIMINUTO_LOG_DEBUG("%s: %s readfd=(%d) readudp=%d readssl=%d writefd=(%d) writessl=%d pendingssl=%d needread=%d needwrite=%d\n", program, name, readfd, (readfd == udpfd), (readfd == sslfd), writefd, (writefd == sslfd), pendingssl, needread, needwrite);
 
         /*
          * If we don't seem to have anything to do, return to the caller and
@@ -123,13 +123,13 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                 bytes = datagram_receive(udptype, udpfd, buffer[WRITER], bufsize, receivedaddressp, receivedportp);
                 if ((0 < bytes) && (bytes <= bufsize)) {
                     header[WRITER] = bytes;
-                    DIMINUTO_LOG_DEBUG("%s: %s writer udp (%d) [%d] received %s\n", program, label, udpfd, header[WRITER], address2string(udptype, receivedaddressp, *receivedportp));
+                    DIMINUTO_LOG_DEBUG("%s: %s writer udp (%d) [%d] received %s\n", program, name, udpfd, header[WRITER], address2string(udptype, receivedaddressp, *receivedportp));
                     state[WRITER] = restate;
                     restate = CODEX_STATE_RESTART;
                     rc = diminuto_mux_register_write(muxp, sslfd);
                     diminuto_assert(rc >= 0);
                 } else {
-                    DIMINUTO_LOG_NOTICE("%s: %s writer udp (%d) [%zd] error\n", program, label, udpfd, bytes);
+                    DIMINUTO_LOG_NOTICE("%s: %s writer udp (%d) [%zd] error\n", program, name, udpfd, bytes);
                     status = UDPDONE;
                 }
                 break;
@@ -151,7 +151,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
             switch (state[WRITER]) {
             case CODEX_STATE_START:
             case CODEX_STATE_RESTART:
-                DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] start\n", program, label, sslfd, header[WRITER]);
+                DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] start\n", program, name, sslfd, header[WRITER]);
                 /* Fall through. */
             case CODEX_STATE_HEADER:
             case CODEX_STATE_PAYLOAD:
@@ -161,14 +161,14 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                 case CODEX_SERROR_SUCCESS:
                     switch (state[WRITER]) {
                     case CODEX_STATE_COMPLETE:
-                        DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] complete\n", program, label, sslfd, header[WRITER]);
+                        DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] complete\n", program, name, sslfd, header[WRITER]);
                         state[WRITER] = CODEX_STATE_IDLE;
                         rc = diminuto_mux_unregister_write(muxp, sslfd);
                         diminuto_assert(rc >= 0);
                         break;
                     case CODEX_STATE_FINAL:
                     case CODEX_STATE_IDLE:
-                        DIMINUTO_LOG_NOTICE("%s: %s writer ssl (%d) [%d] final %c\n", program, label, sslfd, header[WRITER], (char)state[WRITER]);
+                        DIMINUTO_LOG_NOTICE("%s: %s writer ssl (%d) [%d] final %c\n", program, name, sslfd, header[WRITER], (char)state[WRITER]);
                         status = SSLDONE;
                         break;
                     default:
@@ -177,7 +177,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                     }
                     break;
                 case CODEX_SERROR_READ:
-                    DIMINUTO_LOG_NOTICE("%s: %s writer ssl (%d) [%d] need read\n", program, label, sslfd, header[WRITER]);
+                    DIMINUTO_LOG_NOTICE("%s: %s writer ssl (%d) [%d] need read\n", program, name, sslfd, header[WRITER]);
                     needread = true;
                     /*
                      * But we're always reading.
@@ -188,7 +188,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                     /* Do nothing. */
                     break;
                 default:
-                    DIMINUTO_LOG_ERROR("%s: %s writer ssl (%d) [%d] error %c %c\n", program, label, sslfd, header[WRITER], (char)state[WRITER], (char)serror);
+                    DIMINUTO_LOG_ERROR("%s: %s writer ssl (%d) [%d] error %c %c\n", program, name, sslfd, header[WRITER], (char)state[WRITER], (char)serror);
                     status = SSLDONE;
                     break;
                 }
@@ -205,7 +205,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                      * small.)
                      */
                     header[WRITER] = 0;
-                    DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] keepalive\n", program, label, sslfd, header[WRITER]);
+                    DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] keepalive\n", program, name, sslfd, header[WRITER]);
                     state[WRITER] = restate;
                     restate = CODEX_STATE_RESTART;
                     rc = diminuto_mux_register_write(muxp, sslfd);
@@ -213,7 +213,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                 }
                 break;
             default:
-                DIMINUTO_LOG_ERROR("%s: %s writer ssl (%d) [%d] unexpected %c\n", program, label, sslfd, header[WRITER], (char)state[WRITER]);
+                DIMINUTO_LOG_ERROR("%s: %s writer ssl (%d) [%d] unexpected %c\n", program, name, sslfd, header[WRITER], (char)state[WRITER]);
                 status = SSLDONE;
                 break;
             }
@@ -232,7 +232,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                 switch (state[READER]) {
                 case CODEX_STATE_START:
                 case CODEX_STATE_RESTART:
-                    DIMINUTO_LOG_DEBUG("%s: %s reader ssl (%d) [%d] start\n", program, label, sslfd, header[READER]);
+                    DIMINUTO_LOG_DEBUG("%s: %s reader ssl (%d) [%d] start\n", program, name, sslfd, header[READER]);
                     /* Fall through. */
                 case CODEX_STATE_HEADER:
                 case CODEX_STATE_PAYLOAD:
@@ -243,12 +243,12 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                         switch (state[READER]) {
                         case CODEX_STATE_COMPLETE:
                             if (header[READER] > 0) {
-                                DIMINUTO_LOG_DEBUG("%s: %s reader udp (%d) [%d] sending %s\n", program, label, udpfd, header[READER], address2string(udptype, sendingaddressp, sendingport));
+                                DIMINUTO_LOG_DEBUG("%s: %s reader udp (%d) [%d] sending %s\n", program, name, udpfd, header[READER], address2string(udptype, sendingaddressp, sendingport));
                                 bytes = datagram_send(udptype, udpfd, buffer[READER], header[READER], sendingaddressp, sendingport);
                                 if (bytes == header[READER]) {
                                     state[READER] = CODEX_STATE_RESTART;
                                 } else {
-                                    DIMINUTO_LOG_NOTICE("%s: %s reader udp (%d) [%zd] error\n", program, label, udpfd, bytes);
+                                    DIMINUTO_LOG_NOTICE("%s: %s reader udp (%d) [%zd] error\n", program, name, udpfd, bytes);
                                     status = UDPDONE;
                                 }
                             } else {
@@ -258,13 +258,13 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                                  * packets. But if it does happen, it is such
                                  * a firehose that we limit it to DEBUG level.
                                  */
-                                DIMINUTO_LOG_DEBUG("%s: %s reader ssl (%d) [%d] empty\n", program, label, sslfd, header[READER]);
+                                DIMINUTO_LOG_DEBUG("%s: %s reader ssl (%d) [%d] empty\n", program, name, sslfd, header[READER]);
                                 state[READER] = CODEX_STATE_RESTART;
                             }
                             break;
                         case CODEX_STATE_FINAL:
                         case CODEX_STATE_IDLE:
-                            DIMINUTO_LOG_NOTICE("%s: %s reader ssl (%d) [%d] final %c\n", program, label, sslfd, header[READER], (char)state[READER]);
+                            DIMINUTO_LOG_NOTICE("%s: %s reader ssl (%d) [%d] final %c\n", program, name, sslfd, header[READER], (char)state[READER]);
                             status = SSLDONE;
                             break;
                         default:
@@ -273,7 +273,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                         }
                         break;
                     case CODEX_SERROR_WRITE:
-                        DIMINUTO_LOG_NOTICE("%s: %s reader ssl (%d) [%d] need write\n", program, label, sslfd, header[READER]);
+                        DIMINUTO_LOG_NOTICE("%s: %s reader ssl (%d) [%d] need write\n", program, name, sslfd, header[READER]);
                         needwrite = true;
                         break;
                     case CODEX_SERROR_READ:
@@ -281,7 +281,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                         /* Do nothing. */
                         break;
                     default:
-                        DIMINUTO_LOG_ERROR("%s: %s reader ssl (%d) [%d] error %c %c\n", program, label, sslfd, header[READER], (char)state[READER], (char)serror);
+                        DIMINUTO_LOG_ERROR("%s: %s reader ssl (%d) [%d] error %c %c\n", program, name, sslfd, header[READER], (char)state[READER], (char)serror);
                         status = SSLDONE;
                         break;
                     }
@@ -289,7 +289,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                 case CODEX_STATE_COMPLETE:
                 case CODEX_STATE_IDLE:
                 case CODEX_STATE_FINAL:
-                    DIMINUTO_LOG_ERROR("%s: %s reader ssl (%d) [%d] unexpected %c\n", program, label, sslfd, header[READER], (char)state[READER]);
+                    DIMINUTO_LOG_ERROR("%s: %s reader ssl (%d) [%d] unexpected %c\n", program, name, sslfd, header[READER], (char)state[READER]);
                     status = SSLDONE;
                     break;
                 }
