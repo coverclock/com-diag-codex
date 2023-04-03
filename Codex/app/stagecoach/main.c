@@ -273,16 +273,16 @@ int main(int argc, char * argv[])
     (void)diminuto_log_setmask();
     DIMINUTO_LOG_NOTICE("%s: %s file=\"%s\" type=%c mask=0x%x\n", program, name, maskfile, filetype, diminuto_log_mask);
 
-    DIMINUTO_LOG_INFORMATION("%s: %s begin B=\"%s\" C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" k=\"%s\" n=\"%s\" r=%d t=\"%s\" x=%d %c=%d\n",
+    DIMINUTO_LOG_INFORMATION("%s: %s begin C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" b=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" k=\"%s\" n=\"%s\" r=%d t=\"%s\" x=%d %c=%d\n",
         program,
         name,
-        (bytes == (const char *)0) ? "" : bytes,
         (pathcrt == (const char *)0) ? "" : pathcrt,
         (pathdhf == (const char *)0) ? "" : pathdhf,
         (pathkey == (const char *)0) ? "" : pathkey,
         (pathcrl == (const char *)0) ? "" : pathcrl,
         (pathcap == (const char *)0) ? "" : pathcap,
         (pathcaf == (const char *)0) ? "" : pathcaf,
+        (bytes == (const char *)0) ? "" : bytes,
         (delay == (const char *)0) ? "" : delay,
         (expected == (const char *)0) ? "" : expected,
         (farend == (const char *)0) ? "" : farend,
