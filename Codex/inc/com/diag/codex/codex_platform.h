@@ -5,7 +5,7 @@
 /**
  * @file
  *
- * Copyright 2020-2021 Digital Aggregates Corporation, Colorado, USA.
+ * Copyright 2020-2024 Digital Aggregates Corporation, Colorado, USA.
  * Licensed under the terms in LICENSE.txt.
  *
  * The Codex Platform feature tries to determine what OpenSSL
@@ -58,20 +58,24 @@
 #   define COM_DIAG_CODEX_PLATFORM "OpenSSL 3.0.2"
 #   define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x30000020
 #   define COM_DIAG_CODEX_PLATFORM_OPENSSL_3_0_2 1
+#elif defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x300000d0) && !defined(OPENSSL_IS_BORINGSSL)
+#   define COM_DIAG_CODEX_PLATFORM "OpenSSL 3.0.13"
+#   define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x300000d0
+#   define COM_DIAG_CODEX_PLATFORM_OPENSSL_3_0_13 1
 #elif defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER == 0x1010007f) && defined(OPENSSL_IS_BORINGSSL)
 #   define COM_DIAG_CODEX_PLATFORM "BoringSSL 1.1.0"
 #   define COM_DIAG_CODEX_PLATFORM_BORINGSSL 0x1010007fL
 #   define COM_DIAG_CODEX_PLATFORM_BORINGSSL_1_1_0 1
 #elif defined(OPENSSL_IS_BORINGSSL)
-#   warning This is not a known BoringSSL version (assuming 1.1.0).
-#   define COM_DIAG_CODEX_PLATFORM "BoringSSL"
-#   define COM_DIAG_CODEX_PLATFORM_BORINGSSL 0x10100000L
+#   warning Codex has not been tested against this BoringSSL version (assume 1.1.0)
+#   define COM_DIAG_CODEX_PLATFORM "BoringSSL X.X.X"
+#   define COM_DIAG_CODEX_PLATFORM_BORINGSSL 0x1010007fL
 #   define COM_DIAG_CODEX_PLATFORM_BORINGSSL_1_1_0 1
 #else
-#   warning This is not a known OpenSSL version (assuming 1.1.1).
-#   define COM_DIAG_CODEX_PLATFORM "OpenSSL"
-#   define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x10101000L
-#   define COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_1 1
+#   warning Codex has not been tested against this OpenSSL version (assume 3.0.13).
+#   define COM_DIAG_CODEX_PLATFORM "OpenSSL X.X.X"
+#   define COM_DIAG_CODEX_PLATFORM_OPENSSL 0x300000d0
+#   define COM_DIAG_CODEX_PLATFORM_OPENSSL_3_0_13 1
 #endif
 
 #endif
