@@ -27,8 +27,8 @@ C or C++, code that I typically am asked to develop. Codex is built on
 top of Diminuto, my C-based systems programming library I've been using
 for years in both personal and commercial development projects.
 
->N.B. If you got here via "prairiethorn.org" or "prairiethorn.com", those
->are test domains I use for this project and others. It is sometimes
+>N.B. If you got here via "prairiethorn.org", that
+>is a test domain I use for this project and others. It is sometimes
 >dynamically forwarded to the GitHub page for this repository.
 
 # Disclaimer
