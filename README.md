@@ -238,17 +238,7 @@ directory.
 
 # Dependencies
 
-OpenSSL 1.0.1t
-*or*
-OpenSSL 1.0.2g
-*or*
-OpenSSL 1.1.0
-*or*
-BoringSSL 1.1.0
-*or*
-OpenSSL 1.1.1-pre2-dev
-*or*
-OpenSSL 3.0.2
+OpenSSL or BoringSSL
 
 Diminuto 48.4.1 or later
 
