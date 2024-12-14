@@ -50,7 +50,8 @@ ported it to (not necessarily in this order):
 * OpenSSL 1.1.0 on Raspbian "stretch";
 * BoringSSL 1.1.0 which is Google's fork of OpenSSL 1.1.0 from which it is substantially different;
 * OpenSSL 1.1.1;
-* OpenSSL 3.0.2.
+* OpenSSL 3.0.2;
+* OpenSSL 3.0.13.
 
 When I make changes, Codex gets tested on a variety of OpenSSL versions
 depending on what test system I run it on. As later versions of OpenSSL
