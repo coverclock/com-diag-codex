@@ -45,9 +45,9 @@ int main(int argc, char ** argv)
         patch  = (openssl_version_number & 0x00000ff0) >>  4;
         status = (openssl_version_number & 0x0000000f) >>  0;
 
-        COMMENT("openssl_version_number=0x%08lx\n", openssl_version_number);
-        COMMENT("openssl_version_text=\"%s\"\n", openssl_version_text);
-        COMMENT("openssl_version_decode=%lu.%lu.%lu.%lu.%lu\n", major, minor, fix, patch, status);
+        CHECKPOINT("openssl_version_number=0x%08lx\n", openssl_version_number);
+        CHECKPOINT("openssl_version_text=\"%s\"\n", openssl_version_text);
+        CHECKPOINT("openssl_version_decode=%lu.%lu.%lu.%lu.%lu\n", major, minor, fix, patch, status);
 
         STATUS();
     }
@@ -62,7 +62,7 @@ int main(int argc, char ** argv)
 #endif
 
 #ifdef COM_DIAG_CODEX_PLATFORM_OPENSSL
-        COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL=0x%8.8x\n", COM_DIAG_CODEX_PLATFORM_OPENSSL);
+        COMMENT("COM_DIAG_CODEX_PLATFORM_OPENSSL=0x%8.8lx\n", COM_DIAG_CODEX_PLATFORM_OPENSSL);
 #endif
 
 #ifdef COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_0
