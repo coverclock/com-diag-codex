@@ -47,7 +47,7 @@ int main(int argc, char ** argv)
 
         CHECKPOINT("openssl_version_number=0x%08lx\n", openssl_version_number);
         CHECKPOINT("openssl_version_text=\"%s\"\n", openssl_version_text);
-        CHECKPOINT("openssl_version_decode=%lu.%lu.%lu.%lu.%lu\n", major, minor, fix, patch, status);
+        CHECKPOINT("openssl_version_decode=%lu.%lu.%lu-%lu.%lu\n", major, minor, patch, fix, status);
 
         STATUS();
     }
