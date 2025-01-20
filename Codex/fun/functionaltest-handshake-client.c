@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2025 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -401,12 +401,8 @@ int main(int argc, char ** argv)
             DIMINUTO_LOG_INFORMATION("%s: NEAREND\n", program);
 
             /*
-             * N.B. BoringSSL prohibits clients from initiating renegotiations,
-             *      so this will always fail on that flavor of Codex.
+             * Renegotiation removed in Codex 11.0.0.
              */
-
-            rc = codex_handshake_renegotiate(ssl);
-            EXPECT(rc >= 0);
 
             headers[WRITER] = CODEX_INDICATION_DONE;
             states[WRITER] = CODEX_STATE_RESTART;

@@ -5,7 +5,7 @@
 /**
  * @file
  *
- * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA.
+ * Copyright 2018-2025 Digital Aggregates Corporation, Colorado, USA.
  * Licensed under the terms in LICENSE.txt.
  *
  * The Codex package implements a slightly simpler interface to the
@@ -110,9 +110,6 @@
  * HEADERS
  ******************************************************************************/
 
-/* Hopefully benign if not BoringSSL. */
-#define BORINGSSL_SHARED_LIBRARY 1
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -121,7 +118,22 @@
 #include <openssl/bio.h>
 #include <openssl/crypto.h>
 #include <openssl/asn1.h>
-#include "com/diag/codex/codex_platform.h"
+
+/*******************************************************************************
+ * PLATFORM
+ ******************************************************************************/
+
+#if defined(OPENSSL_VERSION_STR)
+#   define COM_DIAG_CODEX_PLATFORM OPENSSL_VERSION_STR
+#else
+#   error OPENSSL_VERSION_STR undefined!
+#endif
+
+#if defined(OPENSSL_VERSION_NUMBER)
+#   define COM_DIAG_CODEX_PLATFORM_OPENSSL OPENSSL_VERSION_NUMBER
+#else
+#   error OPENSSL_VERSION_NUMBER undefined!
+#endif
 
 /*******************************************************************************
  * TYPES
@@ -577,19 +589,9 @@ extern codex_connection_t * codex_server_connection_new(codex_context_t * ctx, c
  * HANDSHAKE
  ******************************************************************************/
 
-/**
- * Immediately force a peer to renegotiate a connection. This has the effect of
- * generating new temporary encryption keys for the peers to use; this is a good
- * thing to do for very long lived connections, since the encryption is more
- * likely to be broken by evil actors the longer it is used. Empirical evidence
- * suggests that regardless of what the OpenSSL documentation may suggest, both
- * unidirectional streams of the full-duplex connections must be empty of
- * application data for the renegotiation to succeed. See the handshake unit
- * test for an example.
- * @param ssl points to the connection (an SSL).
- * @return 0 for success, <0 otherwise.
+/*
+ * Removed in Codex 11.0.0.
  */
-extern int codex_handshake_renegotiate(codex_connection_t * ssl);
 
 /*******************************************************************************
  * MACHINES

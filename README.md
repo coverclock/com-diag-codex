@@ -51,18 +51,18 @@ ported it to (not necessarily in this order):
 * BoringSSL 1.1.0 which is Google's fork of OpenSSL 1.1.0 from which it is substantially different;
 * OpenSSL 1.1.1;
 * OpenSSL 3.0.2;
-* OpenSSL 3.0.13.
+* OpenSSL 3.0.13;
+* OpenSSL 3.0.15.
 
 When I make changes, Codex gets tested on a variety of OpenSSL versions
 depending on what test system I run it on. As later versions of OpenSSL
 deprecate functions, I port Codex to that version, so I can't guarantee
 the latest release of Codex will still work under earlier versions.
 
-The Codex handshake (renegotiation) feature in Codex only works under OpenSSL
+The Codex handshake (renegotiation) feature in Codex only worked under OpenSSL
 1.0.2. It's of questionable value anyway, but it was an enlightening
-exercise. The Codex handshake unit test however remains very useful since it
-only attempts a renegotiation if either end, client or server, receives a
-hangup signal (```SIGHUP```).
+exercise. The function call has been removed (it was a big security hole,
+as it turns out).
 
 I have run the unit tests on a variety of systems, including an x86_64
 running Ubuntu, and an ARM (Raspberry Pi) running Raspberry Pi OS

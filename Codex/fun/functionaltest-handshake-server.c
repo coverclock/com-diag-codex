@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2025 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -227,7 +227,6 @@ static client_t * destroy(client_t * client)
 static bool renegotiate(client_t * client)
 {
     int errors = 0;
-    int rc = -1;
     codex_header_t header = 0;
     codex_state_t state = CODEX_STATE_IDLE;
     uint8_t * here = (uint8_t *)0;
@@ -247,10 +246,9 @@ static bool renegotiate(client_t * client)
          * fails.
          */
 
-        rc = codex_handshake_renegotiate(client->ssl);
-        if (rc < 0) {
-            ++errors;
-        }
+        /*
+         * Renegotiation removed in Codex 11.0.0.
+         */
 
         /*
          * Tell the far end that renegotiation is complete and the data stream

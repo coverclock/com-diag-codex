@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2025 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -463,22 +463,10 @@ codex_connection_t * codex_connection_free(codex_connection_t * ssl)
 
 bool codex_connection_is_server(const codex_connection_t * ssl)
 {
-#if defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1)
-
-    /*
-     * OpenSSL 1.0.1 doesn't appear to have an API call to determine whether
-     * this is the server or the client side. We cheat.
-     */
-    return !!ssl->server;
-
-#else
-
     /*
      * Parameter to SSL_is_server() can and should be const.
      */
     return !!SSL_is_server((codex_connection_t *)ssl);
-
-#endif
 }
 
 
@@ -618,11 +606,10 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
 {
     SSL * ssl = (SSL *)0;
     BIO * bio = (BIO *)0;
+    char * mutable = (char *)0;
     int rc = -1;
 
     do {
-#if defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1) || defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_0)
-        char * mutable = (char *)0;
 
         /*
          * Some OpenSSL flavors don't declare the string passed into
@@ -638,23 +625,11 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
         }
 
         bio = BIO_new_connect(mutable);
-        if (bio == (BIO *)0) {
-            codex_perror("BIO_new_connect");
-            free(mutable);
-            break;
-        }
-
         free(mutable);
-
-#else
-
-        bio = BIO_new_connect(farend);
         if (bio == (BIO *)0) {
             codex_perror("BIO_new_connect");
             break;
         }
-
-#endif
 
         rc = BIO_do_connect(bio);
         if (rc <= 0) {
@@ -714,36 +689,11 @@ codex_context_t * codex_server_context_new(const char * caf, const char * cap, c
 codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 {
     BIO * bio = (BIO *)0;
+    char * mutable = (char *)0;
     int rc = -1;
     int fd = -1;
 
     do {
-#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
-        diminuto_ipc_endpoint_t endpoint = { 0 };
-
-        rc = diminuto_ipc_endpoint(nearend, &endpoint);
-        if (rc < 0) {
-            DIMINUTO_LOG_WARNING("diminuto_ipc_endpoint: \"%s\"\n", nearend);
-            break;
-        }
-
-        if (diminuto_ipc6_is_unspecified(&endpoint.ipv6)) {
-            fd = diminuto_ipc4_stream_provider_generic(endpoint.ipv4, endpoint.tcp, (const char *)0, -1);
-        } else {
-            fd = diminuto_ipc6_stream_provider_generic(endpoint.ipv6, endpoint.tcp, (const char *)0, -1);
-        }
-        if (fd < 0) {
-            break;
-        }
-
-        bio = BIO_new_socket(fd, !0);
-        if (bio != (BIO *)0) {
-            break;
-        }
-        codex_perror("BIO_new_socket");
-
-#elif defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_0_1) || defined(COM_DIAG_CODEX_PLATFORM_OPENSSL_1_1_0)
-        char * mutable = (char *)0;
 
         /*
          * Some OpenSSL flavors don't declare the string passed into
@@ -759,24 +709,7 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
         }
 
         bio = BIO_new_accept(mutable);
-        if (bio == (BIO *)0) {
-            codex_perror("BIO_new_accept");
-            free(mutable);
-            break;
-        }
-
-        rc = BIO_do_accept(bio);
-        if (rc > 0) {
-            free(mutable);
-            break;
-        }
-        codex_perror("BIO_do_accept");
-
         free(mutable);
-
-#else
-
-        bio = BIO_new_accept(nearend);
         if (bio == (BIO *)0) {
             codex_perror("BIO_new_accept");
             break;
@@ -787,8 +720,6 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
             break;
         }
         codex_perror("BIO_do_accept");
-
-#endif
 
         rc = BIO_free(bio);
         if (rc != 1) {
@@ -839,28 +770,6 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
 
     do {
 
-#if defined(COM_DIAG_CODEX_PLATFORM_BORINGSSL)
-
-        rc = BIO_get_fd(bio, (int *)0);
-        if (rc < 0) {
-            errno = EINVAL;
-            diminuto_perror("BIO_get_fd");
-            break;
-        }
-
-        rc = diminuto_ipc4_stream_accept(rc);
-        if (rc < 0) {
-            break;
-        }
-
-        tmp = BIO_new_socket(rc, !0);
-        if (tmp == (BIO *)0) {
-            codex_perror("BIO_new_socket");
-            break;
-        }
-
-#else
-
         tmp = BIO_pop(bio);
         if (tmp == (BIO *)0) {
 
@@ -876,8 +785,6 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
             }
 
         }
-
-#endif
 
         ssl = SSL_new(ctx);
         if (ssl == (SSL *)0) {

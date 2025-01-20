@@ -1,5 +1,5 @@
 # vi: set ts=4 shiftwidth=4:
-# Copyright 2018-2022 Digital Aggregates Corporation
+# Copyright 2018-2025 Digital Aggregates Corporation
 # Licensed under the terms in LICENSE.txt
 # author:Chip Overclock
 # mailto:coverclock@diag.com
@@ -22,9 +22,9 @@ TITLE				:=	Codex
 PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
-MAJOR				:=	10# API changes that may require that applications be modified.
-MINOR				:=	1# Only functionality or features added with no legacy API changes.
-BUILD				:=	1# Only bugs fixed with no API changes or new functionality.
+MAJOR				:=	11# API changes that may require that applications be modified.
+MINOR				:=	0# Only functionality or features added with no legacy API changes.
+BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host", my
 # X86_64 Ubuntu build server.
@@ -981,9 +981,6 @@ install-include:
 
 .PHONY: sanity failures functional extra
 
-# Once I moved to OpenSSL 3.0.2 I had to put in some delay in between
-# the unit tests to allow the socket to shutdown.
-
 sanity:
 	unittest-sanity
 	unittest-verification-client
@@ -995,6 +992,9 @@ sanity:
 	unittest-noverification-bogus
 	unittest-noverification-self
 	unittest-noverification-revoked
+
+# Once I moved to OpenSSL 3.0.2 I had to put in some delay in between
+# the unit tests to allow the socket to shutdown and release the port.
 
 failures:
 	unittest-verification-noself && false || true; sleep 30
@@ -1014,6 +1014,9 @@ functional:
 extra:
 	unittest-handshake
 	unittest-control
+
+tests:	sanity failures functional extra
+	echo "COMPLETE" 1>&2
 
 ##### Build certificates etc. for specific applications.
 ##### (These applications may be part of other projects.)
