@@ -979,19 +979,21 @@ install-include:
 
 ########## Sanity Tests
 
-.PHONY: sanity failures functional extra
+.PHONY: sanity verification failures functional extra
 
 sanity:
 	unittest-sanity
-	unittest-verification-client
-	unittest-verification-server
-	unittest-verification-bogus
-	unittest-verification-self
 	unittest-noverification-client
 	unittest-noverification-server
 	unittest-noverification-bogus
 	unittest-noverification-self
 	unittest-noverification-revoked
+
+verification:
+	unittest-verification-client
+	unittest-verification-server
+	unittest-verification-bogus
+	unittest-verification-self
 
 # Once I moved to OpenSSL 3.0.2 I had to put in some delay in between
 # the unit tests to allow the socket to shutdown and release the port.
@@ -1004,18 +1006,14 @@ functional:
 	unittest-core
 	unittest-machine
 
-# The handshake feature is not supported on all OpenSSL
-# implementations.
-
 # The control feature runs a unit test with the same
 # programming model as the SSL unit tests but without
 # using SSL.
 
 extra:
-	unittest-handshake
 	unittest-control
 
-tests:	sanity failures functional extra
+tests:	sanity failures functional verification extra
 	echo "COMPLETE" 1>&2
 
 ##### Build certificates etc. for specific applications.

@@ -1,9 +1,10 @@
 #!/bin/bash
-# Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
+# Copyright 2018-2025 Digital Aggregates Corporation, Colorado, USA<BR>
 # Licensed under the terms in LICENSE.txt
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
 
+PROGRAM=$(basename ${0})
 BLOCKS=${1:-1048576}
 BUFSIZE=${2:-512}
 CLIENTS=1
@@ -25,10 +26,21 @@ while [[ ${CLIENTS} -gt 0 ]]; do
 done
 
 trap "kill -9 ${SERVER} ${CLIENT} 2> /dev/null" HUP INT TERM EXIT
-wait ${CLIENT}
-pkill -f -TERM functionaltest-control-server
+
+CEXIT=0
+for CC in ${CLIENT}; do
+    wait ${CC}
+    SS=$?
+    CEXIT=$(( ${CEXIT} + ${SS} ))
+done
+kill -TERM ${SERVER}
 wait ${SERVER}
-echo "blocks	${BLOCKS}"
-echo "blksize	${BLOCKSIZE}"
-echo "bytes	$(( ${BLOCKS} * ${BLOCKSIZE} ))"
-echo "bufsize	${BUFSIZE}"
+SEXIT=$?
+
+echo "${PROGRAM}: blocks        ${BLOCKS}" 1>&2
+echo "${PROGRAM}: blksize       ${BLOCKSIZE}" 1>&2
+echo "${PROGRAM}: bytes         $(( ${BLOCKS} * ${BLOCKSIZE} ))" 1>&2
+echo "${PROGRAM}: bufsize       ${BUFSIZE}" 1>&2
+
+echo "${PROGRAM}: END ${CEXIT} ${SEXIT}" 1>&2
+exit $(( ${CEXIT} + ${SEXIT} ))
