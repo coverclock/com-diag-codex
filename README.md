@@ -3,6 +3,12 @@ com-diag-codex
 
 Slightly Simpler Open Secure Socket Layer (OpenSSL) API in C.
 
+IMPORTANT SAFETY TIP: I'm currently rototilling this project to eliminate
+many platform version dependencies and to improve its testability. Currently
+the only API change will be to eliminate the ```codex_handshake_renegotiation()```
+function call (which was a really bad capability anyway, and only briefly available
+in OpenSSL). But Codex is definitely in a transitional phase.
+
 # Copyright
 
 Copyright 2018-2025 Digital Aggregates Corporation, Arvada Colorado USA
