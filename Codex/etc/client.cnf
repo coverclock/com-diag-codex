@@ -1,4 +1,4 @@
-# Copyright 2018 Digital Aggregates Corporation, Colorado, USA<BR>
+# Copyright 2018-2025 Digital Aggregates Corporation, Colorado, USA<BR>
 # Licensed under the terms in LICENSE.txt
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
@@ -24,4 +24,4 @@ basicConstraints       = CA:FALSE
 nsComment              = "OpenSSL Generated Certificate"
 subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid,issuer
-subjectAltName         = DNS:*.prairiethorn.org, DNS:localhost, DNS:boron, DNS:cadmium, DNS:radium, DNS:tungsten, DNS:client1.prairiethorn.org, DNS:client2.prairiethorn.org, DNS:client3.prairiethorn.org
+subjectAltName         = DNS:*.prairiethorn.org, DNS:localhost, DNS:MYHOSTNAME, DNS:MYHOSTNAME4, DNS:MYHOSTNAME6, DNS:client1.prairiethorn.org, DNS:client2.prairiethorn.org, DNS:client3.prairiethorn.org

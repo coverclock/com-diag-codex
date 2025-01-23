@@ -56,7 +56,7 @@ FLAVOR				:=	openssl
 # complaint string with the time specified in UTC with nanosecond resolution.
 
 # This stuff all gets embedded in the vintage application.
-COPYRIGHT			:=	2018-2022 Digital Aggregates Corporation
+COPYRIGHT			:=	2018-2025 Digital Aggregates Corporation
 LICENSE				:=	GNU Lesser General Public License 2.1
 CONTACT				:=	coverclock@diag.com
 HOMEPAGE			:=	https://github.com/coverclock/com-diag-$(PROJECT)
@@ -161,6 +161,7 @@ include $(DIMINUTOMAKEFILE)
 
 SSL_CRL				:=	$(OUT)/$(CRT_DIR)
 SSL_CRT				:=	$(OUT)/$(CRT_DIR)
+SSL_ETC				:=	$(OUT)/$(ETC_DIR)
 SSL_PWD				:=	$(OUT)/$(PWD_DIR)
 SSL_TXT				:=	$(OUT)/$(TXT_DIR)
 
@@ -223,6 +224,15 @@ TARGETSHARED		:=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
+TARGETCONFIGS		:= $(SSL_ETC)/bogus.cnf
+TARGETCONFIGS		+= $(SSL_ETC)/ca.cnf
+TARGETCONFIGS		+= $(SSL_ETC)/client.cnf
+TARGETCONFIGS		+= $(SSL_ETC)/revoked.cnf
+TARGETCONFIGS		+= $(SSL_ETC)/revokedtoo.cnf
+TARGETCONFIGS		+= $(SSL_ETC)/root.cnf
+TARGETCONFIGS		+= $(SSL_ETC)/self.cnf
+TARGETCONFIGS		+= $(SSL_ETC)/server.cnf
+
 TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt
 TARGETCREDENTIALS	+=	$(SSL_TXT)/ca.txt
 TARGETCREDENTIALS	+=	$(SSL_TXT)/client.txt
@@ -249,7 +259,7 @@ TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
 
 TARGETPROGRAMS		:=	$(TARGETAPPLICATIONS) $(TARGETBINARIES) $(TARGETALIASES) $(TARGETUNITTESTS) $(TARGETGENERATED) $(TARGETSCRIPTS) $(TARGETFUNCTIONALS)
 
-TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCREDENTIALS) $(TARGETPASSWORDS) $(TARGETREVOCATIONS) $(TARGETPARAMETERS)
+TARGETALL			:=	$(TARGETLIBRARIES) $(TARGETPROGRAMS) $(TARGETCONFIGS) $(TARGETCREDENTIALS) $(TARGETPASSWORDS) $(TARGETREVOCATIONS) $(TARGETPARAMETERS)
 
 ########## Main Entry Points
 
@@ -282,6 +292,13 @@ clobber:	pristine
 
 .PHONY:	credentials credentials-clean parameters parameters-clean passwords passwords-clean
 
+##### Configurations
+
+$(SSL_ETC)/%.cnf:	$(ETC_DIR)/%.cnf
+	D=`dirname $@`; mkdir -p $$D
+	sed -e 's/MYHOSTNAME/$(HOST)/g' $< > $@
+	chmod 600 $@
+
 ##### Passwords
 
 $(SSL_PWD)/%.pwd:	$(ETC_DIR)/%.cnf
@@ -298,17 +315,17 @@ $(SSL_TXT)/%.txt:	$(SSL_CRT)/%.pem
 
 ##### Root
 
-$(SSL_CRT)/rootreq.pem:	$(ETC_DIR)/root.cnf
+$(SSL_CRT)/rootreq.pem:	$(SSL_ETC)/root.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -config $(ETC_DIR)/root.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/rootkey.pem -out $@
+	$(OPENSSL) req -config $(SSL_ETC)/root.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/rootkey.pem -out $@
 	chmod 600 $@
 	chmod 600 $(SSL_CRT)/rootkey.pem
 
 $(SSL_CRT)/rootkey.pem:	$(SSL_CRT)/rootreq.pem
 
-$(SSL_CRT)/rootcert.pem:	$(SSL_CRT)/rootreq.pem $(ETC_DIR)/root.cnf $(SSL_CRT)/rootkey.pem $(SSL_PWD)/root.pwd
+$(SSL_CRT)/rootcert.pem:	$(SSL_CRT)/rootreq.pem $(SSL_ETC)/root.cnf $(SSL_CRT)/rootkey.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/rootreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/root.cnf -extensions v3_ca -signkey $(SSL_CRT)/rootkey.pem -passin file:$(SSL_PWD)/root.pwd -out $@
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/rootreq.pem -$(SSL_ALG) -extfile $(SSL_ETC)/root.cnf -extensions v3_ca -signkey $(SSL_CRT)/rootkey.pem -passin file:$(SSL_PWD)/root.pwd -out $@
 	$(C_REHASH) $(SSL_CRT)
 	ls --full-time $(SSL_CRT)
 	chmod 600 $@
@@ -322,17 +339,17 @@ $(SSL_CRT)/root.pem:	$(SSL_CRT)/rootkey.pem $(SSL_CRT)/rootcert.pem
 
 ##### Certificate Authority
 
-$(SSL_CRT)/careq.pem:	$(ETC_DIR)/ca.cnf
+$(SSL_CRT)/careq.pem:	$(SSL_ETC)/ca.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -config $(ETC_DIR)/ca.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/cakey.pem -out $@
+	$(OPENSSL) req -config $(SSL_ETC)/ca.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/cakey.pem -out $@
 	chmod 600 $@
 	chmod 600 $(SSL_CRT)/cakey.pem
 
 $(SSL_CRT)/cakey.pem:	$(SSL_CRT)/careq.pem
 
-$(SSL_CRT)/cacert.pem:	$(SSL_CRT)/careq.pem $(ETC_DIR)/ca.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+$(SSL_CRT)/cacert.pem:	$(SSL_CRT)/careq.pem $(SSL_ETC)/ca.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/careq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/ca.cnf -extensions v3_ca -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/careq.pem -$(SSL_ALG) -extfile $(SSL_ETC)/ca.cnf -extensions v3_ca -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
 	chmod 600 $@
 
@@ -345,17 +362,17 @@ $(SSL_CRT)/ca.pem:	$(SSL_CRT)/cacert.pem $(SSL_CRT)/cakey.pem $(SSL_CRT)/rootcer
 
 ##### Server
 
-$(SSL_CRT)/serverreq.pem:	$(ETC_DIR)/server.cnf
+$(SSL_CRT)/serverreq.pem:	$(SSL_ETC)/server.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -config $(ETC_DIR)/server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/serverkey.pem -out $@
+	$(OPENSSL) req -config $(SSL_ETC)/server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/serverkey.pem -out $@
 	chmod 600 $@
 	chmod 600 $(SSL_CRT)/serverkey.pem
 
 $(SSL_CRT)/serverkey.pem:	$(SSL_CRT)/serverreq.pem
 
-$(SSL_CRT)/servercert.pem:	$(SSL_CRT)/serverreq.pem $(ETC_DIR)/server.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
+$(SSL_CRT)/servercert.pem:	$(SSL_CRT)/serverreq.pem $(SSL_ETC)/server.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/server.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/serverreq.pem -$(SSL_ALG) -extfile $(SSL_ETC)/server.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
 	chmod 600 $@
 
@@ -368,17 +385,17 @@ $(SSL_CRT)/server.pem:	$(SSL_CRT)/servercert.pem $(SSL_CRT)/serverkey.pem $(SSL_
 
 ##### Client
 
-$(SSL_CRT)/clientreq.pem:	$(ETC_DIR)/client.cnf
+$(SSL_CRT)/clientreq.pem:	$(SSL_ETC)/client.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -config $(ETC_DIR)/client.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/clientkey.pem -out $@
+	$(OPENSSL) req -config $(SSL_ETC)/client.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/clientkey.pem -out $@
 	chmod 600 $@
 	chmod 600 $(SSL_CRT)/clientkey.pem
 
 $(SSL_CRT)/clientkey.pem:	$(SSL_CRT)/clientreq.pem
 
-$(SSL_CRT)/clientcert.pem:	$(SSL_CRT)/clientreq.pem $(ETC_DIR)/client.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+$(SSL_CRT)/clientcert.pem:	$(SSL_CRT)/clientreq.pem $(SSL_ETC)/client.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/clientreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/client.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/clientreq.pem -$(SSL_ALG) -extfile $(SSL_ETC)/client.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
 	chmod 600 $@
 
@@ -391,17 +408,17 @@ $(SSL_CRT)/client.pem:	$(SSL_CRT)/clientcert.pem $(SSL_CRT)/clientkey.pem $(SSL_
 
 ##### Bogus
 
-$(SSL_CRT)/bogusreq.pem:	$(ETC_DIR)/bogus.cnf
+$(SSL_CRT)/bogusreq.pem:	$(SSL_ETC)/bogus.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -config $(ETC_DIR)/bogus.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/boguskey.pem -out $@
+	$(OPENSSL) req -config $(SSL_ETC)/bogus.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/boguskey.pem -out $@
 	chmod 600 $@
 	chmod 600 $(SSL_CRT)/boguskey.pem
 
 $(SSL_CRT)/boguskey.pem:	$(SSL_CRT)/bogusreq.pem
 
-$(SSL_CRT)/boguscert.pem:	$(SSL_CRT)/bogusreq.pem $(ETC_DIR)/bogus.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+$(SSL_CRT)/boguscert.pem:	$(SSL_CRT)/bogusreq.pem $(SSL_ETC)/bogus.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/bogusreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/bogus.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/bogusreq.pem -$(SSL_ALG) -extfile $(SSL_ETC)/bogus.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
 	chmod 600 $@
 
@@ -414,9 +431,9 @@ $(SSL_CRT)/bogus.pem:	$(SSL_CRT)/boguscert.pem $(SSL_CRT)/boguskey.pem $(SSL_CRT
 
 ##### Self-signed
 
-$(SSL_CRT)/selfcert.pem:	$(ETC_DIR)/self.cnf
+$(SSL_CRT)/selfcert.pem:	$(SSL_ETC)/self.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -new -x509 -config $(ETC_DIR)/self.cnf -extensions usr_cert -newkey $(SSL_KEY) -nodes -$(SSL_ALG) -keyout $(SSL_CRT)/selfkey.pem -out $@
+	$(OPENSSL) req -new -x509 -config $(SSL_ETC)/self.cnf -extensions usr_cert -newkey $(SSL_KEY) -nodes -$(SSL_ALG) -keyout $(SSL_CRT)/selfkey.pem -out $@
 	chmod 600 $@
 	chmod 600 $(SSL_CRT)/selfkey.pem
 
@@ -431,17 +448,17 @@ $(SSL_CRT)/self.pem:	$(SSL_CRT)/selfcert.pem $(SSL_CRT)/selfkey.pem
 
 ##### Revoked
 
-$(SSL_CRT)/revokedreq.pem:	$(ETC_DIR)/revoked.cnf
+$(SSL_CRT)/revokedreq.pem:	$(SSL_ETC)/revoked.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -config $(ETC_DIR)/revoked.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/revokedkey.pem -out $@
+	$(OPENSSL) req -config $(SSL_ETC)/revoked.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/revokedkey.pem -out $@
 	chmod 600 $@
 	chmod 600 $(SSL_CRT)/revokedkey.pem
 
 $(SSL_CRT)/revokedkey.pem:	$(SSL_CRT)/revokedreq.pem
 
-$(SSL_CRT)/revokedcert.pem:	$(SSL_CRT)/revokedreq.pem $(ETC_DIR)/revoked.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+$(SSL_CRT)/revokedcert.pem:	$(SSL_CRT)/revokedreq.pem $(SSL_ETC)/revoked.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/revokedreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/revoked.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/revokedreq.pem -$(SSL_ALG) -extfile $(SSL_ETC)/revoked.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
 	chmod 600 $@
 
@@ -454,17 +471,17 @@ $(SSL_CRT)/revoked.pem:	$(SSL_CRT)/revokedcert.pem $(SSL_CRT)/revokedkey.pem $(S
 
 ##### Revoked Too
 
-$(SSL_CRT)/revokedtooreq.pem:	$(ETC_DIR)/revokedtoo.cnf
+$(SSL_CRT)/revokedtooreq.pem:	$(SSL_ETC)/revokedtoo.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -config $(ETC_DIR)/revokedtoo.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/revokedtookey.pem -out $@
+	$(OPENSSL) req -config $(SSL_ETC)/revokedtoo.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/revokedtookey.pem -out $@
 	chmod 600 $@
 	chmod 600 $(SSL_CRT)/revokedtookey.pem
 
 $(SSL_CRT)/revokedtookey.pem:	$(SSL_CRT)/revokedtooreq.pem
 
-$(SSL_CRT)/revokedtoocert.pem:	$(SSL_CRT)/revokedtooreq.pem $(ETC_DIR)/revokedtoo.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
+$(SSL_CRT)/revokedtoocert.pem:	$(SSL_CRT)/revokedtooreq.pem $(SSL_ETC)/revokedtoo.cnf $(SSL_CRT)/root.pem $(SSL_PWD)/root.pwd
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/revokedtooreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/revokedtoo.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/revokedtooreq.pem -$(SSL_ALG) -extfile $(SSL_ETC)/revokedtoo.cnf -extensions usr_cert -CA $(SSL_CRT)/root.pem -passin file:$(SSL_PWD)/root.pwd -CAkey $(SSL_CRT)/root.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
 	chmod 600 $@
 
@@ -979,9 +996,10 @@ install-include:
 
 ########## Sanity Tests
 
-.PHONY: sanity verification failures functional extra
+.PHONY: sanity failures functional extra
 
 sanity:
+	echo "TEST SANITY" 1>&2
 	unittest-sanity
 	unittest-noverification-client
 	unittest-noverification-server
@@ -989,31 +1007,42 @@ sanity:
 	unittest-noverification-self
 	unittest-noverification-revoked
 
-verification:
-	unittest-verification-client
-	unittest-verification-server
-	unittest-verification-bogus
-	unittest-verification-self
-
 # Once I moved to OpenSSL 3.0.2 I had to put in some delay in between
-# the unit tests to allow the socket to shutdown and release the port.
+# the unit tests to allow the socket to shutdown and the port to be
+# recycled.
 
 failures:
-	unittest-verification-noself && false || true; sleep 30
-	unittest-verification-revoked && false || true; sleep 30
+	echo "TEST FAILURES" 1>&2
+	unittest-verification-client  && false || true
+	sleep 30
+	unittest-verification-server  && false || true
+	sleep 30
+	unittest-verification-bogus   && false || true
+	sleep 30
+	unittest-verification-self    && false || true
+	sleep 30
+	unittest-verification-noself  && false || true
+	sleep 30
+	unittest-verification-revoked && false || true
+	sleep 30
 
 functional:
+	echo "TEST FUNCTIONAL" 1>&2
+	unittest-client
+	unittest-server
 	unittest-core
 	unittest-machine
 
 # The control feature runs a unit test with the same
 # programming model as the SSL unit tests but without
-# using SSL.
+# using SSL. It it doesn't work, the other unit tests
+# aren't expected to work.
 
 extra:
+	echo "TEST EXTRA" 1>&2
 	unittest-control
 
-tests:	sanity failures functional verification extra
+tests:	sanity failures functional extra
 	echo "COMPLETE" 1>&2
 
 ##### Build certificates etc. for specific applications.
