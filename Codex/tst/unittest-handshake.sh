@@ -14,15 +14,16 @@ NEAREND=${6:-"49202"}
 EXPECTED="127.0.0.1"
 FAREND=${7:-"${EXPECTED}:${NEAREND}"}
 
+CRLPATH="$(realpath $(dirname $0))/../crl"
 CRTPATH="$(realpath $(dirname $0))/../crt"
 
-functionaltest-handshake-server -n ${NEAREND} -B ${BUFSIZE} -C ${CRTPATH}/server.pem -D ${CRTPATH}/dh.pem -K ${CRTPATH}/server.pem -R "" -P ${CRTPATH} -L ${CRTPATH}/crl.txt &
+functionaltest-handshake-server -n ${NEAREND} -B ${BUFSIZE} -C ${CRTPATH}/server.pem -D ${CRTPATH}/dh.pem -K ${CRTPATH}/server.pem -R "" -P ${CRTPATH} -L ${CRLPATH}/crl.txt &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do
 
     sleep 1
-    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | functionaltest-handshake-client -e "${EXPECTED}" -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} -C ${CRTPATH}/client.pem -D ${CRTPATH}/dh.pem -K ${CRTPATH}/client.pem -R ${CRTPATH}/root.pem -P "" -L ${CRTPATH}/crl.txt > /dev/null &
+    dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock | functionaltest-handshake-client -e "${EXPECTED}" -f ${FAREND} -B ${BUFSIZE} -p ${PERIOD} -C ${CRTPATH}/client.pem -D ${CRTPATH}/dh.pem -K ${CRTPATH}/client.pem -R ${CRTPATH}/root.pem -P "" -L ${CRLPATH}/crl.txt > /dev/null &
     CLIENT="${CLIENT} $!"
     CLIENTS=$(( ${CLIENTS} - 1 ))
 

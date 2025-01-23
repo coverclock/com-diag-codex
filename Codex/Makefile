@@ -159,7 +159,7 @@ include $(DIMINUTOMAKEFILE)
 
 ########## Codex Configuration
 
-SSL_CRL				:=	$(OUT)/$(CRT_DIR)
+SSL_CRL				:=	$(OUT)/$(CRL_DIR)
 SSL_CRT				:=	$(OUT)/$(CRT_DIR)
 SSL_ETC				:=	$(OUT)/$(ETC_DIR)
 SSL_PWD				:=	$(OUT)/$(PWD_DIR)
@@ -233,27 +233,27 @@ TARGETCONFIGS		+= $(SSL_ETC)/root.cnf
 TARGETCONFIGS		+= $(SSL_ETC)/self.cnf
 TARGETCONFIGS		+= $(SSL_ETC)/server.cnf
 
-TARGETCREDENTIALS	:=	$(SSL_TXT)/root.txt
+TARGETCREDENTIALS	:=	$(SSL_TXT)/bogus.txt
 TARGETCREDENTIALS	+=	$(SSL_TXT)/ca.txt
 TARGETCREDENTIALS	+=	$(SSL_TXT)/client.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/server.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/bogus.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/self.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/revoked.txt
 TARGETCREDENTIALS	+=	$(SSL_TXT)/revokedtoo.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/revoked.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/root.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/self.txt
+TARGETCREDENTIALS	+=	$(SSL_TXT)/server.txt
 
 TARGETPARAMETERS	:=	$(SSL_CRT)/dh.pem
 
-TARGETPASSWORDS		:=	$(SSL_PWD)/root.pwd
+TARGETPASSWORDS		:=	$(SSL_PWD)/bogus.pwd
 TARGETPASSWORDS		+=	$(SSL_PWD)/ca.pwd
 TARGETPASSWORDS		+=	$(SSL_PWD)/client.pwd
-TARGETPASSWORDS		+=	$(SSL_PWD)/server.pwd
-TARGETPASSWORDS		+=	$(SSL_PWD)/bogus.pwd
 TARGETPASSWORDS		+=	$(SSL_PWD)/revoked.pwd
 TARGETPASSWORDS		+=	$(SSL_PWD)/revokedtoo.pwd
+TARGETPASSWORDS		+=	$(SSL_PWD)/root.pwd
+TARGETPASSWORDS		+=	$(SSL_PWD)/server.pwd
 
-TARGETREVOCATIONS	:=	$(SSL_CRT)/crl.txt
-TARGETREVOCATIONS	+=	$(SSL_CRT)/crltwo.txt
+TARGETREVOCATIONS	:=	$(SSL_CRL)/crl.txt
+TARGETREVOCATIONS	+=	$(SSL_CRL)/crltwo.txt
 
 TARGETLIBRARIES		:=	$(TARGETARCHIVE) $(TARGETSHARED)
 
@@ -494,12 +494,13 @@ $(SSL_CRT)/revokedtoo.pem:	$(SSL_CRT)/revokedtoocert.pem $(SSL_CRT)/revokedtooke
 
 ##### Certificate Revocation List
 
-$(SSL_CRT)/crl.txt:	$(SSL_CRT)/revoked.pem $(SSL_CRT)/revokedtoo.pem
+$(SSL_CRL)/crl.txt:	$(SSL_CRT)/revoked.pem $(SSL_CRT)/revokedtoo.pem
+	D=`dirname $@`; mkdir -p $$D
 	cp /dev/null $@
 	for F in $^; do openssl x509 -in $$F -serial -noout | sed 's/^serial=//' >> $@; done
 	chmod 600 $@
 
-$(SSL_CRT)/crltwo.txt:	$(SSL_CRT)/crl.txt
+$(SSL_CRL)/crltwo.txt:	$(SSL_CRL)/crl.txt
 	cat $< $< > $@
 	chmod 600 $@
 
@@ -528,7 +529,7 @@ credentials-clean:
 	( cd $(SSL_CRT); rm -f selfkey.pem self.pem selfreq.pem )
 	( cd $(SSL_CRT); rm -f revokedkey.pem revoked.pem revokedreq.pem )
 	( cd $(SSL_CRT); rm -f revokedtookey.pem revokedtoo.pem revokedtooreq.pem )
-	( cd $(SSL_CRT); rm -f crl.txt crltwo.txt )
+	( cd $(SSL_CRL); rm -f crl.txt crltwo.txt )
 	
 .PHONY:	parameters parameters-clean
 

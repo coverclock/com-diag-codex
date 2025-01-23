@@ -13,9 +13,10 @@ BLOCKS=${5:-"1024"}
 NEAREND=${6:-"49542"}
 FAREND=${7:-"127.0.0.1:${NEAREND}"}
 
+CRLPATH="$(realpath $(dirname $0))/../crl"
 CRTPATH="$(realpath $(dirname $0))/../crt"
 
-functionaltest-handshake-server -n ${NEAREND} -B ${BUFSIZE} -L ${CRTPATH}/crl.txt &
+functionaltest-handshake-server -n ${NEAREND} -B ${BUFSIZE} -L ${CRLPATH}/crl.txt &
 SERVER=$!
 
 while [[ ${CLIENTS} -gt 0 ]]; do
