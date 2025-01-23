@@ -40,6 +40,12 @@
 #define COM_DIAG_CODEX_OUT_CRT_PATH "out/host/crt"
 
 /**
+ * @def COM_DIAG_CODEX_OUT_CRL_PATH
+ * Generates the path that points to the revocation lists used by the unit tests.
+ */
+#define COM_DIAG_CODEX_OUT_CRL_PATH "out/host/crl"
+
+/**
  * @def SLL
  * Cast the argument to a signed long long (used for debug printing across
  * different hardware architectures).

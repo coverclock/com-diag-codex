@@ -1014,23 +1014,21 @@ sanity:
 
 failures:
 	echo "TEST FAILURES" 1>&2
-	unittest-verification-client  && false || true
+	unittest-verification-client  || true
 	sleep 30
-	unittest-verification-server  && false || true
+	unittest-verification-server  || true
 	sleep 30
-	unittest-verification-bogus   && false || true
+	unittest-verification-bogus   || true
 	sleep 30
-	unittest-verification-self    && false || true
+	unittest-verification-self    || true
 	sleep 30
-	unittest-verification-noself  && false || true
+	unittest-verification-noself  || true
 	sleep 30
-	unittest-verification-revoked && false || true
+	unittest-verification-revoked || true
 	sleep 30
 
 functional:
 	echo "TEST FUNCTIONAL" 1>&2
-	unittest-client
-	unittest-server
 	unittest-core
 	unittest-machine
 

@@ -60,7 +60,7 @@ int main(int argc, char ** argv)
 
         TEST();
 
-        rc = codex_revoked_import(COM_DIAG_CODEX_OUT_CRT_PATH "/crl.txt");
+        rc = codex_revoked_import(COM_DIAG_CODEX_OUT_CRL_PATH "/crl.txt");
         ASSERT(rc == 2);
         rc = codex_revoked_export("/dev/stderr");
         ASSERT(rc == 2);
@@ -75,7 +75,7 @@ int main(int argc, char ** argv)
 
         TEST();
 
-        rc = codex_revoked_import(COM_DIAG_CODEX_OUT_CRT_PATH "/crltwo.txt");
+        rc = codex_revoked_import(COM_DIAG_CODEX_OUT_CRL_PATH "/crltwo.txt");
         ASSERT(rc == 4);
         rc = codex_revoked_export("/dev/stderr");
         ASSERT(rc == 2);

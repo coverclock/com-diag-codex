@@ -6,7 +6,7 @@
 
 PROGRAM=$(basename ${0})
 CLIENTS=${1:-"3"}
-EXPECTED=$(hostname)
+EXPECTED=$(hostname -s)
 FAREND=${2:-"${EXPECTED}:49302"}
 PERIOD=${3:-"10"}
 BUFSIZE=${4:-"512"}
