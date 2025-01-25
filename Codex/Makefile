@@ -997,9 +997,9 @@ install-include:
 
 ########## Sanity Tests
 
-.PHONY: sanity failures functional extra
+.PHONY: sanity-test failures-test functional-test extra-test
 
-sanity:
+sanity-test:
 	echo "TEST SANITY" 1>&2
 	unittest-sanity
 	unittest-noverification-client
@@ -1012,7 +1012,7 @@ sanity:
 # the unit tests to allow the socket to shutdown and the port to be
 # recycled.
 
-failures:
+failures-test:
 	echo "TEST FAILURES" 1>&2
 	unittest-verification-client  || true
 	sleep 30
@@ -1027,7 +1027,9 @@ failures:
 	unittest-verification-revoked || true
 	sleep 30
 
-functional:
+# These take a while.
+
+functional-test:
 	echo "TEST FUNCTIONAL" 1>&2
 	unittest-core
 	unittest-machine
@@ -1037,11 +1039,11 @@ functional:
 # using SSL. It it doesn't work, the other unit tests
 # aren't expected to work.
 
-extra:
+extra-test:
 	echo "TEST EXTRA" 1>&2
 	unittest-control
 
-tests:	sanity failures functional extra
+tests:	sanity-test failures-test functional-test extra-test
 	echo "COMPLETE" 1>&2
 
 ##### Build certificates etc. for specific applications.

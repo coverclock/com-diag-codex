@@ -14,18 +14,19 @@
  * HEADERS
  ******************************************************************************/
 
+#include "com/diag/codex/codex.h"
+#include "com/diag/diminuto/diminuto_criticalsection.h"
+#include "com/diag/diminuto/diminuto_delay.h"
+#include "com/diag/diminuto/diminuto_error.h"
+#include "com/diag/diminuto/diminuto_ipc4.h"
+#include "com/diag/diminuto/diminuto_ipc6.h"
+#include "com/diag/diminuto/diminuto_log.h"
+#include "com/diag/diminuto/diminuto_types.h"
+#include "codex.h"
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
-#include "com/diag/codex/codex.h"
-#include "com/diag/diminuto/diminuto_criticalsection.h"
-#include "com/diag/diminuto/diminuto_log.h"
-#include "com/diag/diminuto/diminuto_delay.h"
-#include "com/diag/diminuto/diminuto_types.h"
-#include "com/diag/diminuto/diminuto_ipc4.h"
-#include "com/diag/diminuto/diminuto_ipc6.h"
-#include "codex.h"
 
 /*******************************************************************************
  * GLOBALS
@@ -399,6 +400,30 @@ codex_context_t * codex_context_free(codex_context_t * ctx)
 }
 
 /*******************************************************************************
+ * HELPERS
+ ******************************************************************************/
+
+/**
+ * Tries to mark the underlying socket to reuse its port number
+ * instead of waiting (thirty seconds maybe) for it to recucle.
+ * @param bio points to the Basic I/O object that holds the socket.
+ */
+static void codex_connection_reuse(BIO * bio)
+{
+    int fd = -1;
+
+    if (bio == (BIO *)0) {
+        /* Do nothing: already failed. */
+    } else if ((fd = BIO_get_fd(bio, (int *)0)) < 0) {
+        errno = EBADF;
+        diminuto_perror("BIO_get_fd");
+    } else {
+        /* More properly should be nanmed called reuse port.*/
+        (void)diminuto_ipc_set_reuseaddress(fd, !0);
+    }
+}
+
+/*******************************************************************************
  * CONNECTION
  ******************************************************************************/
 
@@ -637,6 +662,8 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
             break;
         }
 
+        codex_connection_reuse(bio);
+
         ssl = SSL_new(ctx);
         if (ssl == (SSL *)0) {
             codex_perror("SSL_new");
@@ -730,15 +757,7 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 
     } while (false);
 
-    if (bio == (BIO *)0) {
-        /* Do nothing: already failed. */
-    } else if ((fd = BIO_get_fd(bio, (int *)0)) < 0) {
-        /* Do nothing: should never happen; no recovery if it does. */
-    } else if ((rc = diminuto_ipc_set_reuseaddress(fd, !0)) < 0) {
-        /* Do nothing: function emits error message. */
-    } else {
-        /* Do nothing: experimental. */
-    }
+    codex_connection_reuse(bio);
 
     return bio;
 }
@@ -785,6 +804,8 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
             }
 
         }
+
+        codex_connection_reuse(tmp);
 
         ssl = SSL_new(ctx);
         if (ssl == (SSL *)0) {
