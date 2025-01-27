@@ -1,11 +1,12 @@
-# Copyright 2021 Digital Aggregates Corporation, Colorado, USA<BR>
+# Copyright 2022 Digital Aggregates Corporation, Colorado, USA<BR>
 # Licensed under the terms in LICENSE.txt
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
-# In support of the Wheatstone sub-project in com-diag-hazer.
+# In support of the Stagecoach sub-project in com-diag-hazer.
 
 [ req ]
 prompt                 = no
+output_password        = st8g3c08ch
 default_bits           = 3072
 default_md             = sha256
 distinguished_name     = req_distinguished_name
@@ -15,13 +16,13 @@ C                      = US
 ST                     = Colorado
 L                      = Wheat Ridge
 O                      = Prairie Thorn
-OU                     = Wheatstone
-CN                     = wheatstoneclient.prairiethorn.org
-emailAddress           = wheatstone@prairiethorn.org
+OU                     = Stagecoach
+CN                     = stagecoachserver.prairiethorn.org
+emailAddress           = stagecoach@prairiethorn.org
 
 [ usr_cert ]
 basicConstraints       = CA:FALSE
 nsComment              = "OpenSSL Generated Certificate"
 subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid,issuer
-subjectAltName         = DNS:localhost
+subjectAltName         = DNS:localhost, DNS:MYHOSTNAME, DNS:MYHOSTNAME4, DNS:MYHOSTNAME6

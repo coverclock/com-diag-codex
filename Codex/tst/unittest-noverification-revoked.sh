@@ -39,5 +39,5 @@ kill -TERM ${SERVER}
 wait ${SERVER}
 SEXIT=$?
 
-echo "${PROGRAM}: END ${CEXIT} ${SEXIT}" 1>&2
+echo "${PROGRAM}: END ${CEXIT}+${SEXIT}" 1>&2
 exit $(( ${CEXIT} + ${SEXIT} ))

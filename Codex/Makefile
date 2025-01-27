@@ -223,33 +223,19 @@ TARGETSHARED		:=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR).$(MINOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO).$(MAJOR)
 TARGETSHARED		+=	$(OUT)/$(LIB_DIR)/$(PROJECT_SO)
 
-TARGETCONFIGS		:= $(SSL_ETC)/bogus.cnf
-TARGETCONFIGS		+= $(SSL_ETC)/ca.cnf
-TARGETCONFIGS		+= $(SSL_ETC)/client.cnf
-TARGETCONFIGS		+= $(SSL_ETC)/revoked.cnf
-TARGETCONFIGS		+= $(SSL_ETC)/revokedtoo.cnf
-TARGETCONFIGS		+= $(SSL_ETC)/root.cnf
-TARGETCONFIGS		+= $(SSL_ETC)/self.cnf
-TARGETCONFIGS		+= $(SSL_ETC)/server.cnf
+TARGETCONFIGS		:= $(wildcard $(ETC_DIR)/*.cnf)
 
-TARGETCREDENTIALS	:=	$(SSL_TXT)/bogus.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/ca.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/client.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/revokedtoo.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/revoked.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/root.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/self.txt
-TARGETCREDENTIALS	+=	$(SSL_TXT)/server.txt
+TARGETCREDENTIALS	:=	$(addprefix $(SSL_TXT)/,$(addsuffix .txt,$(notdir $(basename $(wildcard $(ETC_DIR)/*.cnf)))))
 
 TARGETPARAMETERS	:=	$(SSL_CRT)/dh.pem
 
-TARGETPASSWORDS		:=	$(SSL_PWD)/bogus.pwd
-TARGETPASSWORDS		+=	$(SSL_PWD)/ca.pwd
-TARGETPASSWORDS		+=	$(SSL_PWD)/client.pwd
-TARGETPASSWORDS		+=	$(SSL_PWD)/revoked.pwd
-TARGETPASSWORDS		+=	$(SSL_PWD)/revokedtoo.pwd
-TARGETPASSWORDS		+=	$(SSL_PWD)/root.pwd
-TARGETPASSWORDS		+=	$(SSL_PWD)/server.pwd
+TARGETPASSWORDS     :=  $(addprefix $(SSL_PWD)/,$(addsuffix .pwd,$(notdir $(basename $(wildcard $(ETC_DIR)/*.cnf)))))
+
+show:
+	echo NAMES $(notdir $(basename $(wildcard $(ETC_DIR)/*.cnf)))
+	echo CONFIGS $(TARGETCONFIGS)
+	echo CREDENTIALS $(TARGETCREDENTIALS)
+	echo PASSWORDS $(TARGETPASSWORDS)
 
 TARGETREVOCATIONS	:=	$(SSL_CRL)/crl.txt
 TARGETREVOCATIONS	+=	$(SSL_CRL)/crltwo.txt
@@ -1013,17 +999,17 @@ sanity-test:
 
 failures-test:
 	echo "TEST FAILURES" 1>&2
-	unittest-verification-client  || true && false
+	unittest-verification-client && false || true
 	sleep 60
-	unittest-verification-server  || true && false
+	unittest-verification-server && false || true
 	sleep 60
-	unittest-verification-bogus   || true && false
+	unittest-verification-bogus && false || true
 	sleep 60
-	unittest-verification-self    || true && false
+	unittest-verification-self && false || true
 	sleep 60
-	unittest-verification-noself  || true && false
+	unittest-verification-noself && false || true
 	sleep 60
-	unittest-verification-revoked || true && false
+	unittest-verification-revoked && false || true
 
 # These take a while.
 
@@ -1044,52 +1030,76 @@ extra-test:
 tests:	sanity-test failures-test functional-test extra-test
 	echo "COMPLETE" 1>&2
 
-##### Build certificates etc. for specific applications.
-##### (These applications may be part of other projects.)
-##### This section is not built by default.
+##### Build certificates etc. for Wheatstone.
 
-.PHONY: wheatstone stagecoach
-
-APPLICATION := application
-
-wheatstone:	$(ETC_DIR)/wheatstone/server.cnf $(OUT)/$(APP_DIR)/wheatstone
-	make $(SSL_CRT)/wheatstone/server.pem $(SSL_CRT)/wheatstone/client.pem APPLICATION=wheatstone
-
-stagecoach:	$(ETC_DIR)/stagecoach/server.cnf $(OUT)/$(APP_DIR)/stagecoach
-	make $(SSL_CRT)/stagecoach/server.pem $(SSL_CRT)/stagecoach/client.pem APPLICATION=stagecoach
-
--include $(CFG_DIR)/$(APPLICATION).mk
-
-$(SSL_CRT)/$(APPLICATION)/serverreq.pem:	$(ETC_DIR)/$(APPLICATION)/server.cnf
+$(SSL_CRT)/wheatstone-serverreq.pem:	$(ETC_DIR)/wheatstone-server.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -config $(ETC_DIR)/$(APPLICATION)/server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/$(APPLICATION)/serverkey.pem -out $@
+	$(OPENSSL) req -config $(ETC_DIR)/wheatstone-server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/wheatstone-serverkey.pem -out $@
 	chmod 600 $@
-	chmod 600 $(SSL_CRT)/$(APPLICATION)/serverkey.pem
+	chmod 600 $(SSL_CRT)/wheatstone-serverkey.pem
 
-$(SSL_CRT)/$(APPLICATION)/serverkey.pem:	$(SSL_CRT)/$(APPLICATION)/servercert.pem
+$(SSL_CRT)/wheatstone-serverkey.pem:	$(SSL_CRT)/wheatstone-servercert.pem
 
-$(SSL_CRT)/$(APPLICATION)/servercert.pem:	$(SSL_CRT)/$(APPLICATION)/serverreq.pem $(ETC_DIR)/$(APPLICATION)/server.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
+$(SSL_CRT)/wheatstone-servercert.pem:	$(SSL_CRT)/wheatstone-serverreq.pem $(ETC_DIR)/wheatstone-server.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/$(APPLICATION)/serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/$(APPLICATION)/server.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/wheatstone-serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/wheatstone-server.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
 	$(C_REHASH) $(SSL_CRT)
 	chmod 600 $@
 
-$(SSL_CRT)/$(APPLICATION)/server.pem:	$(SSL_CRT)/$(APPLICATION)/servercert.pem $(SSL_CRT)/$(APPLICATION)/serverkey.pem $(SSL_CRT)/cacert.pem $(SSL_CRT)/rootcert.pem
+$(SSL_CRT)/wheatstone-server.pem:	$(SSL_CRT)/wheatstone-servercert.pem $(SSL_CRT)/wheatstone-serverkey.pem $(SSL_CRT)/cacert.pem $(SSL_CRT)/rootcert.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
 	$(C_REHASH) $(SSL_CRT)
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
 	chmod 600 $@
 
-$(SSL_CRT)/$(APPLICATION)/clientcert.pem:	$(ETC_DIR)/$(APPLICATION)/client.cnf
+$(SSL_CRT)/wheatstone-clientcert.pem:	$(ETC_DIR)/wheatstone-client.cnf
 	D=`dirname $@`; mkdir -p $$D
-	$(OPENSSL) req -new -x509 -config $(ETC_DIR)/$(APPLICATION)/client.cnf -extensions usr_cert -newkey $(APPLICATION_KEY) -nodes -$(APPLICATION_ALG) -keyout $(SSL_CRT)/$(APPLICATION)/clientkey.pem -out $@
+	$(OPENSSL) req -new -x509 -config $(ETC_DIR)/wheatstone-client.cnf -extensions usr_cert -newkey $(SSL_KEY) -nodes -$(SSL_ALG) -keyout $(SSL_CRT)/wheatstone-clientkey.pem -out $@
 	chmod 600 $@
-	chmod 600 $(SSL_CRT)/$(APPLICATION)/clientkey.pem
+	chmod 600 $(SSL_CRT)/wheatstone-clientkey.pem
 
-$(SSL_CRT)/$(APPLICATION)/clientkey.pem:	$(SSL_CRT)/$(APPLICATION)/clientcert.pem
+$(SSL_CRT)/wheatstone-clientkey.pem:	$(SSL_CRT)/wheatstone-clientcert.pem
 
-$(SSL_CRT)/$(APPLICATION)/client.pem:	$(SSL_CRT)/$(APPLICATION)/clientcert.pem $(SSL_CRT)/$(APPLICATION)/clientkey.pem
+$(SSL_CRT)/wheatstone-client.pem:	$(SSL_CRT)/wheatstone-clientcert.pem $(SSL_CRT)/wheatstone-clientkey.pem
+	D=`dirname $@`; mkdir -p $$D
+	cat $^ > $@
+	$(C_REHASH) $(SSL_CRT)
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
+
+##### Build certificates etc. for Stagecoach.
+
+$(SSL_CRT)/stagecoach-serverreq.pem:	$(ETC_DIR)/stagecoach-server.cnf
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) req -config $(ETC_DIR)/stagecoach-server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/stagecoach-serverkey.pem -out $@
+	chmod 600 $@
+	chmod 600 $(SSL_CRT)/stagecoach-serverkey.pem
+
+$(SSL_CRT)/stagecoach-serverkey.pem:	$(SSL_CRT)/stagecoach-servercert.pem
+
+$(SSL_CRT)/stagecoach-servercert.pem:	$(SSL_CRT)/stagecoach-serverreq.pem $(ETC_DIR)/stagecoach-server.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/stagecoach-serverreq.pem -$(SSL_ALG) -extfile $(ETC_DIR)/stagecoach-server.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
+	$(C_REHASH) $(SSL_CRT)
+	chmod 600 $@
+
+$(SSL_CRT)/stagecoach-server.pem:	$(SSL_CRT)/stagecoach-servercert.pem $(SSL_CRT)/stagecoach-serverkey.pem $(SSL_CRT)/cacert.pem $(SSL_CRT)/rootcert.pem
+	D=`dirname $@`; mkdir -p $$D
+	cat $^ > $@
+	$(C_REHASH) $(SSL_CRT)
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
+
+$(SSL_CRT)/stagecoach-clientcert.pem:	$(ETC_DIR)/stagecoach-client.cnf
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) req -new -x509 -config $(ETC_DIR)/stagecoach-client.cnf -extensions usr_cert -newkey $(SSL_KEY) -nodes -$(SSL_ALG) -keyout $(SSL_CRT)/stagecoach-clientkey.pem -out $@
+	chmod 600 $@
+	chmod 600 $(SSL_CRT)/stagecoach-clientkey.pem
+
+$(SSL_CRT)/stagecoach-clientkey.pem:	$(SSL_CRT)/stagecoach-clientcert.pem
+
+$(SSL_CRT)/stagecoach-client.pem:	$(SSL_CRT)/stagecoach-clientcert.pem $(SSL_CRT)/stagecoach-clientkey.pem
 	D=`dirname $@`; mkdir -p $$D
 	cat $^ > $@
 	$(C_REHASH) $(SSL_CRT)

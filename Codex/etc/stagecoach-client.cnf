@@ -24,4 +24,4 @@ basicConstraints       = CA:FALSE
 nsComment              = "OpenSSL Generated Certificate"
 subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid,issuer
-subjectAltName         = DNS:localhost, DNS:cadmium, DNS:cadmium4, DNS:cadmium6, DNS:rhodium, DNS:rhodium4, DNS:rhodium6
+subjectAltName         = DNS:localhost, DNS:MYHOSTNAME, DNS:MYHOSTNAME4, DNS:MYHOSTNAME6

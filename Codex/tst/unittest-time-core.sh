@@ -42,5 +42,5 @@ echo "${PROGRAM}: blksize   ${BLOCKSIZE}" 1>&2
 echo "${PROGRAM}: bytes     $(( ${BLOCKS} * ${BLOCKSIZE} ))" 1>&2
 echo "${PROGRAM}: bufsize   ${BUFSIZE}" 1>&2
 
-echo "${PROGRAM}: END ${CEXIT} ${SEXIT}" 1>&2
+echo "${PROGRAM}: END ${CEXIT}+${SEXIT}" 1>&2
 exit $(( ${CEXIT} + ${SEXIT} ))
