@@ -718,7 +718,6 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
     BIO * bio = (BIO *)0;
     char * mutable = (char *)0;
     int rc = -1;
-    int fd = -1;
 
     do {
 

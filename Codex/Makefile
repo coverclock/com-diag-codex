@@ -26,8 +26,7 @@ MAJOR				:=	11# API changes that may require that applications be modified.
 MINOR				:=	0# Only functionality or features added with no legacy API changes.
 BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
-# Disclaimer: the only target that I routinely build and test for is "host", my
-# X86_64 Ubuntu build server.
+# Disclaimer: the only target that I routinely build and test for is "host".
 
 TARGET				:=	host
 
@@ -1014,18 +1013,17 @@ sanity-test:
 
 failures-test:
 	echo "TEST FAILURES" 1>&2
-	unittest-verification-client  || true
-	sleep 30
-	unittest-verification-server  || true
-	sleep 30
-	unittest-verification-bogus   || true
-	sleep 30
-	unittest-verification-self    || true
-	sleep 30
-	unittest-verification-noself  || true
-	sleep 30
-	unittest-verification-revoked || true
-	sleep 30
+	unittest-verification-client  || true && false
+	sleep 60
+	unittest-verification-server  || true && false
+	sleep 60
+	unittest-verification-bogus   || true && false
+	sleep 60
+	unittest-verification-self    || true && false
+	sleep 60
+	unittest-verification-noself  || true && false
+	sleep 60
+	unittest-verification-revoked || true && false
 
 # These take a while.
 
