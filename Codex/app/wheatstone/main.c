@@ -35,16 +35,16 @@
 
 #define COM_DIAG_CODEX_OUT_CRT_PATH "out/host/crt"
 
-static const char * program = "wheatstoneserver";
+static const char * program = "wheatstone-server";
 static const char * nearend = "*:wheatstone";
 static const char * farend = "tesoro:tesoro";
 static const char * expected = "wheatstone.prairiethorn.org";
 static const char * pathcaf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "root.pem";
 static const char * pathcap = (const char *)0;
 static const char * pathcrl = (const char *)0;
-static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "wheatstoneserver.pem";
+static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "wheatstone-server.pem";
 static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
-static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "wheatstoneserver.pem";
+static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "wheatstone-server.pem";
 static size_t bufsize = 256;
 static int selfsigned = -1;
 

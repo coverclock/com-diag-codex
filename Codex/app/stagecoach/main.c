@@ -250,10 +250,10 @@ int main(int argc, char * argv[])
 
     switch (role) {
     case CLIENT:
-        name = "stagecoachclient";
+        name = "stagecoach-client";
         break;
     case SERVER:
-        name = "stagecoachserver";
+        name = "stagecoach-server";
         break;
     default:
         diminuto_assert(false);
