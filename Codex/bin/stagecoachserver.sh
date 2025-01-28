@@ -1,5 +1,5 @@
 #!/bin/bash -x
-# Copyright 2023 Digital Aggregates Corporation, Colorado, USA<BR>
+# Copyright 2023-2025 Digital Aggregates Corporation, Colorado, USA<BR>
 # Licensed under the terms in LICENSE.txt
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
@@ -15,7 +15,7 @@ ROOT=$(readlink -e $(dirname ${0}))
 DAMN=${1:-"-s"}
 CERT=${2:-${ROOT}/../crt/stagecoach}
 
-. ${ROOT}/stagecoach
+. ${ROOT}/stagecoachdefinitions
 
 export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
 

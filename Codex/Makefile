@@ -128,6 +128,10 @@ PROJECT_SO			:=	lib$(PROJECT).so
 
 CDEFINES			:=
 
+# Typically for unit and functional testing this is the
+# name of the build host, but your mileage may vary.
+HOSTNAME			:=	$(shell hostname -s)
+
 ########## Target Makefile
 
 TARGETMAKEFILE		:= $(CFG_DIR)/$(TARGET).mk
@@ -295,7 +299,7 @@ clobber:	pristine
 
 $(SSL_ETC)/%.cnf:	$(ETC_DIR)/%.cnf
 	D=`dirname $@`; mkdir -p $$D
-	sed -e 's/MYHOSTNAME/$(HOST)/g' $< > $@
+	sed -e 's/MYHOSTNAME/$(HOSTNAME)/g' $< > $@
 	chmod 600 $@
 
 ##### Passwords

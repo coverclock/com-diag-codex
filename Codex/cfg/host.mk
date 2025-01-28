@@ -1,4 +1,4 @@
-# Copyright 2018-2022 Digital Aggregates Corporation
+# Copyright 2018-2025 Digital Aggregates Corporation
 # Licensed under the terms in LICENSE.txt
 # author:Chip Overclock
 # mailto:coverclock@diag.com
@@ -11,7 +11,7 @@
 # host: most Linux/GNU systems hosting the native toolchain.
 
 ARCH				:=	x86_64
-OS					:=	linux
+OS				:=	linux
 TOOLCHAIN			:=
 KERNELCHAIN			:=
 KERNEL_REV			:=	$(shell uname -r)
