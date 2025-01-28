@@ -183,13 +183,13 @@ typedef enum CodexSerror {
  * what is sufficient verification.
  */
 typedef enum CodexVerify {
-    CODEX_VERIFY_FAILED = (0     ), /* 0x0 Verification failed. */
-    CODEX_VERIFY_PASSED = (1 << 0), /* 0x1 Nothing expected but otherwise valid. */
-    CODEX_VERIFY_CN     = (1 << 1), /* 0x2 CN matched expected. */
-    CODEX_VERIFY_IPV4   = (1 << 2), /* 0x4 DNS matched IPv4 far end. */
-    CODEX_VERIFY_IPV6   = (1 << 3), /* 0x4 DNS matched IPv6 far end. */
-    CODEX_VERIFY_DNS    = (1 << 4), /* 0x4 DNS matched either IP far end. */
-    CODEX_VERIFY_FQDN   = (1 << 5), /* 0x8 FQDN matched expected. */
+    CODEX_VERIFY_FAILED = (0     ), /* 0x00 Verification failed. */
+    CODEX_VERIFY_PASSED = (1 << 0), /* 0x01 Nothing expected but otherwise valid. */
+    CODEX_VERIFY_CN     = (1 << 1), /* 0x02 CN matched expected. */
+    CODEX_VERIFY_IPV4   = (1 << 2), /* 0x04 DNS matched IPv4 far end. */
+    CODEX_VERIFY_IPV6   = (1 << 3), /* 0x08 DNS matched IPv6 far end. */
+    CODEX_VERIFY_DNS    = (1 << 4), /* 0x10 DNS matched IPv4 and/or IPv6 far end. */
+    CODEX_VERIFY_FQDN   = (1 << 5), /* 0x20 FQDN matched expected. */
 } codex_verify_t;
 
 /**

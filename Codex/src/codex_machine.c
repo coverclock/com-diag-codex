@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2023 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2025 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -57,7 +57,7 @@ static inline codex_header_t hton32(codex_header_t header)
 
 codex_state_t codex_machine_reader_generic(codex_state_t state, const char * expected, codex_connection_t * ssl, codex_header_t * header, void * buffer, size_t size, uint8_t ** here, size_t * length, bool * checked, codex_serror_t * serror, int * mask)
 {
-    int verification = ~0;
+    int verification = 0;
     ssize_t bytes = -1;
     codex_serror_t error = CODEX_SERROR_SUCCESS;
     bool repeat = false;
@@ -82,9 +82,11 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
              */
     
             if (codex_connection_is_server(ssl)) {
-                /* Do nothing. */
+                state = CODEX_STATE_RESTART;
+                repeat = true;
             } else if (*checked) {
-                /* Do nothing. */
+                state = CODEX_STATE_RESTART;
+                repeat = true;
             } else {
                 *checked = true;
                 verification = codex_connection_verify(ssl, expected);
@@ -92,16 +94,13 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                     *mask = verification;
                 }
                 if (!codex_connection_verified(verification)) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unverified farend=server ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unverified farend=server ssl=%p mask=0x%x\n", ssl, verification);
                     state = CODEX_STATE_FINAL;
                 } else {
-                    DIMINUTO_LOG_INFORMATION("codex_machine_reader_generic: verified farend=server ssl=%p\n", ssl);
+                    DIMINUTO_LOG_INFORMATION("codex_machine_reader_generic: verified farend=server ssl=%p mask=0x%x\n", ssl, verification);
                     state = CODEX_STATE_RESTART;
+                    repeat = true;
                 }
-            }
-            if (state != CODEX_STATE_FINAL) {
-                state = CODEX_STATE_RESTART;
-                repeat = true;
             }
             break;
     
@@ -175,10 +174,10 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                         *mask = verification;
                     }
                     if (!codex_connection_verified(verification)) {
-                        DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unverified farend=client ssl=%p\n", ssl);
+                        DIMINUTO_LOG_NOTICE("codex_machine_reader_generic: unverified farend=client ssl=%p mask=0x%x\n", ssl, verification);
                         state = CODEX_STATE_FINAL;
                     } else {
-                        DIMINUTO_LOG_INFORMATION("codex_machine_reader_generic: verified farend=client ssl=%p\n", ssl);
+                        DIMINUTO_LOG_INFORMATION("codex_machine_reader_generic: verified farend=client ssl=%p mask=0x%x\n", ssl, verification);
                     }
                 }
                 if (state != CODEX_STATE_FINAL) { 
@@ -303,14 +302,17 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                     *mask = verification;
                 }
                 if (!codex_connection_verified(verification)) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unexpected farend=server ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_writer_generic: unverified farend=server ssl=%p mask=0x%x\n", ssl, verification);
                     state = CODEX_STATE_FINAL;
                 } else {
-                    DIMINUTO_LOG_INFORMATION("codex_machine_writer_generic: verified farend=server ssl=%p\n", ssl);
+                    DIMINUTO_LOG_INFORMATION("codex_machine_writer_generic: verified farend=server ssl=%p mask=0x%x\n", ssl, verification);
+                    state = CODEX_STATE_RESTART;
+                    repeat = true;
                 }
+            } else {
+                state = CODEX_STATE_RESTART;
+                repeat = true;
             }
-            state = CODEX_STATE_RESTART;
-            repeat = true;
             break;
     
         case CODEX_STATE_RESTART:
