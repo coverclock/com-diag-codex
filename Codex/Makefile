@@ -1002,39 +1002,60 @@ install-include:
 
 .PHONY: sanity-test failures-test functional-test extra-test
 
+# Once I moved to OpenSSL 3.0.2 I had to put in some delay in between
+# the unit tests to allow the socket to shutdown and the port to be
+# recycled. (It's possible this has more to do with the Linux version
+# that was using OpenSSL 3.0.2.)
+
 sanity-test:
 	echo "TEST SANITY" 1>&2
 	unittest-sanity
-	unittest-noverification-client
-	unittest-noverification-server
-	unittest-noverification-bogus
-	unittest-noverification-self
-	unittest-noverification-revoked
+	unittest-nonverified-client
+	sleep 60
+	unittest-nonverified-server
+	sleep 60
+	unittest-nonverified-bogus
+	sleep 60
+	unittest-nonverified-self
+	sleep 60
+	unittest-nonverified-revoked
+	sleep 60
+	unittest-cnverified-client
+	sleep 60
+	unittest-cnverified-server
+	sleep 60
+	unittest-fqdnverified-client
+	sleep 60
+	unittest-fqdnverified-server
+	sleep 60
 
-# Once I moved to OpenSSL 3.0.2 I had to put in some delay in between
-# the unit tests to allow the socket to shutdown and the port to be
-# recycled.
+# Remarkably, if you put more than one space around the && and ||
+# operators it breaks this on my test system (RPi 5B, Debian 12
+# "bookworm").
 
 failures-test:
 	echo "TEST FAILURES" 1>&2
-	unittest-verification-client && false || true
+	unittest-unverified-client && false || true
 	sleep 60
-	unittest-verification-server && false || true
+	unittest-unverified-server && false || true
 	sleep 60
-	unittest-verification-bogus && false || true
+	unittest-unverified-bogus && false || true
 	sleep 60
-	unittest-verification-self && false || true
+	unittest-unverified-self && false || true
 	sleep 60
-	unittest-verification-noself && false || true
+	unittest-unverified-noself && false || true
 	sleep 60
-	unittest-verification-revoked && false || true
+	unittest-unverified-revoked && false || true
+	sleep 60
 
 # These take a while.
 
 functional-test:
 	echo "TEST FUNCTIONAL" 1>&2
 	unittest-core
+	sleep 60
 	unittest-machine
+	sleep 60
 
 # The control feature runs a unit test with the same
 # programming model as the SSL unit tests but without
