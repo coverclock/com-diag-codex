@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2025 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -178,7 +178,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
     int nid = -1;
     const char * str = (char *)0;
     const X509V3_EXT_METHOD * meth = (X509V3_EXT_METHOD *)0;
-    void * ptr = (void *)0;
+    void * vv = (void *)0;
     STACK_OF(CONF_VALUE) * vals = (STACK_OF(CONF_VALUE) *)0;
     int jj = 0;
     CONF_VALUE * val = (CONF_VALUE *)0;
@@ -186,7 +186,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
     X509_NAME * nam = (X509_NAME *)0;
     int rc = -1;
     const char * text = (const char *)0;
-    const unsigned char * p = (const unsigned char *)0;
+    const unsigned char * pp = (const unsigned char *)0;
     ASN1_OCTET_STRING * extoct = (ASN1_OCTET_STRING *)0;
     int extlen = 0;
     const ASN1_ITEM * it = (const ASN1_ITEM *)0;
@@ -301,7 +301,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
              */
 
             result |= CODEX_VERIFY_PASSED;
-            DIMINUTO_LOG_INFORMATION("codex_connection_verify: nil ssl=%p crt=%p SRL=%s CN=\"%s\" expected=%p\n", ssl, crt, srn, cn, expected);
+            DIMINUTO_LOG_INFORMATION("codex_connection_verify: match any ssl=%p crt=%p SRL=%s CN=\"%s\" expected=%p\n", ssl, crt, srn, cn, expected);
 
         } else if (strcasecmp(cn, expected) == 0) {
 
@@ -311,7 +311,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
              */
 
             result |= CODEX_VERIFY_CN;
-            DIMINUTO_LOG_INFORMATION("codex_connection_verify: cn ssl=%p crt=%p SRL=%s CN=\"%s\"\n", ssl, crt, srn, cn);
+            DIMINUTO_LOG_INFORMATION("codex_connection_verify: match cn ssl=%p crt=%p SRL=%s CN=\"%s\"\n", ssl, crt, srn, cn);
 
         } else {
             /* Do nothing. */
@@ -328,38 +328,37 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
             ext = X509_get_ext(crt, ii);
             if (ext == (X509_EXTENSION *)0) {
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                DIMINUTO_LOG_DEBUG("codex_verification_callback: X509_get_ext [%d] missing\n", ii);
                 continue;
             }
 
             obj = X509_EXTENSION_get_object(ext);
             if (obj == (ASN1_OBJECT *)0) {
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                DIMINUTO_LOG_DEBUG("codex_verification_callback: X509_EXTENSION_get_objext [%d] missing\n", ii);
                 continue;
             }
 
             nid = OBJ_obj2nid(obj);
             if (nid == NID_undef) {
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                DIMINUTO_LOG_DEBUG("codex_verification_callback: OBJ_obj2nid [%d] missing\n", ii);
                 continue;
             }
 
             str = OBJ_nid2sn(nid);
             if (str == (const char *)0) {
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                DIMINUTO_LOG_DEBUG("codex_verification_callback: OBJ_nid2sn [%d] missing\n", ii);
                 continue;
             }
 
             DIMINUTO_LOG_DEBUG("codex_connection_verify: nid2sn ssl=%p crt=%p str=\"%s\"\n", ssl, crt, str);
 
             if (strcmp(str, COM_DIAG_CODEX_SHORTNAME_SUBJECTALTNAME) != 0) {
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
                 continue;
             }
 
             extoct = X509_EXTENSION_get_data(ext);
             if (extoct == (ASN1_OCTET_STRING *)0) {
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                DIMINUTO_LOG_DEBUG("codex_verification_callback: X509_EXTENSION_get_data [%d] missing\n", ii);
                 continue;
             }
 
@@ -374,15 +373,15 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
              * linker can't find it. Weird.
              */
 
-            p = extoct->data; /* ?ASN1_STRING_get0_data(extoct)? */
-            if (p == (const unsigned char *)0) {
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+            pp = extoct->data; /* ?ASN1_STRING_get0_data(extoct)? */
+            if (pp == (const unsigned char *)0) {
+                DIMINUTO_LOG_DEBUG("codex_verification_callback: data [%d] missing\n", ii);
                 continue;
             }
 
             meth = X509V3_EXT_get(ext);
             if (meth == (X509V3_EXT_METHOD *)0) {
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                DIMINUTO_LOG_DEBUG("codex_verification_callback:  X509V3_EXT_get [%d] missing\n", ii);
                 continue;
             }
 
@@ -390,35 +389,34 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
             if (it != (const ASN1_ITEM *)0) {
 
-                ptr = ASN1_item_d2i((ASN1_VALUE **)0, &p, extlen, it);
-                if (ptr == (void *)0) {
-                    DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                vv = ASN1_item_d2i((ASN1_VALUE **)0, &pp, extlen, it);
+                if (vv == (void *)0) {
+                    DIMINUTO_LOG_DEBUG("codex_verification_callback: ANS1_item_d2i [%d] missing\n", ii);
                     continue;
                 }
 
             } else if (meth->d2i != (X509V3_EXT_D2I)0) {
 
-                ptr = meth->d2i((void *)0, &p, extlen);
-                if (ptr == (void *)0) {
-                    DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                vv = meth->d2i((void *)0, &pp, extlen);
+                if (vv == (void *)0) {
+                    DIMINUTO_LOG_DEBUG("codex_verification_callback: d2i [%d] missing\n", ii);
                     continue;
                 }
 
             } else {
 
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
                 continue;
 
             }
 
             if (meth->i2v == (X509V3_EXT_I2V)0) {
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                DIMINUTO_LOG_DEBUG("codex_verification_callback: i2v [%d] missing\n", ii);
                 continue;
             }
 
-            vals = meth->i2v(meth, ptr, (STACK_OF(CONF_VALUE) *)0);
+            vals = meth->i2v(meth, vv, (STACK_OF(CONF_VALUE) *)0);
             if (vals == (STACK_OF(CONF_VALUE) *)0) {
-                DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                DIMINUTO_LOG_DEBUG("codex_verification_callback: STACK_OF(CONF_VALUE) [%d] missing\n", ii);
                 continue;
             }
 
@@ -428,24 +426,23 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
                 val = sk_CONF_VALUE_value(vals, jj);
                 if (val == (CONF_VALUE *)0) {
-                    DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                    DIMINUTO_LOG_DEBUG("codex_connection_verify: sk_CONF_VAUE [%d][%d] missing\n", ii, jj);
                     continue;
                 }
 
                 if (val->name == (char *)0) {
-                    DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                    DIMINUTO_LOG_DEBUG("codex_connection_verify: name [%d][%d] missing\n", ii, jj);
                     continue;
                 }
 
                 if (val->value == (char *)0) {
-                    DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
+                    DIMINUTO_LOG_DEBUG("codex_connection_verify: value [%d][%d] missing\n", ii, jj);
                     continue;
                 }
 
                 DIMINUTO_LOG_DEBUG("codex_connection_verify: vector ssl=%p crt=%p \"%s\"=\"%s\"\n", ssl, crt, val->name, val->value);
 
                 if (strcmp(val->name, COM_DIAG_CODEX_CONFNAME_DNS) != 0) {
-                    DIMINUTO_LOG_DEBUG("codex_verification_callback: \"%s\"[%d] missing\n", __FILE__, __LINE__);
                     continue;
                 }
 
@@ -486,7 +483,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
                                  */
 
                                 result |= (CODEX_VERIFY_IPV4 | CODEX_VERIFY_DNS);
-                                DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" IPV4=%s\n", ssl, crt, srn, cn, fqdn, buffer4);
+                                DIMINUTO_LOG_INFORMATION("codex_connection_verify: match dns4 ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" IPV4=%s\n", ssl, crt, srn, cn, fqdn, buffer4);
                                 break;
 
                             }
@@ -512,7 +509,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
                                  */
 
                                 result |= (CODEX_VERIFY_IPV6 | CODEX_VERIFY_DNS);
-                                DIMINUTO_LOG_INFORMATION("codex_connection_verify: dns ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" IPV6=%s\n", ssl, crt, srn, cn, fqdn, buffer6);
+                                DIMINUTO_LOG_INFORMATION("codex_connection_verify: match dns6 ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\" IPV6=%s\n", ssl, crt, srn, cn, fqdn, buffer6);
                                 break;
 
                             }
@@ -539,7 +536,7 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
                      */
 
                     result |= CODEX_VERIFY_FQDN;
-                    DIMINUTO_LOG_INFORMATION("codex_connection_verify: fqdn ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\"\n", ssl, crt, srn, cn, fqdn);
+                    DIMINUTO_LOG_INFORMATION("codex_connection_verify: match fqdn ssl=%p crt=%p SRL=%s CN=\"%s\" FQDN=\"%s\"\n", ssl, crt, srn, cn, fqdn);
 
                 }
 
