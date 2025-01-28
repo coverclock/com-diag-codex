@@ -741,6 +741,11 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
             break;
         }
 
+        if (BIO_set_bind_mode(bio, BIO_BIND_REUSEADDR) <= 0) {
+            codex_perror("BIO_set_bind_mode");
+            /* Continue anyway. */
+        }
+
         rc = BIO_do_accept(bio);
         if (rc > 0) {
             break;

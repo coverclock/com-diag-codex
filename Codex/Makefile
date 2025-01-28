@@ -1005,7 +1005,8 @@ install-include:
 # Once I moved to OpenSSL 3.0.2 I had to put in some delay in between
 # the unit tests to allow the socket to shutdown and the port to be
 # recycled. (It's possible this has more to do with the Linux version
-# that was using OpenSSL 3.0.2.)
+# that was using OpenSSL 3.0.2.) This seems to be the case even if I
+# use BIO_set_bind_mode to BIO_BIND_REUSEADDR.
 
 sanity-test:
 	echo "TEST SANITY" 1>&2

@@ -10,7 +10,7 @@ PERIOD=${2:-"10"}
 BUFSIZE=${3:-"512"}
 BLOCKSIZE=${4:-"4096"}
 BLOCKS=${5:-"1024"}
-NEAREND=${6:-"49242"}
+NEAREND=${6:-"50400"}
 FAREND=${7:-"127.0.0.1:${NEAREND}"}
 EXPECTED="client.prairiethorn.org"
 
