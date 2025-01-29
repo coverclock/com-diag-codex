@@ -413,7 +413,8 @@ static void codex_connection_reuse(BIO * bio)
     int fd = -1;
 
     if (bio == (BIO *)0) {
-        /* Do nothing: already failed. */
+        errno = EINVAL;
+        diminuto_perror("BIO_get_fd");
     } else if ((fd = BIO_get_fd(bio, (int *)0)) < 0) {
         errno = EBADF;
         diminuto_perror("BIO_get_fd");
@@ -681,6 +682,10 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
             break;
         }
 
+        /*
+         * FAILURE PATH
+         */
+
         (void)codex_serror("SSL_connect", ssl, rc);
 
         SSL_free(ssl);
@@ -691,9 +696,9 @@ codex_connection_t * codex_client_connection_new(codex_context_t * ctx, const ch
     } while (false);
 
     if (ssl != (SSL *)0) {
-        /* Do nothing. */
+        /* Do nothing: nominal. */
     } else if (bio == (BIO *)0) {
-        /* Do nothing. */
+        /* Do nothing: already failed. */
     } else {
         rc = BIO_free(bio);
         if (rc != 1) {
@@ -748,8 +753,14 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
 
         rc = BIO_do_accept(bio);
         if (rc > 0) {
+            codex_connection_reuse(bio);
             break;
         }
+
+        /*
+         * FAILURE PATH
+         */
+
         codex_perror("BIO_do_accept");
 
         rc = BIO_free(bio);
@@ -760,8 +771,6 @@ codex_rendezvous_t * codex_server_rendezvous_new(const char * nearend)
         bio = (BIO *)0;
 
     } while (false);
-
-    codex_connection_reuse(bio);
 
     return bio;
 }
@@ -827,6 +836,10 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
             break;
         }
 
+        /*
+         * FAILURE PATH
+         */
+
         (void)codex_serror("SSL_accept", ssl, rc);
 
         SSL_free(ssl);
@@ -837,9 +850,9 @@ codex_connection_t * codex_server_connection_new(codex_context_t * ctx, codex_re
     } while (false);
 
     if (ssl != (SSL *)0) {
-        /* Do nothing. */
+        /* Do nothing: nominal. */
     } else if (tmp == (BIO *)0) {
-        /* Do nothing. */
+        /* Do nothing: already failed. */
     } else {
         rc = BIO_free(tmp);
         if (rc != 1) {
