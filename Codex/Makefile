@@ -1005,8 +1005,14 @@ install-include:
 # Once I moved to OpenSSL 3.0.2 I had to put in some delay in between
 # the unit tests to allow the socket to shutdown and the port to be
 # recycled. (It's possible this has more to do with the Linux version
-# that was using OpenSSL 3.0.2.) This seems to be the case even if I
-# use BIO_set_bind_mode to BIO_BIND_REUSEADDR.
+# that was using OpenSSL 3.0.2. (It's even more likely this is a bug
+# in my code, either the library or the functional tests.)) This seems
+# to be the case even if I use BIO_set_bind_mode to BIO_BIND_REUSEADDR,
+# or explicitly set the SO_REUSEADDR socket option. I'm assuming this
+# is a result of the TCP TIME_WAIT timeout (net.ipv4.tcp_tw_timeout),
+# although I haven't had any luck so far figuring out what that value
+# is on my test system. The sixty seconds sleep is just a stab in the
+# dark on my part.
 
 sanity-test:
 	echo "TEST SANITY" 1>&2

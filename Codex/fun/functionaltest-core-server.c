@@ -36,6 +36,8 @@ static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
 static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
 static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
 static int selfsigned = -1;
+static int opened = 0;
+static int closed = 0;
 
 int main(int argc, char ** argv)
 {
@@ -154,6 +156,7 @@ int main(int argc, char ** argv)
 
     bio = codex_server_rendezvous_new(nearend);
     ASSERT(bio != (codex_rendezvous_t *)0);
+    opened += 1;
 
     rendezvous = codex_rendezvous_descriptor(bio);
     ASSERT(rendezvous >= 0);
@@ -192,6 +195,7 @@ int main(int argc, char ** argv)
                 continue;
             }
             EXPECT(codex_connection_is_server(ssl));
+            opened += 1;
 
             codex_perror("Test codex_perror");
             codex_serror("Test codex_serror", ssl, 0);
@@ -269,6 +273,7 @@ int main(int argc, char ** argv)
 
                     rc = codex_connection_close(ssl);
                     ADVISE(rc >= 0);
+                    closed += 1;
 
                     ssl = codex_connection_free(ssl);
                     EXPECT(ssl == (codex_connection_t *)0);
@@ -298,6 +303,7 @@ int main(int argc, char ** argv)
 
     bio = codex_server_rendezvous_free(bio);
     ASSERT(bio == (codex_rendezvous_t *)0);
+    closed += 1;
 
     for (fd = 0; fd < count; ++fd) {
 
@@ -310,6 +316,7 @@ int main(int argc, char ** argv)
 
         rc = codex_connection_close(ssl);
         EXPECT(rc >= 0);
+        closed += 1;
 
         ssl = codex_connection_free(ssl);
         EXPECT(ssl == (codex_connection_t *)0);
@@ -324,6 +331,9 @@ int main(int argc, char ** argv)
     EXPECT(ctx == (codex_context_t *)0);
 
     free(buffer);
+
+    DIMINUTO_LOG_INFORMATION("%s: DONE opened=%d closed=%d\n", program, opened, closed);
+    EXPECT(opened == closed);
 
     EXIT();
 }

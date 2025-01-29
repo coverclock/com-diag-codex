@@ -36,6 +36,8 @@ static const char * pathcrt = (const char *)0;
 static const char * pathkey = (const char *)0;
 static const char * pathdhf = (const char *)0;
 static int selfsigned = -1;
+static int opened = 0;
+static int closed = 0;
 
 int main(int argc, char ** argv)
 {
@@ -149,6 +151,7 @@ int main(int argc, char ** argv)
         meetme = diminuto_ipc6_stream_provider(endpoint.tcp);
     }
     ASSERT(meetme >= 0);
+    opened += 1;
 
     rc = diminuto_ipc_set_reuseaddress(meetme, !0);
     ASSERT(rc >= 0);
@@ -186,6 +189,7 @@ int main(int argc, char ** argv)
 
             fd = diminuto_ipc4_stream_accept(rendezvous);
             ASSERT(fd >= 0);
+            opened += 1;
 
             DIMINUTO_LOG_INFORMATION("%s: START connection=%d fd=%d\n", program, rendezvous, fd);
 
@@ -248,6 +252,7 @@ int main(int argc, char ** argv)
 
                     rc = diminuto_ipc4_close(fd);
                     ADVISE(rc >= 0);
+                    closed += 1;
 
                     *here = (void *)0;
 
@@ -267,13 +272,13 @@ int main(int argc, char ** argv)
 
     fd = rendezvous;
     ASSERT(fd >= 0);
-    ASSERT(fd == rendezvous);
 
     rc = diminuto_mux_unregister_accept(&mux, fd);
     EXPECT(rc >= 0);
 
     rc = diminuto_ipc4_close(fd);
     ASSERT(rc >= 0);
+    closed += 1;
 
     for (fd = 0; fd < count; ++fd) {
 
@@ -285,6 +290,7 @@ int main(int argc, char ** argv)
 
         rc = diminuto_ipc4_close(fd);
         EXPECT(rc >= 0);
+        closed += 1;
 
         *here = (void *)0;
 
@@ -293,6 +299,9 @@ int main(int argc, char ** argv)
     free(map);
 
     free(buffer);
+
+    DIMINUTO_LOG_INFORMATION("%s: DONE opened=%d closed=%d\n", program, opened, closed);
+    EXPECT(opened == closed);
 
     EXIT();
 }

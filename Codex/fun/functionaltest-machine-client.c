@@ -42,6 +42,8 @@ static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
 static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
 static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
 static int selfsigned = -1;
+static int opened = 0;
+static int closed = 0;
 
 int main(int argc, char ** argv)
 {
@@ -182,6 +184,7 @@ int main(int argc, char ** argv)
     ssl = codex_client_connection_new(ctx, farend);
     ASSERT(ssl != (SSL *)0);
     EXPECT(!codex_connection_is_server(ssl));
+    opened += 1;
 
     fd = codex_connection_descriptor(ssl);
     ASSERT(fd >= 0);
@@ -402,12 +405,16 @@ int main(int argc, char ** argv)
 
     ssl = codex_connection_free(ssl);
     EXPECT(ssl == (codex_connection_t *)0);
+    closed += 1;
 
     ctx = codex_context_free(ctx);
     EXPECT(ctx == (codex_context_t *)0);
 
     free(buffers[READER]);
     free(buffers[WRITER]);
+
+    DIMINUTO_LOG_INFORMATION("%s: DONE opened=%d closed=%d\n", program, opened, closed);
+    EXPECT(opened == closed);
 
     EXIT();
 }

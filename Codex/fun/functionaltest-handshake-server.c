@@ -61,6 +61,8 @@ static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
 static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "server.pem";
 static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
 static int selfsigned = -1;
+static int opened = 0;
+static int closed = 0;
 
 static diminuto_list_t pool = { 0 };
 static int malloced = 0;
@@ -129,6 +131,7 @@ static client_t * create(void)
         if (ssl == (codex_connection_t *)0) {
             break;
         }
+        opened += 1;
 
         client = (client_t *)malloc(sizeof(client_t));
         ASSERT(client != (client_t *)0);
@@ -205,14 +208,9 @@ static client_t * destroy(client_t * client)
         ASSERT(buffer == (buffer_t *)0);
     }
 
-    if (client->source.state == CODEX_STATE_FINAL) {
-        /* Do nothing. */
-    } else if (client->sink.state == CODEX_STATE_FINAL) {
-        /* Do nothing. */
-    } else {
-        rc = codex_connection_close(client->ssl);
-        ASSERT(rc >= 0);
-    }
+    rc = codex_connection_close(client->ssl);
+    closed += 1;
+    ASSERT(rc >= 0);
 
     client->ssl = codex_connection_free(client->ssl);
     ASSERT(client->ssl == (codex_connection_t *)0);
@@ -448,6 +446,7 @@ int main(int argc, char ** argv)
 
     bio = codex_server_rendezvous_new(nearend);
     ASSERT(bio != (codex_rendezvous_t *)0);
+    opened += 1;
 
     rendezvous = codex_rendezvous_descriptor(bio);
     ASSERT(rendezvous >= 0);
@@ -717,6 +716,7 @@ int main(int argc, char ** argv)
 
         bio = codex_server_rendezvous_free(bio);
         ASSERT(bio == (codex_rendezvous_t *)0);
+        closed += 1;
 
         for (fd = 0; fd < count; ++fd) {
 
@@ -744,6 +744,9 @@ int main(int argc, char ** argv)
         EXPECT(malloced == freed);
 
     }
+
+    DIMINUTO_LOG_INFORMATION("%s: DONE opened=%d closed=%d\n", program, opened, closed);
+    EXPECT(opened == closed);
 
     EXIT();
 }

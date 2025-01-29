@@ -42,6 +42,8 @@ static const char * pathcrt = (const char *)0;
 static const char * pathkey = (const char *)0;
 static const char * pathdhf = (const char *)0;
 static int selfsigned = -1;
+static int opened = 0;
+static int closed = 0;
 
 int main(int argc, char ** argv)
 {
@@ -164,6 +166,7 @@ int main(int argc, char ** argv)
         sock = diminuto_ipc6_stream_consumer(endpoint.ipv6, endpoint.tcp);
     }
     ASSERT(sock >= 0);
+    opened += 1;
 
     fd = sock;
     ASSERT(fd >= 0);
@@ -277,8 +280,12 @@ int main(int argc, char ** argv)
 
     rc = diminuto_ipc4_close(sock);
     EXPECT(rc >= 0);
+    closed += 1;
 
     free(buffer);
+
+    DIMINUTO_LOG_INFORMATION("%s: DONE opened=%d closed=%d\n", program, opened, closed);
+    EXPECT(opened == closed);
 
     EXIT();
 }
