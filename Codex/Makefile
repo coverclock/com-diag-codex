@@ -1000,41 +1000,26 @@ install-include:
 
 ########## Sanity Tests
 
-.PHONY: sanity-test failures-test functional-test extra-test
+.PHONY: sanity-test failures-test functional-test extra-test tests
 
-# Once I moved to OpenSSL 3.0.2 I had to put in some delay in between
-# the unit tests to allow the socket to shutdown and the port to be
-# recycled. (It's possible this has more to do with the Linux version
-# that was using OpenSSL 3.0.2. (It's even more likely this is a bug
-# in my code, either the library or the functional tests.)) This seems
-# to be the case even if I use BIO_set_bind_mode to BIO_BIND_REUSEADDR,
-# or explicitly set the SO_REUSEADDR socket option. I'm assuming this
-# is a result of the TCP TIME_WAIT timeout (net.ipv4.tcp_tw_timeout),
-# although I haven't had any luck so far figuring out what that value
-# is on my test system. The sixty seconds sleep is just a stab in the
-# dark on my part.
+# Once I moved to OpenSSL 3.0.2 I had to put in some delay (e.g.
+# a "sleep 60") in between each test command below to allow the
+# sockets to shutdown and the ports to be recycled. Ultimately I
+# believe this was a bug in my part, and that I may have fixed it.
+# Put them back if this issue arises again.
 
 sanity-test:
 	echo "TEST SANITY" 1>&2
 	unittest-sanity
 	unittest-nonverified-client
-	sleep 60
 	unittest-nonverified-server
-	sleep 60
 	unittest-nonverified-bogus
-	sleep 60
 	unittest-nonverified-self
-	sleep 60
 	unittest-nonverified-revoked
-	sleep 60
 	unittest-cnverified-client
-	sleep 60
 	unittest-cnverified-server
-	sleep 60
 	unittest-fqdnverified-client
-	sleep 60
 	unittest-fqdnverified-server
-	sleep 60
 
 # Remarkably, if you put more than one space around the && and ||
 # operators it breaks this on my test system (RPi 5B, Debian 12
@@ -1043,31 +1028,23 @@ sanity-test:
 failures-test:
 	echo "TEST FAILURES" 1>&2
 	unittest-unverified-client && false || true
-	sleep 60
 	unittest-unverified-server && false || true
-	sleep 60
 	unittest-unverified-bogus && false || true
-	sleep 60
 	unittest-unverified-self && false || true
-	sleep 60
 	unittest-unverified-noself && false || true
-	sleep 60
 	unittest-unverified-revoked && false || true
-	sleep 60
 
-# These take a while.
+# These will take a while. Maybe go get a latte.
 
 functional-test:
 	echo "TEST FUNCTIONAL" 1>&2
 	unittest-core
-	sleep 60
 	unittest-machine
-	sleep 60
 
 # The control feature runs a unit test with the same
 # programming model as the SSL unit tests but without
 # using SSL. It it doesn't work, the other unit tests
-# aren't expected to work.
+# aren't expected to work either.
 
 extra-test:
 	echo "TEST EXTRA" 1>&2
