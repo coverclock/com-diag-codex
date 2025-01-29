@@ -99,7 +99,7 @@ and a *private* API. The public API is defined in the header file
     Codex/inc/com/diag/codex/codex.h
     
 and is intended for application developers using the library. This header file
-would be installed in, for example, ```/usr/local``` and could be included
+would be installed in, for example, ```/usr/local/include``` and could be included
 using a statement like
 
     #include <com/diag/codex/codex.h>
