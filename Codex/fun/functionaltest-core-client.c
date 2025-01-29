@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2018-2022 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2018-2025 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
