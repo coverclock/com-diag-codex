@@ -31,13 +31,13 @@ for years in both personal and commercial development projects.
 >is a test domain I use for this project and others. It is sometimes
 >dynamically forwarded to the GitHub page for this repository.
 
-IMPORTANT SAFETY TIP: Version 11.0.0 of this repository represents
-significate changes. The only API change was the elimination of the
-handshake renegotiation function call (which was a really bad idea
-anyway, and only briefly available in OpenSSL).  If you want the prior
-version before I started committing violence to it, check out tag 10.1.1.
-Version 11.0.0 has passed the Sanity, Functional, Failures, and Extra test
-suites.
+**Important safety tip**: Version 11.0.0 of this repository contains
+significate changes from prior versions, although the only API change
+was the elimination of the handshake renegotiation function call (which
+was a really bad idea anyway, and only briefly supported by OpenSSL).
+If you want the prior version before I started committing violence to it,
+check out tag 10.1.1.  Version 11.0.0 has passed the Sanity, Functional,
+Failures, and Extra test suites.
 
 # Disclaimer
 
