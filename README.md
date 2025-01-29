@@ -99,7 +99,7 @@ and a *private* API. The public API is defined in the header file
     Codex/inc/com/diag/codex/codex.h
     
 and is intended for application developers using the library. This header file
-would be installed in, for example, ```/usr/local``` and could be included
+would be installed in, for example, ```/usr/local/include``` and could be included
 using a statement like
 
     #include <com/diag/codex/codex.h>
@@ -172,67 +172,6 @@ handle the I/O streams; this also simplifies multiplexing the OpenSSL
 sockets using the ```select(2)``` system call. The Machine layer allows
 the SSL byte stream to be used in a datagram-like fashion.
 
-### Handshake
-
-The Handshake layer - the handshake portion of which only works in OpenSSL
-1.0.2 - allows peers to establish secure stream connections, pass variable
-sized packets in full-duplex fashion, and use indications to coordinate the
-of the session so that new encryption keys can be established and each end can
-be re-authenticated. This is especially important for long lived connections,
-since the longer an encryption key is used, the more likely it is that
-it will be cracked. However, TLS 1.3, due to arrive when OpenSSL 1.1.1
-is fully released, makes this technique obsolete by replacing it with
-a native key change capability. Never the less, it was an interesting
-intellectual exercise, and certainly led me to a better understanding
-of how the OpenSSL implementation of the SSL protocol works.
-
-Empirical evidence suggests that regardless of what the OpenSSL
-documentation may suggest, both unidirectional byte streams of
-the full-duplex connection must be empty of application data for
-the renegotiation to succeed. This is because the handshake for the
-renegotiation is done in-band, and the protocol does not know how to
-handle unexpected application data. This is probably not a problem in
-typical web-based OpenSSL applications, whose communication consists of
-half-duplex HTTP requests and responses. But in the Internet of Things
-(IoT) domain of sensors and real-time data, this may not be the case.
-Furthermore, the handshake itself is implemented on the requestee side
-by state machines in OpenSSL which piggy-back the handshake protocol on
-application-driven I/O. So the requestee must drive those state machines
-on its side of the handshake by doing I/O, whether it has any data to
-send or receive or not.
-
-Using the Handshake unit test as an example, either the Server or
-the Client processes that implement the unit test can initiate a
-renegotiation; this is done by the tester by sending any of the processes
-a ```SIGHUP``` (hangup) signal.  A ```SIGHUP``` sent to a client causes
-it to initiate a renegotiation with the server just for its connection. A
-SIGHUP sent to the server causes it to initiate a renegotiation with all
-of its clients. In any case, both unidirectional (read, write) streams of
-the full-duplex connection must be emptied for the handshake to succeed.
-
-The unit test implements a simple protocol consisting of a FAREND
-(a.k.a. start) indication sent from the requestor to the requestee
-while at the same time the requestor ceases writing data packets to
-the connection. The requestee responds with a READY indication while
-at the same time ceasing writing to the requestor.  Once the handshake
-is complete, the requestor writes a DONE indication which the requestee
-reads, and then full-duplex communication resumes.
-
-In the case of the server side of the Handshake unit test being the
-requestor, the server must buffer incoming packets that were in-flight at
-the time it sent the client a FAREND indication in order to quiesce its
-output stream.  The amount of data it must buffer will be two times the
-bandwidth delay product of the communication channel between the client
-and the server. This can be substantial (thousands of packets, each
-containing hundreds of bytes). Any application expecting to renegotiate
-an OpenSSL connection being used for full-duplex communication must take
-this into account.
-
-**Important safety tip**: I haven't tried to make the Handshake unit
-test robust against a client and a server simultaneously requesting
-a renegotiation. But that's a legitimate concern that a real-world
-application should worry about.
-
 # Applications
 
 I have written two applications included in this repo that are named for
@@ -288,6 +227,18 @@ aarch64-linux-gnu-gcc-11
 aarch64-linux-gnu     
 Little Endian     
 
+Raspberry Pi 5 Model B Rev 1.0 d04170    
+aarch64 x4    
+Debian GNU/Linux 12 (bookworm)    
+Linux 6.6.62+rpt-rpi-2712    
+gcc (Debian 12.2.0-14) 12.2.0    
+ldd (Debian GLIBC 2.36-9+rpt2+deb12u9) 2.36    
+GNU ld (GNU Binutils for Debian) 2.40    
+GNU Make 4.3    
+aarch64-linux-gnu-gcc-12    
+aarch64-linux-gnu    
+Little Endian    
+
 # Certificates
 
 The build ```Makefile``` for Codex builds root, certificate authority (CA),
@@ -320,26 +271,6 @@ used in the unit tests. This is basically what occurs when you install
 a root certificate using your browser, or generate a public/private key
 pair so that you can use ```ssh(1)``` and ```scp(1)``` without entering
 a password - you are installing shared credentials trusted by both peers.
-
-The ```Makefile``` has a helper target that uses ```ssh(1)``` and ```scp(1)```
-to copy the near end signing certificates to the far end where they will
-be used to sign the far end's credentials when you build the far end. This
-helper target makes some assumptions about the far end directory tree
-looking something like the near end directory tree, at least relative
-to the home directory on either ends.
-
-For example, I exported root and CA credentials from my x86_64 Ubuntu
-system "nickel", that were generated during the build of that Codex,
-to my ARM Raspbian systems, prior to the build of Codex on those systems.
-
-    make exported FAREND="pi@bronze"
-    make exported FAREND="pi@cobalt"
-    make exported FAREND="pi@copper"
-    make exported FAREND="pi@lead"
-
-(These were my development systems at the time I originally developed Codex.
-My current development systems are boron, cadmium, rhodium, and tungsten.
-I changed the Alternate Names in the unit test certificates to reflect this.)
 
 Codex builds just enough Public Key Infrastructure (PKI) to run the unit
 tests.
@@ -477,101 +408,21 @@ flexibility to cross-compile and generate build-artifacts into other
 ```TARGET``` directories. I've used this capability for Diminuto. But I build
 Codex on the x86_64 and ARM targets on which I intend to run it.
 
-# Building
+# Dependencies
 
-If you want to use OpenSSL 1.0.2 on an X86_64 running Ubuntu "xenial"
-system, you can install it with the Aptitude package manager using the
-command below. This same command, minus ```libssl-doc```, will install
-OpenSSL 1.0.1 for Raspbian "jessie" on the Raspberry Pi.
+You'll need to clone and build Diminuto, my C systems programming library, and
+install packages for OpenSSL.
 
     sudo apt-get install openssl libssl-dev libssl-doc
-
-If you want to build OpenSSL 1.0.1t, use the commands below.
-
-    cd
-    mkdir -p src
-    cd src
-    git clone https://github.com/openssl/openssl openssl-1.0.1t
-    cd openssl-1.0.1t
-    git checkout OpenSSL_1_0_1t
-    ./config -shared
-    make depend
-    make
-
-If you want to build BoringSSL 1.1.0, use the commands below.
-
-    cd
-    mkdir -p src
-    cd src
-    git clone https://boringssl.googlesource.com/boringssl
-    cd boringssl
-    mkdir build
-    cd build
-    cmake -DBUILD_SHARED_LIBS=1 -DBORINGSSL_SHARED_LIBRARY=1 -DBORING_IMPLEMENTATION=1 ..
-    make
-    
-If you want to build OpenSSL 1.1.1, use the commands below.
-
-    cd
-    mkdir -p src
-    cd src
-    git clone https://github.com/openssl/openssl
-    cd openssl
-    ./config
-    make
-
-Clone and build Diminuto (48.4.1 or later), a library I wrote that Codex
-is built upon.  (Later versions of Diminuto may work providing I haven't
-altered the portions of the API on which Codex depends.)
-
-    cd
-    mkdir -p src
-    cd src
-    git clone https://github.com/coverclock/com-diag-diminuto
-    cd com-diag-diminuto/Diminuto
-    git checkout 48.4.1
-    make pristine depend all
-
-Clone and build Codex, a library I wrote, choosing the flavor of OpenSSL
-library you want to use based on the make configuration files available in
-the directory ```cfg```.
-
-    cd
-    mkdir -p src
-    cd src
-    git clone https://github.com/coverclock/com-diag-codex
-    cd com-diag-codex/Codex
-    make pristine depend all FLAVOR=!FLAVOR!
-
-Here are the FLAVORs I've tested with Codex.
-
-* ```FLAVOR=openssl``` is the default installed version on the build system,
-e.g. OpenSSL 1.0.2 on Ubuntu "xenial", or OpenSSL 1.0.1 on Raspbian "jessie";
-* ```FLAVOR=openssl-1.0.1``` is OpenSSL 1.0.1 as used on Raspbian "jessie" but
-which I built for testing on Ubuntu "xenial";
-* ```FLAVOR=boringssl-1.1.0``` is Google's fork of OpenSSL;
-* ```FLAVOR=openssl-1.1.1``` is the development version of OpenSSL at the time
-I did this work.
-
-When in doubt, you can ask Codex what how it was built.
-
-    cd ~/src/com-diag-codex/Codex
-    . out/host/bin/setup
-    ./out/host/tst/unittest-sanity
-    ./out/host/bin/vintage
-
-Note the space between the dot and the path to the setup script. This script
-is included by Bash to define ```PATH```, ```LD_LIBRARY_PATH``` and other
-necessary variables in the environment, so that you can test without installing
-Codex or Diminuto.
 
 # Unit Tests
 
 Preceed with . out/host/bin/setup to setup PATH etc.
 
-* make sanity - These tests will take a coffee break to run.
-* make functional - These tests will take at least a lunch hour to run.
-* make extra - These tests will take at least a lunch hour to run.
+* make sanity-test - These tests will take a few minutes to run.
+* make failures-test - These tests will take a few minutes to run.
+* make functional-test - These tests will take a coffee break to run.
+* make extra-test - These tests will take a coffee break to run.
 
 # Logging
 
@@ -606,71 +457,6 @@ as ```0xfe``` or ```254```, with the lowest priority log levels being the
 lowest order bits. ```0xfe``` (all but Debug) is the value set by the
 ```out/host/bin/setup``` script used in the unit test description below.
 
-# Testing
-
-Run the Codex unit tests without having to install anything in, for
-example,``` /usr/local```.
-
-    cd ~/src/com-diag-codex/Codex
-    . out/host/bin/setup
-    unittest-sanity
-    unittest-core
-    unittest-machine
-    
-This unit test allows you to test renegotiation from either side of the
-connection on OpenSSL-1.0.2 (only) by sending the server process or a
-client process a "hangup" signal a.k.a. ```SIGHUP```. You can find the
-process identifiers (PID) for the processes in the log output to standard
-error. You can use the ```kill(1)``` command to send a ```SIGHUP``` to
-the process you want to instigate a renegotiation with its peer. (The
-unit test will run on other OpenSSL flavors, you just won't be able to
-get negotiation to work.)
-
-    unittest-handshake
-    
-These unit tests will deliberately fail as a test of verification failure
-either by the client (the server fails to authenticate) or the server
-(the client fails to authenticate).
-
-    unittest-verification-client
-    unittest-verification-server
-    unittest-verification-bogus
-    unittest-verification-self
-    unittest-verification-revoked
-
-These unit tests disable verification and therefore pass.
-
-    unittest-noverification-client
-    unittest-noverification-server
-    unittest-noverification-bogus
-    unittest-noverification-self
-    unittest-noverification-revoked
-
-These unit test scripts that have my network host names baked in, but you
-can trivially modify them so that you can easily run tests between computers.
-You will also have to edit the configuration files for the certificates used
-by these unit tests since the host names are also baked into the certificates
-and Codex requires that they match to authenticate both sides in the
-connection.
-
-    unittest-server
-    unittest-client
-
-There is a Control unittest that duplicates the functionality of
-the Core unittest but without using SSL at all. I use this to
-compare the performance of applications with and without SSL.
-
-    unittest-control
-
-You can run the ```openssl s_client``` command against the
-```unittest-server``` server-side unit test and see what Codex is
-actually telling the client.
-
-    openssl s_client -connect localhost:49302 2>&1 < /dev/null
-
-An example of the output of such a command can be found in
-```txt/unittest-server-nickel.txt```.
-
 ## Issues
 
 If you abort a unit test prematurely such that it does not
@@ -693,17 +479,6 @@ PDF utilities, you can generate PDF manuals.
 
     make documentation-ancillary
 
-# Performance
-
-There are a number of scripts in the ```tst``` directory that I used to do
-some performance testing by comparing the total CPU time of ```unittest-core```
-against that of ```unittest-control``` for various workloads and configurations.
-I then used ```awk```, R, and Excel to post-process the data. The results can
-be found in the ```dat``` directory. This is even more a work in progress than
-the rest of this effort. The scripts and artifacts are somewhat misnamed as
-"unittest" because they were derived from what was originally a unit test
-script.
-
 # Repositories
 
 <https://github.com/coverclock/com-diag-codex>
@@ -711,8 +486,6 @@ script.
 <https://github.com/coverclock/com-diag-diminuto>
 
 <https://github.com/openssl/openssl>
-
-<https://boringssl.googlesource.com/boringssl>
 
 # References
 
