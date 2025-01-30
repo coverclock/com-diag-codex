@@ -183,12 +183,6 @@ directory.
 
 * Stagecoach supports remote GNSS rovers communicating with a GNSS base station.
 
-# Dependencies
-
-OpenSSL or BoringSSL
-
-Diminuto 48.4.1 or later
-
 # Targets
 
 Intel(R) Core(TM) i7-7567U CPU @ 3.50GHz     
@@ -413,6 +407,22 @@ Codex on the x86_64 and ARM targets on which I intend to run it.
 You'll need to clone and build Diminuto, my C systems programming library, and
 install packages for OpenSSL.
 
+## Versions
+
+Diminuto 105.2.5 (may work with other versions but I may not have tested it).
+
+OpenSSL 3.0.15 (may work with other versions but I may not have tested it).
+
+## Repositories
+
+<https://github.com/coverclock/com-diag-codex>
+
+<https://github.com/coverclock/com-diag-diminuto>
+
+<https://github.com/openssl/openssl>
+
+## Packages
+
     sudo apt-get install openssl libssl-dev libssl-doc
 
 # Unit Tests
@@ -478,14 +488,6 @@ If you have the full (enormous) TeX system installed, plus some standard
 PDF utilities, you can generate PDF manuals.
 
     make documentation-ancillary
-
-# Repositories
-
-<https://github.com/coverclock/com-diag-codex>
-
-<https://github.com/coverclock/com-diag-diminuto>
-
-<https://github.com/openssl/openssl>
 
 # References
 
