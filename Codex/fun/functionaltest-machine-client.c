@@ -30,7 +30,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-static const char * program = "unittest-machine-client";
+static const char * program = "functionaltest-machine-client";
 static const char * farend = "localhost:49182";
 static const char * expected = "server.prairiethorn.org";
 static diminuto_ticks_t period = 0;

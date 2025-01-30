@@ -25,7 +25,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-static const char * program = "unittest-control-server";
+static const char * program = "functionaltest-control-server";
 static const char * nearend = "49162";
 static const char * expected = "client.prairiethorn.org";
 static size_t bufsize = 256;

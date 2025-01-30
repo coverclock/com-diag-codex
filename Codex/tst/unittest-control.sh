@@ -10,7 +10,7 @@ PERIOD=${2:-"10"}
 BUFSIZE=${3:-"512"}
 BLOCKSIZE=${4:-"4096"}
 BLOCKS=${5:-"1048576"}
-NEAREND=${6:-"49562"}
+NEAREND=${6:-"49103"}
 FAREND=${7:-"127.0.0.1:${NEAREND}"}
 
 functionaltest-control-server -n ${NEAREND} -B ${BUFSIZE} &

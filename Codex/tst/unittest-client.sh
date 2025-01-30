@@ -7,11 +7,12 @@
 PROGRAM=$(basename ${0})
 CLIENTS=${1:-"3"}
 EXPECTED=$(hostname -s)
-FAREND=${2:-"${EXPECTED}:49302"}
-PERIOD=${3:-"10"}
-BUFSIZE=${4:-"512"}
-BLOCKSIZE=${5:-"4096"}
-BLOCKS=${6:-"1048576"}
+NEAREND=${2:-"49100"}
+FAREND=${3:-"${EXPECTED}:${NEAREND}"}
+PERIOD=${4:-"10"}
+BUFSIZE=${5:-"512"}
+BLOCKSIZE=${6:-"4096"}
+BLOCKS=${7:-"1048576"}
 
 while [[ ${CLIENTS} -gt 0 ]]; do
 

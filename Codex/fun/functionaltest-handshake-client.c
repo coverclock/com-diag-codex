@@ -31,7 +31,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-static const char * program = "unittest-handshake-client";
+static const char * program = "functionaltest-handshake-client";
 static const char * farend = "localhost:49202";
 static const char * expected = "server.prairiethorn.org";
 static diminuto_ticks_t period = 0;

@@ -30,7 +30,7 @@
 #include <string.h>
 #include <stdint.h>
 
-static const char * program = "unittest-control-client";
+static const char * program = "functionaltest-control-client";
 static const char * farend = "localhost:49162";
 static const char * expected = "server.prairiethorn.org";
 static diminuto_ticks_t period = 0;

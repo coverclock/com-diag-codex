@@ -10,7 +10,7 @@ PERIOD=${2:-"10"}
 BUFSIZE=${3:-"512"}
 BLOCKSIZE=${4:-"4096"}
 BLOCKS=${5:-"1024"}
-NEAREND=${6:-"49542"}
+NEAREND=${6:-"49120"}
 FAREND=${7:-"127.0.0.1:${NEAREND}"}
 
 CRLPATH="$(realpath $(dirname $0))/../crl"

@@ -50,7 +50,7 @@ typedef struct Client {
     bool checked;
 } client_t;
 
-static const char * program = "unittest-handshake-server";
+static const char * program = "functionaltest-handshake-server";
 static const char * nearend = "49202";
 static const char * expected = "client.prairiethorn.org";
 static size_t bufsize = 256;

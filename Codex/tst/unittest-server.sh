@@ -4,7 +4,7 @@
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
 
-NEAREND=${1:-"49302"}
+NEAREND=${1:-"49114"}
 BUFSIZE=${2:-"512"}
 EXPECTED="client.prairiethorn.org"
 

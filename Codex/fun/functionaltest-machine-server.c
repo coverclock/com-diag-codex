@@ -43,7 +43,7 @@ typedef struct Client {
     bool checked;
 } client_t;
 
-static const char * program = "unittest-machine-server";
+static const char * program = "functionaltest-machine-server";
 static const char * nearend = "49182";
 static const char * expected = "client.prairiethorn.org";
 static size_t bufsize = 256;
