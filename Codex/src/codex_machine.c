@@ -227,7 +227,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                     /* Do nothing. */
                 } else if (error == CODEX_SERROR_READ) {
                     /* Do nothing. */
-                } else  if (error != CODEX_SERROR_WRITE) {
+                } else if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
                     /* Don't flood the log. */
