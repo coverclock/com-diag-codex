@@ -141,7 +141,8 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                 } else if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_reader: need write ssl=%p\n", ssl);
+                    /* Don't flood the log. */
+                    DIMINUTO_LOG_DEBUG("codex_machine_reader: need write ssl=%p\n", ssl);
                     diminuto_yield();
                 } else {
                     /* Do nothing. */
@@ -229,7 +230,8 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                 } else  if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_reader: need write ssl=%p\n", ssl);
+                    /* Don't flood the log. */
+                    DIMINUTO_LOG_DEBUG("codex_machine_reader: need write ssl=%p\n", ssl);
                     diminuto_yield();
                 } else {
                     /* Do nothing. */
@@ -353,7 +355,8 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                 } else if (error != CODEX_SERROR_READ) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_writer: need read ssl=%p\n", ssl);
+                    /* Don't flood the log. */
+                    DIMINUTO_LOG_DEBUG("codex_machine_writer: need read ssl=%p\n", ssl);
                     diminuto_yield();
                 } else {
                     /* Do nothing. */
@@ -398,7 +401,8 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                 } else if (error != CODEX_SERROR_READ) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_NOTICE("codex_machine_writer: need read ssl=%p\n", ssl);
+                    /* Don't flood the log. */
+                    DIMINUTO_LOG_DEBUG("codex_machine_writer: need read ssl=%p\n", ssl);
                     diminuto_yield();
                 } else {
                     /* Do nothing. */
