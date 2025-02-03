@@ -239,7 +239,7 @@ int main(int argc, char ** argv)
                 state = codex_machine_writer_generic(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]), &checked, &serror, (int *)0);
 
                 if (serror == CODEX_SERROR_READ) {
-                    DIMINUTO_LOG_NOTICE("%s: WANT READ\n", program);
+                    DIMINUTO_LOG_NOTICE("%s: WANT READ 1\n", program);
                 }
 
                 if (state == CODEX_STATE_FINAL) {
@@ -378,7 +378,7 @@ int main(int argc, char ** argv)
                     state = codex_machine_writer_generic(state, (char *)0, ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length, &checked, &serror, (int *)0);
 
                     if (serror == CODEX_SERROR_READ) {
-                        DIMINUTO_LOG_NOTICE("%s: WANT READ\n", program);
+                        DIMINUTO_LOG_NOTICE("%s: WANT READ 2\n", program);
                     }
 
                 } while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));

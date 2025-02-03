@@ -195,7 +195,7 @@ static bool indicate(client_t * client)
             state = codex_machine_writer_generic(state, (char *)0, client->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length, &checked, &serror, (int *)0);
 
             if (serror == CODEX_SERROR_READ) {
-                DIMINUTO_LOG_NOTICE("%s: WANT READ\n", program);
+                DIMINUTO_LOG_NOTICE("%s: WANT READ 1\n", program);
             }
 
         } while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
@@ -467,7 +467,7 @@ int main(int argc, char ** argv)
             state = codex_machine_writer_generic(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length), &(client->checked), &serror, (int *)0);
 
             if (serror == CODEX_SERROR_READ) {
-                DIMINUTO_LOG_NOTICE("%s: WANT READ\n", program);
+                DIMINUTO_LOG_NOTICE("%s: WANT READ 2\n", program);
             }
 
             if (state == CODEX_STATE_FINAL) {
