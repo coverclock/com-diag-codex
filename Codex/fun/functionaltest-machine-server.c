@@ -190,7 +190,14 @@ static bool indicate(client_t * client)
         DIMINUTO_LOG_INFORMATION("%s: NEAREND client=%p\n", program, client);
 
         do {
-            state = codex_machine_writer(state, (char *)0, client->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length, &checked);
+            codex_serror_t serror = CODEX_SERROR_NONE;
+
+            state = codex_machine_writer_generic(state, (char *)0, client->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length, &checked, &serror, (int *)0);
+
+            if (serror == CODEX_SERROR_READ) {
+                DIMINUTO_LOG_NOTICE("%s: WANT READ\n", program);
+            }
+
         } while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
 
         if (state == CODEX_STATE_FINAL) {
@@ -382,8 +389,13 @@ int main(int argc, char ** argv)
             }
 
             do {
+                codex_serror_t serror = CODEX_SERROR_NONE;
 
-                state = codex_machine_reader(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length), &(client->checked));
+                state = codex_machine_reader_generic(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length), &(client->checked), &serror, (int *)0);
+
+                if (serror == CODEX_SERROR_WRITE) {
+                    DIMINUTO_LOG_NOTICE("%s: WANT WRITE\n", program);
+                }
 
                 if (state == CODEX_STATE_FINAL) {
 
@@ -436,6 +448,7 @@ int main(int argc, char ** argv)
         }
 
         while (true) {
+            codex_serror_t serror = CODEX_SERROR_NONE;
 
             fd = diminuto_mux_ready_write(&mux);
             if (fd < 0) {
@@ -451,7 +464,11 @@ int main(int argc, char ** argv)
                 continue;
             }
 
-            state = codex_machine_writer(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length), &(client->checked));
+            state = codex_machine_writer_generic(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length), &(client->checked), &serror, (int *)0);
+
+            if (serror == CODEX_SERROR_READ) {
+                DIMINUTO_LOG_NOTICE("%s: WANT READ\n", program);
+            }
 
             if (state == CODEX_STATE_FINAL) {
 

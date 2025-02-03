@@ -234,8 +234,13 @@ int main(int argc, char ** argv)
             } else if (states[WRITER] == CODEX_STATE_IDLE) {
                 /* Do nothing. */
             } else {
+                codex_serror_t serror = CODEX_SERROR_NONE;
 
-                state = codex_machine_writer(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]), &checked);
+                state = codex_machine_writer_generic(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]), &checked, &serror, (int *)0);
+
+                if (serror == CODEX_SERROR_READ) {
+                    DIMINUTO_LOG_NOTICE("%s: WANT READ\n", program);
+                }
 
                 if (state == CODEX_STATE_FINAL) {
                     break;
@@ -267,8 +272,13 @@ int main(int argc, char ** argv)
             } else {
 
                 do {
+                    codex_serror_t serror = CODEX_SERROR_NONE;
 
-                    state = codex_machine_reader(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]), &checked);
+                    state = codex_machine_reader_generic(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]), &checked, &serror, (int *)0);
+
+                    if (serror == CODEX_SERROR_WRITE) {
+                        DIMINUTO_LOG_NOTICE("%s: WANT WRITE\n", program);
+                    }
 
                     if (state == CODEX_STATE_FINAL) {
                         /* Do nothing. */
@@ -363,7 +373,14 @@ int main(int argc, char ** argv)
                 DIMINUTO_LOG_INFORMATION("%s: NEAREND\n", program);
 
                 do {
-                    state = codex_machine_writer(state, (char *)0, ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length, &checked);
+                    codex_serror_t serror = CODEX_SERROR_NONE;
+
+                    state = codex_machine_writer_generic(state, (char *)0, ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length, &checked, &serror, (int *)0);
+
+                    if (serror == CODEX_SERROR_READ) {
+                        DIMINUTO_LOG_NOTICE("%s: WANT READ\n", program);
+                    }
+
                 } while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
 
                 if (state == CODEX_STATE_FINAL) {
