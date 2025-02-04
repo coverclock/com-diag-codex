@@ -258,8 +258,6 @@ int main(int argc, char ** argv)
 
             }
 
-        } else {
-            /* Do nothing. */
         }
 
         fd = diminuto_mux_ready_read(&mux);
@@ -327,7 +325,11 @@ int main(int argc, char ** argv)
 
             }
 
-        } else if (fd == STDIN_FILENO) {
+            fd = diminuto_mux_ready_read(&mux);
+
+        }
+
+        if (fd == STDIN_FILENO) {
 
             if (states[WRITER] == CODEX_STATE_COMPLETE) {
 
@@ -349,8 +351,6 @@ int main(int argc, char ** argv)
 
             }
 
-        } else {
-            /* Do nothing. */
         }
 
         if (!indication) {
