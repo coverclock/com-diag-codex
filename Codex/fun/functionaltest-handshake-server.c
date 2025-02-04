@@ -20,7 +20,7 @@
 #include "com/diag/diminuto/diminuto_containerof.h"
 #include "com/diag/diminuto/diminuto_ipc6.h"
 #include "com/diag/codex/codex.h"
-#include "unittest-codex.h"
+#include "unittest_codex.h"
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>

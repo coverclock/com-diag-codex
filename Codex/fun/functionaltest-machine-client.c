@@ -21,7 +21,7 @@
 #include "com/diag/diminuto/diminuto_pipe.h"
 #include "com/diag/diminuto/diminuto_timer.h"
 #include "com/diag/codex/codex.h"
-#include "unittest-codex.h"
+#include "unittest_codex.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>

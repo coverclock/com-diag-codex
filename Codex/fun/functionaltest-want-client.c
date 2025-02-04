@@ -21,7 +21,7 @@
 #include "com/diag/diminuto/diminuto_pipe.h"
 #include "com/diag/diminuto/diminuto_timer.h"
 #include "com/diag/codex/codex.h"
-#include "unittest-codex.h"
+#include "unittest_codex.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -42,8 +42,8 @@ static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
 static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
 static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
 static int selfsigned = -1;
-static bool wantread = false;
-static bool wantwrite = false;
+static bool wantread = true;
+static bool wantwrite = true;
 static int opened = 0;
 static int closed = 0;
 
@@ -135,8 +135,8 @@ int main(int argc, char ** argv)
             break;
 
         case 'r':
-            wantread = true;
-            wantwrite = false;
+            wantread = false;
+            wantwrite = true;
             break;
 
         case 's':
@@ -144,8 +144,8 @@ int main(int argc, char ** argv)
             break;
 
         case 'w':
-            wantwrite = true;
-            wantread = false;
+            wantwrite = false;
+            wantread = true;
             break;
 
         case '?':
@@ -239,7 +239,7 @@ int main(int argc, char ** argv)
         ASSERT(rc > 0);
 
         fd = diminuto_mux_ready_write(&mux);
-        if (fd == codex_connection_descriptor(ssl)) {
+        if (wantwrite && (fd == codex_connection_descriptor(ssl))) {
 
             if (states[WRITER] == CODEX_STATE_COMPLETE) {
                 /* Do nothing. */
@@ -252,7 +252,7 @@ int main(int argc, char ** argv)
 
                 if (serror == CODEX_SERROR_READ) {
                     DIMINUTO_LOG_NOTICE("%s: WANT READ 1\n", program);
-                    wantread = false;
+                    wantread = true;
                 }
 
                 if (state == CODEX_STATE_FINAL) {
@@ -271,12 +271,10 @@ int main(int argc, char ** argv)
 
             }
 
-        } else {
-            /* Do nothing. */
         }
 
         fd = diminuto_mux_ready_read(&mux);
-        if (fd == codex_connection_descriptor(ssl)) {
+        if (wantread && (fd == codex_connection_descriptor(ssl))) {
 
             if (states[READER] == CODEX_STATE_COMPLETE) {
                 /* Cannot happen. */
@@ -291,7 +289,7 @@ int main(int argc, char ** argv)
 
                     if (serror == CODEX_SERROR_WRITE) {
                         DIMINUTO_LOG_NOTICE("%s: WANT WRITE\n", program);
-                        wantwrite = false;
+                        wantwrite = true;
                     }
 
                     if (state == CODEX_STATE_FINAL) {
@@ -341,7 +339,11 @@ int main(int argc, char ** argv)
 
             }
 
-        } else if (fd == STDIN_FILENO) {
+            fd = diminuto_mux_ready_read(&mux);
+
+        }
+
+        if (fd == STDIN_FILENO) {
 
             if (states[WRITER] == CODEX_STATE_COMPLETE) {
 
@@ -393,7 +395,7 @@ int main(int argc, char ** argv)
 
                     if (serror == CODEX_SERROR_READ) {
                         DIMINUTO_LOG_NOTICE("%s: WANT READ 2\n", program);
-                        wantread = false;
+                        wantread = true;
                     }
 
                 } while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));

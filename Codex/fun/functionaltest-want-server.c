@@ -18,7 +18,7 @@
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_terminator.h"
 #include "com/diag/codex/codex.h"
-#include "unittest-codex.h"
+#include "unittest_codex.h"
 #include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>

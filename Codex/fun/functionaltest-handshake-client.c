@@ -22,7 +22,7 @@
 #include "com/diag/diminuto/diminuto_pipe.h"
 #include "com/diag/diminuto/diminuto_ipc6.h"
 #include "com/diag/codex/codex.h"
-#include "unittest-codex.h"
+#include "unittest_codex.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>

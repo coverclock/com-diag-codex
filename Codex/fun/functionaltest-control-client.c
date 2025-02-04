@@ -21,7 +21,7 @@
 #include "com/diag/diminuto/diminuto_fd.h"
 #include "com/diag/diminuto/diminuto_ipc4.h"
 #include "com/diag/diminuto/diminuto_ipc6.h"
-#include "unittest-codex.h"
+#include "unittest_codex.h"
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>

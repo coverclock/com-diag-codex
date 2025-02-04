@@ -18,7 +18,7 @@
 #include "com/diag/diminuto/diminuto_delay.h"
 #include "com/diag/diminuto/diminuto_ipc4.h"
 #include "com/diag/diminuto/diminuto_ipc6.h"
-#include "unittest-codex.h"
+#include "unittest_codex.h"
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
