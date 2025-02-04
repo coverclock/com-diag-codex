@@ -42,6 +42,8 @@ static const char * pathcrt = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
 static const char * pathkey = COM_DIAG_CODEX_OUT_CRT_PATH "/" "client.pem";
 static const char * pathdhf = COM_DIAG_CODEX_OUT_CRT_PATH "/" "dh.pem";
 static int selfsigned = -1;
+static bool wantread = false;
+static bool wantwrite = false;
 static int opened = 0;
 static int closed = 0;
 
@@ -84,7 +86,7 @@ int main(int argc, char ** argv)
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "B:C:D:K:L:P:R:Sf:e:p:s?")) >= 0) {
+    while ((opt = getopt(argc, argv, "B:C:D:K:L:P:R:Sf:e:p:rsw?")) >= 0) {
 
         switch (opt) {
 
@@ -132,12 +134,22 @@ int main(int argc, char ** argv)
             period = strtol(optarg, &endptr, 0);
             break;
 
+        case 'r':
+            wantread = true;
+            wantwrite = false;
+            break;
+
         case 's':
             selfsigned = 1;
             break;
 
+        case 'w':
+            wantwrite = true;
+            wantread = false;
+            break;
+
         case '?':
-            fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -e EXPECTED ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -S | -s ]\n", program);
+            fprintf(stderr, "usage: %s [ -B BUFSIZE ] [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -e EXPECTED ] [ -e EXPECTED ] [ -f FAREND ] [ -p SECONDS ] [ -r ] [ -S | -s ] [ -w ]\n", program);
             return 1;
             break;
 
@@ -145,7 +157,7 @@ int main(int argc, char ** argv)
 
     }
 
-    DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" f=\"%s\" e=\"%s\" p=%llu s=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcrl == (const char *)0) ? "" : pathcrl, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, farend, (expected == (const char *)0) ? "" : expected, (diminuto_llu_t)period, selfsigned);
+    DIMINUTO_LOG_INFORMATION("%s: BEGIN B=%zu C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" f=\"%s\" e=\"%s\" p=%llu r=%d s=%d w=%d\n", program, bufsize, pathcrt, pathdhf, pathkey, (pathcrl == (const char *)0) ? "" : pathcrl, (pathcap == (const char *)0) ? "" : pathcap, (pathcaf == (const char *)0) ? "" : pathcaf, farend, (expected == (const char *)0) ? "" : expected, (diminuto_llu_t)period, wantread, selfsigned, wantwrite);
 
     rc = diminuto_hangup_install(!0);
     ASSERT(rc == 0);
@@ -240,6 +252,7 @@ int main(int argc, char ** argv)
 
                 if (serror == CODEX_SERROR_READ) {
                     DIMINUTO_LOG_NOTICE("%s: WANT READ 1\n", program);
+                    wantread = false;
                 }
 
                 if (state == CODEX_STATE_FINAL) {
@@ -278,6 +291,7 @@ int main(int argc, char ** argv)
 
                     if (serror == CODEX_SERROR_WRITE) {
                         DIMINUTO_LOG_NOTICE("%s: WANT WRITE\n", program);
+                        wantwrite = false;
                     }
 
                     if (state == CODEX_STATE_FINAL) {
@@ -379,6 +393,7 @@ int main(int argc, char ** argv)
 
                     if (serror == CODEX_SERROR_READ) {
                         DIMINUTO_LOG_NOTICE("%s: WANT READ 2\n", program);
+                        wantread = false;
                     }
 
                 } while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
