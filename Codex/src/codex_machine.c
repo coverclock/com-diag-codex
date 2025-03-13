@@ -69,6 +69,13 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
         DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: begin ssl=%p state='%c' expected=%p bytes=%zd header=0x%8.8x buffer=%p size=%zu here=%p length=%zu checked=%d serror=%p mask=%p repeat=%d\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, *checked, serror, mask, repeat);
     
         switch (state) {
+
+        case CODEX_STATE_INIT:
+
+            *header = 0;
+            *here = (uint8_t *)0;
+            *length = 0;
+            /* FALL THRU */
     
         case CODEX_STATE_START:
 
@@ -284,6 +291,13 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
         DIMINUTO_LOG_DEBUG("codex_machine_writer_generic: begin ssl=%p state='%c' expected=%p bytes=%zd header=0x%8.8x buffer=%p size=%zu here=%p length=%zu checked=%d serror=%p\n", ssl, state, (expected == (const char *)0) ? "" : expected, bytes, *header, buffer, size, *here, *length, *checked, serror);
     
         switch (state) {
+
+        case CODEX_STATE_INIT:
+
+            *header = 0;
+            *here = (uint8_t *)0;
+            *length = 0;
+            /* FALL THRU */
     
         case CODEX_STATE_START:
     

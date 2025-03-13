@@ -90,7 +90,7 @@ static client_t * create(void)
 
         client->indication = CODEX_INDICATION_NONE;
 
-        client->source.state = CODEX_STATE_START;
+        client->source.state = CODEX_STATE_INIT;
         client->source.buffer = malloc(bufsize);
         ASSERT(client->source.buffer != (void *)0);
 

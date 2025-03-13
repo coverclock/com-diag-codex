@@ -149,6 +149,9 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
 
         if (((writefd == sslfd) && !needread) || ((readfd == sslfd) && needwrite)) {
             switch (state[WRITER]) {
+            case CODEX_STATE_INIT:
+                DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] init\n", program, name, sslfd, header[WRITER]);
+                /* Fall through. */
             case CODEX_STATE_START:
             case CODEX_STATE_RESTART:
                 DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%d] start\n", program, name, sslfd, header[WRITER]);
@@ -230,6 +233,9 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
         if (((readfd == sslfd) && !needwrite) || ((writefd == sslfd) && needread) || pendingssl) {
             do {
                 switch (state[READER]) {
+                case CODEX_STATE_INIT:
+                    DIMINUTO_LOG_DEBUG("%s: %s reader ssl (%d) [%d] init\n", program, name, sslfd, header[READER]);
+                    /* Fall through. */
                 case CODEX_STATE_START:
                 case CODEX_STATE_RESTART:
                     DIMINUTO_LOG_DEBUG("%s: %s reader ssl (%d) [%d] start\n", program, name, sslfd, header[READER]);

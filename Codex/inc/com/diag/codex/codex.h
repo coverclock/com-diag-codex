@@ -215,6 +215,7 @@ typedef int32_t codex_header_t;
  * do-nothing state that can be used to quiesce the state machine.
  */
 typedef enum CodexState {
+    CODEX_STATE_INIT        = 'N',  /* Initialize working variables first. */
     CODEX_STATE_START       = 'S',  /* Verify identity and read header. */
     CODEX_STATE_RESTART     = 'R',  /* Read header. */
     CODEX_STATE_HEADER      = 'H',  /* Continue reading header. */

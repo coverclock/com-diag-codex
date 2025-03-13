@@ -49,7 +49,7 @@ int main(int argc, char ** argv)
 {
     static const int READER = 0;
     static const int WRITER = 1;
-    codex_state_t states[2] = { CODEX_STATE_START, CODEX_STATE_COMPLETE };
+    codex_state_t states[2] = { CODEX_STATE_INIT, CODEX_STATE_COMPLETE };
     void * buffers[2] = { (void *)0, (void *)0 };
     codex_header_t headers[2] = { 0, 0 };
     uint8_t * heres[2] = { (uint8_t *)0, (uint8_t *)0 };
