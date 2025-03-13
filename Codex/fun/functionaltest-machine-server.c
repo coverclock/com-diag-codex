@@ -196,6 +196,7 @@ static bool indicate(client_t * client)
 
             if (serror == CODEX_SERROR_READ) {
                 DIMINUTO_LOG_NOTICE("%s: WANT READ 1\n", program);
+                diminuto_yield();
             }
 
         } while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
@@ -395,6 +396,7 @@ int main(int argc, char ** argv)
 
                 if (serror == CODEX_SERROR_WRITE) {
                     DIMINUTO_LOG_NOTICE("%s: WANT WRITE\n", program);
+                    diminuto_yield();
                 }
 
                 if (state == CODEX_STATE_FINAL) {
@@ -468,6 +470,7 @@ int main(int argc, char ** argv)
 
             if (serror == CODEX_SERROR_READ) {
                 DIMINUTO_LOG_NOTICE("%s: WANT READ 2\n", program);
+                diminuto_yield();
             }
 
             if (state == CODEX_STATE_FINAL) {

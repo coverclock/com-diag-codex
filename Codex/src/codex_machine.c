@@ -71,14 +71,15 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
         switch (state) {
     
         case CODEX_STATE_START:
-    
+
             /*
-             * Authenticate the farend by traversing its certificate and verifying
-             * it via its common name (CN) or its fully qualified domain name
-             * (FQDN). The server certificate is available immediately upon the
-             * client's initial connection. This also means that there may not be
-             * any more data in the pipeline to be read and a subsequent read will
-             * block, indefinitely in the case that the far end isn't sending.
+             * Authenticate the farend by traversing its certificate and
+             * verifying it via its common name (CN) or its fully qualified
+             * domain name (FQDN). The server certificate is available
+             * immediately upon the client's initial connection. This also
+             * means that there may not be any more data in the pipeline to be
+             * read and a subsequent read will block, indefinitely in the case
+             * that the far end isn't sending.
              */
     
             if (codex_connection_is_server(ssl)) {
@@ -103,7 +104,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                 }
             }
             break;
-    
+
         case CODEX_STATE_RESTART:
     
             *header = 0;
@@ -141,9 +142,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                 } else if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    /* Don't flood the log. */
-                    DIMINUTO_LOG_DEBUG("codex_machine_reader: need write ssl=%p\n", ssl);
-                    diminuto_yield();
+                    DIMINUTO_LOG_INFORMATION("codex_machine_reader: need write ssl=%p\n", ssl);
                 } else {
                     /* Do nothing. */
                 }
@@ -230,9 +229,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                 } else if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    /* Don't flood the log. */
-                    DIMINUTO_LOG_DEBUG("codex_machine_reader: need write ssl=%p\n", ssl);
-                    diminuto_yield();
+                    DIMINUTO_LOG_INFORMATION("codex_machine_reader: need write ssl=%p\n", ssl);
                 } else {
                     /* Do nothing. */
                 }
@@ -291,10 +288,10 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
         case CODEX_STATE_START:
     
             /*
-             * Authenticate the server by traversing its certificate and verifying
-             * it via its common name (CN) or its fully qualified domain name
-             * (FQDN). The server certificate is available immediately upon the
-             * client's initial connection.
+             * Authenticate the server by traversing its certificate and
+             * verifying it via its common name (CN) or its fully qualified
+             * domain name (FQDN). The server certificate is available
+             * immediately upon the client's initial connection.
              */
     
             if (!codex_connection_is_server(ssl)) {
@@ -355,9 +352,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                 } else if (error != CODEX_SERROR_READ) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    /* Don't flood the log. */
-                    DIMINUTO_LOG_DEBUG("codex_machine_writer: need read ssl=%p\n", ssl);
-                    diminuto_yield();
+                    DIMINUTO_LOG_INFORMATION("codex_machine_writer: need read ssl=%p\n", ssl);
                 } else {
                     /* Do nothing. */
                 }
@@ -401,9 +396,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                 } else if (error != CODEX_SERROR_READ) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    /* Don't flood the log. */
-                    DIMINUTO_LOG_DEBUG("codex_machine_writer: need read ssl=%p\n", ssl);
-                    diminuto_yield();
+                    DIMINUTO_LOG_INFORMATION("codex_machine_writer: need read ssl=%p\n", ssl);
                 } else {
                     /* Do nothing. */
                 }
