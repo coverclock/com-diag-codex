@@ -206,16 +206,17 @@ typedef int32_t codex_header_t;
 
 /**
  * This defines the states the reader and writer state machines may assume.
- * Initial states for a new connection may be START, but since the input and
- * output direction of a single connection have separate states, they may be
- * initialized to different values. The state for a connection that has a
- * payload available for the application is COMPLETE, for a connection that
- * has closed is FINAL, and for a connection whose packet has been consumed
- * and is ready for another is set by the application to RESTART. IDLE is a
- * do-nothing state that can be used to quiesce the state machine.
+ * Initial states for a new connection may be INIT or START, but since the
+ * input and output direction of a single connection have separate states,
+ * they may be initialized to different values. The state for a connection
+ * that has a payload available for the application is COMPLETE, for a
+ * connection that has closed is FINAL, and for a connection whose packet
+ * has been consumed and is ready for another is set by the application to
+ * RESTART. IDLE is a do-nothing state that can be used to quiesce the state
+ * machine.
  */
 typedef enum CodexState {
-    CODEX_STATE_INIT        = 'N',  /* Initialize working variables first. */
+    CODEX_STATE_INIT        = 'N',  /* Null out working variables first. */
     CODEX_STATE_START       = 'S',  /* Verify identity and read header. */
     CODEX_STATE_RESTART     = 'R',  /* Read header. */
     CODEX_STATE_HEADER      = 'H',  /* Continue reading header. */
