@@ -75,6 +75,8 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
             *header = 0;
             *here = (uint8_t *)0;
             *length = 0;
+            state = CODEX_STATE_START;
+            repeat = false;
             /* FALL THRU */
     
         case CODEX_STATE_START:
@@ -145,11 +147,11 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                 if (error == CODEX_SERROR_NONE) {
                     /* Do nothing. */
                 } else if (error == CODEX_SERROR_READ) {
-                    /* Do nothing. */ 
+                    /* Do nothing: already reading. */ 
                 } else if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_INFORMATION("codex_machine_reader: need write ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_reader: WANT write ssl=%p\n", ssl);
                 } else {
                     /* Do nothing. */
                 }
@@ -170,8 +172,6 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
         
                 if (!codex_connection_is_server(ssl)) {
                     /* Do nothing. */
-                } else if (bytes <= 0) {
-                    /* Do nothing. */
                 } else if (*checked) {
                     /* Do nothing. */
                 } else {
@@ -187,6 +187,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                         DIMINUTO_LOG_INFORMATION("codex_machine_reader_generic: verified farend=client ssl=%p mask=0x%x\n", ssl, verification);
                     }
                 }
+
                 if (state != CODEX_STATE_FINAL) { 
                     *here += bytes;
                     *length -= bytes;
@@ -232,11 +233,11 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                 if (error == CODEX_SERROR_NONE) {
                     /* Do nothing. */
                 } else if (error == CODEX_SERROR_READ) {
-                    /* Do nothing. */
+                    /* Do nothing: already reading. */
                 } else if (error != CODEX_SERROR_WRITE) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_INFORMATION("codex_machine_reader: need write ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_reader: WANT write ssl=%p\n", ssl);
                 } else {
                     /* Do nothing. */
                 }
@@ -297,6 +298,8 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
             *header = 0;
             *here = (uint8_t *)0;
             *length = 0;
+            state = CODEX_STATE_START;
+            repeat = false;
             /* FALL THRU */
     
         case CODEX_STATE_START:
@@ -362,11 +365,11 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                 if (error == CODEX_SERROR_NONE) {
                     /* Do nothing. */
                 } else if (error == CODEX_SERROR_WRITE) {
-                    /* Do nothing. */
+                    /* Do nothing: already writing. */
                 } else if (error != CODEX_SERROR_READ) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_INFORMATION("codex_machine_writer: need read ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_writer: WANT read ssl=%p\n", ssl);
                 } else {
                     /* Do nothing. */
                 }
@@ -406,11 +409,11 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                 if (error == CODEX_SERROR_NONE) {
                     /* Do nothing. */
                 } else if (error == CODEX_SERROR_WRITE) {
-                    /* Do nothing. */
+                    /* Do nothing: already writing. */
                 } else if (error != CODEX_SERROR_READ) {
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
-                    DIMINUTO_LOG_INFORMATION("codex_machine_writer: need read ssl=%p\n", ssl);
+                    DIMINUTO_LOG_NOTICE("codex_machine_writer: WANT read ssl=%p\n", ssl);
                 } else {
                     /* Do nothing. */
                 }

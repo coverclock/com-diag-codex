@@ -239,7 +239,10 @@ int main(int argc, char ** argv)
                 state = codex_machine_writer_generic(states[WRITER], expected, ssl, &(headers[WRITER]), buffers[WRITER], headers[WRITER], &(heres[WRITER]), &(lengths[WRITER]), &checked, &serror, (int *)0);
 
                 if (serror == CODEX_SERROR_READ) {
-                    DIMINUTO_LOG_NOTICE("%s: WANT READ 1\n", program);
+                    /*
+                     * SSL WANTS a read.
+                     */
+                    DIMINUTO_LOG_NOTICE("%s: WRITE WANTS READ\n", program);
                     diminuto_yield();
                 }
 
@@ -276,7 +279,10 @@ int main(int argc, char ** argv)
                     state = codex_machine_reader_generic(states[READER], expected, ssl, &(headers[READER]), buffers[READER], bufsize, &(heres[READER]), &(lengths[READER]), &checked, &serror, (int *)0);
 
                     if (serror == CODEX_SERROR_WRITE) {
-                        DIMINUTO_LOG_NOTICE("%s: WANT WRITE\n", program);
+                        /*
+                         * SSL WANTS a write.
+                         */
+                        DIMINUTO_LOG_NOTICE("%s: READ WANTS WRITE\n", program);
                         diminuto_yield();
                     }
 
@@ -304,7 +310,7 @@ int main(int argc, char ** argv)
                             break;
                         }
 
-                        state = indication? CODEX_STATE_IDLE : CODEX_STATE_RESTART;
+                        state = indication ? CODEX_STATE_IDLE : CODEX_STATE_RESTART;
 
                         if (pending)  {
                             states[WRITER] = CODEX_STATE_START;
@@ -380,7 +386,10 @@ int main(int argc, char ** argv)
                     state = codex_machine_writer_generic(state, (char *)0, ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length, &checked, &serror, (int *)0);
 
                     if (serror == CODEX_SERROR_READ) {
-                        DIMINUTO_LOG_NOTICE("%s: WANT READ 2\n", program);
+                        /*
+                         * SSL WANTS a read.
+                         */
+                        DIMINUTO_LOG_NOTICE("%s: WRITE WANTS READ\n", program);
                         diminuto_yield();
                     }
 
@@ -389,8 +398,6 @@ int main(int argc, char ** argv)
                 if (state == CODEX_STATE_FINAL) {
                     break;
                 }
-
-                /* TODO */
 
                 states[READER] = CODEX_STATE_RESTART;
                 states[WRITER] = CODEX_STATE_START;

@@ -200,7 +200,7 @@ typedef enum CodexVerify {
  * application with nothing in the payload buffer and the operation will be
  * considered to be COMPLETE. Zero length payload blocks are silently ignored
  * by the reader state machine. This value is passed to the peer in network
- * byte order.
+ * byte order, and provided to the caller in host byte order.
  */
 typedef int32_t codex_header_t;
 
@@ -229,9 +229,9 @@ typedef enum CodexState {
 /**
  * These are the the indications that may be carried in a packet header that
  * the handshake unit tests use to quiesce and then resume the data stream when
- * doing a handshake for renegotiation. Applications using the Codex library
- * don't have to use these; their use isn't baked into the library in any way.
- * But they're useful enough to include here as a common convention.
+ * doing a handshake for renegotiation. Although the use of these specific
+ * indication values aren't banked into the library, they are used by the
+ * handshake and machine functional tests.
  */
 typedef enum CodexIndication {
     CODEX_INDICATION_PENDING    = -5,   /* NE told FE to prepare for action. */

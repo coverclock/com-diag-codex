@@ -19,6 +19,9 @@ Licensed under the terms in LICENSE.txt (FSF LGPL 2.1).
 
 # Abstract
 
+**Even though the included unit and functional test suites may all
+pass, this repository is still largely a work in progress.**
+
 Codex provides a slightly simpler higher-level C-based application
 programming interface to the Open Secure Socket Layer (OpenSSL)
 API. Mostly it's my excuse to learn how to use the OpenSSL C API for

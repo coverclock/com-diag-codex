@@ -195,7 +195,10 @@ static bool indicate(client_t * client)
             state = codex_machine_writer_generic(state, (char *)0, client->ssl, &header, (void *)0, CODEX_INDICATION_FAREND, &here, &length, &checked, &serror, (int *)0);
 
             if (serror == CODEX_SERROR_READ) {
-                DIMINUTO_LOG_NOTICE("%s: WANT READ 1\n", program);
+                /*
+                 * SSL WANTS a read.
+                 */
+                DIMINUTO_LOG_NOTICE("%s: WRITE WANTS READ\n", program);
                 diminuto_yield();
             }
 
@@ -395,7 +398,10 @@ int main(int argc, char ** argv)
                 state = codex_machine_reader_generic(client->source.state, expected, client->ssl, &(client->source.header), client->source.buffer, client->size, &(client->source.here), &(client->source.length), &(client->checked), &serror, (int *)0);
 
                 if (serror == CODEX_SERROR_WRITE) {
-                    DIMINUTO_LOG_NOTICE("%s: WANT WRITE\n", program);
+                    /*
+                     * SSL WANTS a write.
+                     */
+                    DIMINUTO_LOG_NOTICE("%s: READ WANTS WRITE\n", program);
                     diminuto_yield();
                 }
 
@@ -469,7 +475,10 @@ int main(int argc, char ** argv)
             state = codex_machine_writer_generic(client->sink.state, expected, client->ssl, &(client->sink.header), client->sink.buffer, client->sink.header, &(client->sink.here), &(client->sink.length), &(client->checked), &serror, (int *)0);
 
             if (serror == CODEX_SERROR_READ) {
-                DIMINUTO_LOG_NOTICE("%s: WANT READ 2\n", program);
+                /*
+                 * SSL WANTS a read.
+                 */
+                DIMINUTO_LOG_NOTICE("%s: WRITE WANTS READ\n", program);
                 diminuto_yield();
             }
 
