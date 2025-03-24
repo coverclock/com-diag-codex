@@ -405,7 +405,8 @@ codex_context_t * codex_context_free(codex_context_t * ctx)
 
 /**
  * Tries to mark the underlying socket to reuse its port number
- * instead of waiting (thirty seconds maybe) for it to recucle.
+ * instead of waiting (thirty seconds maybe) for it to recycle.
+ * (Nothing I'm trying to avoid EADDRINUSE is working.)
  * @param bio points to the Basic I/O object that holds the socket.
  */
 static void codex_connection_reuse(BIO * bio)
