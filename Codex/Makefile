@@ -1000,7 +1000,17 @@ install-include:
 
 ########## Sanity Tests
 
-.PHONY: sanity-test failures-test functional-test extra-test tests
+.PHONY: pretest sanity-test failures-test functional-test extra-test tests
+
+# Occasionally I'll control-C out of a "make tests" and it will leave some
+# functional test processes stuck. If I don't notice this, it causes
+# subsequent functional tests to fail because the old tests are holding
+# the port on the localhost. USE WITH CAUTION in case you have other running
+# processes that match the string 'functionaltest-'. The sleep is to give
+# the kernel time to recycle the port numbers.
+
+pretest:
+	pkill -e -9 functionaltest- && sleep 30 || true
 
 # Once I moved to OpenSSL 3.0.2 I had to put in some delay (e.g.
 # a "sleep 60") in between each test command below to allow the

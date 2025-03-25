@@ -152,6 +152,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
                     DIMINUTO_LOG_NOTICE("codex_machine_reader: WANT write ssl=%p\n", ssl);
+                    diminuto_yield();
                 } else {
                     /* Do nothing. */
                 }
@@ -238,6 +239,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
                     DIMINUTO_LOG_NOTICE("codex_machine_reader: WANT write ssl=%p\n", ssl);
+                    diminuto_yield();
                 } else {
                     /* Do nothing. */
                 }
@@ -370,6 +372,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
                     DIMINUTO_LOG_NOTICE("codex_machine_writer: WANT read ssl=%p\n", ssl);
+                    diminuto_yield();
                 } else {
                     /* Do nothing. */
                 }
@@ -414,6 +417,7 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
                     state = CODEX_STATE_FINAL;
                 } else if (serror == (codex_serror_t *)0) {
                     DIMINUTO_LOG_NOTICE("codex_machine_writer: WANT read ssl=%p\n", ssl);
+                    diminuto_yield();
                 } else {
                     /* Do nothing. */
                 }

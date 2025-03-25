@@ -199,7 +199,6 @@ static bool indicate(client_t * client)
                  * SSL WANTS a read.
                  */
                 DIMINUTO_LOG_NOTICE("%s: WRITE WANTS READ\n", program);
-                diminuto_yield();
             }
 
         } while ((state != CODEX_STATE_FINAL) && (state != CODEX_STATE_COMPLETE));
@@ -402,7 +401,6 @@ int main(int argc, char ** argv)
                      * SSL WANTS a write.
                      */
                     DIMINUTO_LOG_NOTICE("%s: READ WANTS WRITE\n", program);
-                    diminuto_yield();
                 }
 
                 if (state == CODEX_STATE_FINAL) {
@@ -479,7 +477,6 @@ int main(int argc, char ** argv)
                  * SSL WANTS a read.
                  */
                 DIMINUTO_LOG_NOTICE("%s: WRITE WANTS READ\n", program);
-                diminuto_yield();
             }
 
             if (state == CODEX_STATE_FINAL) {
