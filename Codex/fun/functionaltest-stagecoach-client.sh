@@ -1,11 +1,12 @@
 #!/bin/bash -x
-# Copyright 2023 Digital Aggregates Corporation, Colorado, USA<BR>
+# Copyright 2023-2025 Digital Aggregates Corporation, Colorado, USA<BR>
 # Licensed under the terms in LICENSE.txt
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
 
-ROOT=${1:-"out/host/crt/stagecoach"}
+ROOT=$(readlink -e $(dirname ${0}))
+CERT=${1:-"${ROOT}/../crt"}
 
-. $(readlink -e $(dirname ${0}))/functionaltest-stagecoach
+. ${ROOT}/functionaltest-stagecoach
 
-stagecoach -C ${ROOT}/clientcert.pem -K ${ROOT}/clientkey.pem -P ${ROOT}/.. -f ${STAGECOACHFAREND}:${STAGECOACHSSL} -n ${STAGECOACHNEAREND}:${STAGECOACHCLIENT} -c
+stagecoach -C ${CERT}/stagecoach-clientcert.pem -K ${CERT}/stagecoach-clientkey.pem -P ${CERT} -f ${STAGECOACHFAREND}:${STAGECOACHSSL} -n ${STAGECOACHNEAREND}:${STAGECOACHCLIENT} -c

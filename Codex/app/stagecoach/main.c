@@ -16,6 +16,7 @@
  * to UDP port, but lacks any authentication or encryption capability.
  * In this manner, this utility serves as a proxy for the server on
  * the client end, and as a proxy for the client on the server end.
+ * Each end of the tunnel is single buffered.
  *
  * NOTES
  *

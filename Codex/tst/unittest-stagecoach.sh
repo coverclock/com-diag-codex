@@ -4,7 +4,35 @@
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
 
+# stagcoach is a tool built on top of the Codex and Diminuto libraries,
+# which is used support of gpstool that is built on top of the Hazer and
+# Diminuto libraries. gpstool can transmit a variety of information -
+# NMEA sentences, RTK updates, or CSV PNT information, via UDP datagrams to
+# a remote system, which may also be running gpstool. This facility is used,
+# for example, with Differential GNSS systems, remote tracking applications,
+# etc. stagecoach is a go-between tool that receives UDP datagrams, tunnels
+# them through an SSL tunnel, then forwards them via UDP to the receiver.
+#
+# Why not just use SSL to begin with? Because communication channels that
+# use TCP, like SSL, or even those that use third-party mechanisms like
+# Google's QUIC (which basically implements all of TCP's mechanisms in
+# user space), mess up the real-time nature of the UDP datagrams and make
+# the NMEA, RTK, PNT etc. data a lot less useful.
+#
+# A stagecoach process in server mode acts as a proxy on the nearend for the
+# farend server for the producer, and another as the proxy on the farend for
+# the nearend client for the consumer.
+#
+#                     proxy            proxy
+# PRODUCER <---UDP--> SERVER <==SSL==> CLIENT <---UDP--> CONSUMER
+# nearend             nearend          farend            farend
+#  |                   |                |                 |
+# gpstool             stagecoach       stagecoach        gpstool
+# rover                                                  base
+
 ################################################################################
+
+ROOT=$(readlink -e $(dirname ${0}))
 
 PROGRAM=$(basename ${0})
 BLOCKSIZE=${1:-"4096"}
@@ -12,11 +40,11 @@ BLOCKS=${2:-"4096"}
 TUNNEL=${3:-"49123"}
 NEAREND=${4:-"49124"}
 FAREND=${5:-"49125"}
-ROOT=$(readlink -e $(dirname ${0}))
 CERT=${6:-${ROOT}/../crt}
 
 XC=0
 
+# This password is only used for testing.
 export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
 
 ################################################################################
@@ -53,6 +81,14 @@ PIDCLIENT=$!
 sleep 2
 
 ps -ef ${PIDCLIENT}
+
+socat -u UDP4-RECV:? - > ${FILEA}
+
+socat -u UDP4-RECV:? - > ${FILEB}
+
+cat ${FILE1} | shaperbuffered -p 256 -s 256 -m 256 | socat -u - UDP4-DATAGRAM:?
+
+cat ${FILE2} | shaperbuffered -p 256 -s 256 -m 256 | socat -u - UDP4-DATAGRAM:?
 
 ################################################################################
 
