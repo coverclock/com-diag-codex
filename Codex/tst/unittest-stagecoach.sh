@@ -27,12 +27,17 @@
 # runs in client (-c) mode, while the proxy client stagecoach runs in server
 # (-s) mode.
 #
-# nearend            nearend         farend           farend
-#                    proxy           proxy
-# PRODUCER ---UDP--> SERVER ==SSL==> CLIENT ---UDP--> CONSUMER
-#  |                  |               |                |
-# gpstool            stagecoach -c   stagecoach -s    rtktool
-# rover                                                 router
+# Nearend                              Farend
+# __________________________          __________________________
+#                     proxy            proxy
+# PRODUCER <---UDP--> SERVER <==SSL==> CLIENT <---UDP--> CONSUMER
+#  |                   |                |                 |
+# gpstool             stagecoach       stagecoach        rtktool
+# rover               -c               -s                router
+#
+# NOTES
+#
+# shaperbuffered and internettool are Diminuto bin utilities.
 #
 # REFERENCES
 #
@@ -56,43 +61,42 @@ XC=0
 # This password is only used for testing.
 export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
 
-SERVERNEAREND=0.0.0.0:${TUNNEL}
-SERVERFAREND=localhost:${FAREND}
-
-CLIENTNEAREND=0.0.0.0:${NEAREND}
-CLIENTFAREND=localhost:${TUNNEL}
-
 ################################################################################
 
 FILEPRODUCERSOURCE=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILEPRODUCERSOURCE-XXXXXXXXXX.dat)
+FILECONSUMERSOURCE=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILECONSUMERSOURCE-XXXXXXXXXX.dat)
+FILEPRODUCERSINK=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILEPRODUCERSINK-XXXXXXXXXX.dat)
+FILECONSUMERSINK=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILECONSUMERSINK-XXXXXXXXXX.dat)
 
 dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock of=${FILEPRODUCERSOURCE}
 
-FILECONSUMERSINK=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILECONSUMERSINK-XXXXXXXXXX.dat)
+dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock of=${FILECONSUMERSOURCE}
 
-FILES="${FILEPRODUCERSOURCE} ${FILECONSUMERSINK}"
+FILES="${FILEPRODUCERSOURCE} ${FILEPRODUCERSINK} ${FILECONSUMERSOURCE} ${FILECONSUMERSINK}"
 
 ls -l ${FILES}
 
 ################################################################################
 
-stagecoach -C ${CERT}/stagecoach-servercert.pem -K ${CERT}/stagecoach-serverkey.pem -P ${CERT} -f ${SERVERFAREND} -n ${SERVERNEAREND} -s &
+stagecoach -C ${CERT}/stagecoach-servercert.pem -K ${CERT}/stagecoach-serverkey.pem -P ${CERT} -f 0.0.0.0:${TUNNEL} -n ${FAREND} -s &
 PIDSERVER=$!
 sleep 5
 
-stagecoach -C ${CERT}/stagecoach-clientcert.pem -K ${CERT}/stagecoach-clientkey.pem -P ${CERT} -f ${CLIENTFAREND} -n ${CLIENTNEAREND} -c &
+stagecoach -C ${CERT}/stagecoach-clientcert.pem -K ${CERT}/stagecoach-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} -n ${NEAREND} -c &
 PIDCLIENT=$!
 sleep 5
 
-socat -u UDP4-RECV:${FAREND} - > ${FILECONSUMERSINK} &
-PIDCONSUMERSINK=$!
+cat ${FILEPRODUCERSOURCE} | shaperbuffered -p 256 -s 256 -m 256 | internettool -4 -u -E ${SERVERFAREND} > ${FILEPRODUCERSINK} &
+PIDPRODUCER=$!
 
-cat ${FILEPRODUCERSOURCE} | shaperbuffered -p 256 -s 256 -m 256 | socat -u - UDP4-DATAGRAM:${SERVERFAREND} &
-PIDPRODUCERSOURCE=$!
+cat ${FILECONSUMERSOURCE} | shaperbuffered -p 256 -s 256 -m 256 | internettool -4 -u -E ${SERVERFAREND} > ${FILECONSUMERSINK} &
+PIDCONSUMER=$!
 
-PIDS="${PIDCLIENT} ${PIDSERVER} ${PIDCONSUMERSINK} ${PIDPRODUCERSOURCE}"
+PIDS="${PIDCLIENT} ${PIDSERVER} ${PIDCONSUMER} ${PIDPRODUCER}"
 
 ps -ef ${PIDS}
+
+################################################################################
 
 trap "kill -9 ${PIDS} 2> /dev/null; rm -f ${FILES}" HUP INT TERM
 
