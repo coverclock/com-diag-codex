@@ -24,7 +24,7 @@ SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	11# API changes that may require that applications be modified.
 MINOR				:=	0# Only functionality or features added with no legacy API changes.
-BUILD				:=	3# Only bugs fixed with no API changes or new functionality.
+BUILD				:=	4# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host".
 
@@ -1050,6 +1050,7 @@ functional-test:
 	echo "TEST FUNCTIONAL" 1>&2
 	unittest-core
 	unittest-machine
+	unittest-stagecoach
 
 # The control feature runs a unit test with the same
 # programming model as the SSL unit tests but without

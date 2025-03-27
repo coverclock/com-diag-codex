@@ -4,6 +4,10 @@
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
 #
+# This test simulates using the stagecoach utility to tunnel via SSL
+# PNT-related datagrams between a GNSS application in the field and a server
+# that expect to communiate via UDP.
+#
 # stagcoach is a tool built on top of the Codex and Diminuto libraries,
 # which is used support of gpstool that is built on top of the Hazer and
 # Diminuto libraries. gpstool can transmit a variety of information -
@@ -20,7 +24,8 @@
 # user space on top of UDP), mess up the real-time nature of the UDP datagrams
 # and make the NMEA, RTK, PNT etc. data a lot less accurate. So we avoid using
 # TCP or TCP-like chanels when we can, and use them when we must (like when
-# secrecy and strong authentication is really necessary).
+# secrecy and strong authentication is really necessary). [See C. Overclock
+# 2017 below.]
 #
 # A stagecoach process in server mode acts as a proxy on the nearend for the
 # farend server for the producer, and another as the proxy on the farend for
@@ -28,7 +33,8 @@
 #
 # NOTES
 #
-# shaper and internettool are Diminuto bin utilities.
+# shaper, internettool, dump, and probably anything else that looks mysterious
+# are Diminuto bin utilities.
 #
 # REFERENCES
 #
@@ -119,8 +125,7 @@ ps -f ${PIDS}
 
 echo "${PROGRAM}: EXECUTE" 1>&2
 
-#trap "ps -f ${PIDS}; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null; rm -f ${FILES} 2> /dev/null" HUP INT TERM
-trap "ps -f ${PIDS}; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null" HUP INT TERM
+trap "ps -f ${PIDS} 2> /dev/null; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null; rm -f ${FILES} 2> /dev/null" HUP INT TERM
 
 wait ${PIDPRODUCER}
 
@@ -136,11 +141,17 @@ kill ${PIDS} 2> /dev/null
 
 echo "${PROGRAM}: RESULTS" 1>&2
 
-ls -l ${FILES}
+ls -l ${FILESOURCE}
+
+dump ${FILESOURCE} | head
+
+ls -l ${FILESOURCE}
+
+dump ${FILESINK} | head
 
 diff ${FILESOURCE} ${FILESINK} || XC=$((${XC} + 1))
 
-#rm -f ${FILESOURCE} ${FILESINK}
+rm -f ${FILES}
 
 ################################################################################
 # END
