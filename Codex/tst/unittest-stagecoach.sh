@@ -14,12 +14,13 @@
 # tool that receives UDP datagrams, tunnels them through an SSL tunnel, then
 # forwards them via UDP to the receiver.
 #
-# Why not just use SSL to begin with? Because communication channels that
-# use TCP, like SSL, or even those that use third-party mechanisms like
-# Google's QUIC (which basically implements all of TCP's mechanisms in
-# user space), mess up the real-time nature of the UDP datagrams and make
-# the NMEA, RTK, PNT etc. data a lot less useful. So we avoid using TCP
-# or TCP-like chanels when we can, and use them when we must.
+# Why not just use SSL to begin with? Because stream-based communication
+# channels like TCP (which is what SSL uses), or even third-party protocols
+# like Google's QUIC (which basically implements all of TCP's mechanisms in
+# user space on top of UDP), mess up the real-time nature of the UDP datagrams
+# and make the NMEA, RTK, PNT etc. data a lot less accurate. So we avoid using
+# TCP or TCP-like chanels when we can, and use them when we must (like when
+# secrecy and strong authentication is really necessary).
 #
 # A stagecoach process in server mode acts as a proxy on the nearend for the
 # farend server for the producer, and another as the proxy on the farend for
@@ -27,7 +28,7 @@
 #
 # NOTES
 #
-# shaperbuffered and internettool are Diminuto bin utilities.
+# shaper, phex, and internettool are Diminuto bin utilities.
 #
 # REFERENCES
 #
@@ -35,53 +36,53 @@
 # <https://coverclock.blogspot.com/2017/02/better-never-than-late.html>
 
 ################################################################################
-# PARAMETERS
+# BEGIN
 ################################################################################
-
-ROOT=$(readlink -e $(dirname ${0}))
 
 PROGRAM=$(basename ${0})
 
+echo "${PROGRAM}: BEGIN" 1>&2
+
+XC=0
+
 BLOCKSIZE=4096
-BLOCKS=4096
+BLOCKS=16
 
 TUNNEL=49123
 NEAREND=49124
 FAREND=49125
 
+ROOT=$(readlink -e $(dirname ${0}))
 CERT="${ROOT}/../crt"
 
+BUFFERSIZE=256
 PEAKBYTERATE=256
 SUSTAINEDBYTERATE=256
 MAXIMUMBURSTSIZE=256
 
-XC=0
-
 # This password is only used for testing.
 export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
-
-echo "${PROGRAM}: BEGIN" 1>&2
 
 ################################################################################
 # FILES
 ################################################################################
 
-FILEPRODUCERSOURCE=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILEPRODUCERSOURCE-XXXXXXXXXX.dat)
-FILECONSUMERSOURCE=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILECONSUMERSOURCE-XXXXXXXXXX.dat)
-FILEPRODUCERSINK=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILEPRODUCERSINK-XXXXXXXXXX.dat)
-FILECONSUMERSINK=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILECONSUMERSINK-XXXXXXXXXX.dat)
+echo "${PROGRAM}: FILES" 1>&2
 
-dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock of=${FILEPRODUCERSOURCE}
+FILESOURCE=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILESOURCE-XXXXXXXXXX.dat)
+FILESINK=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILESINK-XXXXXXXXXX.dat)
 
-dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock of=${FILECONSUMERSOURCE}
+dd if=/dev/urandom bs=${BLOCKSIZE} count=${BLOCKS} iflag=fullblock of=${FILESOURCE}
 
-FILES="${FILEPRODUCERSOURCE} ${FILEPRODUCERSINK} ${FILECONSUMERSOURCE} ${FILECONSUMERSINK}"
+FILES="${FILESOURCE} ${FILESINK}"
 
 ls -l ${FILES}
 
 ################################################################################
 # PROCESSES
 ################################################################################
+
+echo "${PROGRAM}: PROCESSES" 1>&2
 
 # Near End                             Far End
 # __________________________           __________________________
@@ -92,33 +93,39 @@ ls -l ${FILES}
 # gpstool             stagecoach       stagecoach        rtktool
 # rover               -c               -s                router
 
-stagecoach -C ${CERT}/stagecoach-servercert.pem -K ${CERT}/stagecoach-serverkey.pem -P ${CERT} -f localhost:${FAREND} -n 0.0.0.0:${TUNNEL} -s &
+stagecoach -b ${BUFFERSIZE} -C ${CERT}/stagecoach-servercert.pem -K ${CERT}/stagecoach-serverkey.pem -P ${CERT} -f localhost:${FAREND} -n 0.0.0.0:${TUNNEL} -s &
 PIDSERVER=$!
 sleep 5
 
-stagecoach -C ${CERT}/stagecoach-clientcert.pem -K ${CERT}/stagecoach-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} -n 0.0.0.0:${NEAREND} -c &
+stagecoach -b ${BUFFERSIZE} -C ${CERT}/stagecoach-clientcert.pem -K ${CERT}/stagecoach-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} -n 0.0.0.0:${NEAREND} -c &
 PIDCLIENT=$!
 sleep 5
 
-cat ${FILEPRODUCERSOURCE} | shaperbuffered -p ${PEAKBYTERATE} -s ${SUSTAINEDBYTERATE} -m ${MAXIMUMBURSTSIZE} | internettool -4 -u -E localhost:${NEAREND} > ${FILEPRODUCERSINK} &
-PIDPRODUCER=$!
-
-cat ${FILECONSUMERSOURCE} | shaperbuffered -p ${PEAKBYTERATE} -s ${SUSTAINEDBYTERATE} -m ${MAXIMUMBURSTSIZE} | internettool -4 -u -E ${FAREND} > ${FILECONSUMERSINK} &
+# Loopback
+internettool -b ${BUFFERSIZE} -4 -u -e :${FAREND} &
 PIDCONSUMER=$!
+sleep 5
+
+cat ${FILESOURCE} | shaper -d -v -b ${BUFFERSIZE} -p ${PEAKBYTERATE} -s ${SUSTAINEDBYTERATE} -m ${MAXIMUMBURSTSIZE} | phex -x | internettool -b ${BUFFERSIZE} -4 -u -E localhost:${NEAREND} > ${FILESINK} &
+PIDPRODUCER=$!
 
 PIDS="${PIDCLIENT} ${PIDSERVER} ${PIDCONSUMER} ${PIDPRODUCER}"
 
-ps -ef ${PIDS}
+ps -f ${PIDS}
 
 ################################################################################
 # EXECUTE
 ################################################################################
 
-trap "kill -9 ${PIDS} 2> /dev/null; rm -f ${FILES}" HUP INT TERM
+echo "${PROGRAM}: EXECUTE" 1>&2
+
+trap "ps -f ${PIDS}; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES}; rm -f ${FILES} 2> /dev/null" HUP INT TERM
 
 wait ${PIDPRODUCER}
 
 sleep 5
+
+ps -f ${PIDS}
 
 kill ${PIDS} 2> /dev/null
 
@@ -126,14 +133,16 @@ kill ${PIDS} 2> /dev/null
 # RESULTS
 ################################################################################
 
-diff ${FILEPRODUCERSOURCE} ${FILEPRODUCERSINK} || XC=$((${XC} + 1))
+echo "${PROGRAM}: RESULTS" 1>&2
 
-diff ${FILECONSUMERSOURCE} ${FILECONSUMERSINK} || XC=$((${XC} + 1))
+ls -l ${FILES}
 
-rm ${FILEPRODUCERSOURCE} ${FILECONSUMERSOURCE} ${FILEPRODUCERSINK} ${FILECONSUMERSINK}
+diff ${FILESOURCE} ${FILESINK} || XC=$((${XC} + 1))
+
+rm -f ${FILESOURCE} ${FILESINK}
 
 ################################################################################
-# DONE
+# END
 ################################################################################
 
 echo "${PROGRAM}: END ${XC}" 1>&2
