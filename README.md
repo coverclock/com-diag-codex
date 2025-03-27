@@ -178,9 +178,9 @@ I have written two applications included in this repo that are
 named for the sub-projects that they support in other repositories.
 These applications are in the ```app``` directory.
 
-* Wheatstone supports experiments with LTE-M modems used with remote sensors.
+* Stagecoach supports GNSS rovers and a GNSS base station communicating with an RTK router (all of these are part of the Hazer project).
 
-* Stagecoach supports GNSS rovers and a GNSS base station communicating with an RTK router.
+* Wheatstone supports experiments with LTE-M modems used with remote sensors (mostly DEPRECATED since AT&T dropped their inexpensive LTE-M service).
 
 # Targets
 
