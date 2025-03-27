@@ -28,7 +28,7 @@
 #
 # NOTES
 #
-# shaper, phex, and internettool are Diminuto bin utilities.
+# shaper and internettool are Diminuto bin utilities.
 #
 # REFERENCES
 #
@@ -106,7 +106,7 @@ internettool -b ${BUFFERSIZE} -4 -u -e :${FAREND} &
 PIDCONSUMER=$!
 sleep 5
 
-cat ${FILESOURCE} | shaper -d -v -b ${BUFFERSIZE} -p ${PEAKBYTERATE} -s ${SUSTAINEDBYTERATE} -m ${MAXIMUMBURSTSIZE} | phex -x | internettool -b ${BUFFERSIZE} -4 -u -E localhost:${NEAREND} > ${FILESINK} &
+cat ${FILESOURCE} | shaper -d -v -b ${BUFFERSIZE} -p ${PEAKBYTERATE} -s ${SUSTAINEDBYTERATE} -m ${MAXIMUMBURSTSIZE} | internettool -b ${BUFFERSIZE} -4 -u -E localhost:${NEAREND} > ${FILESINK} &
 PIDPRODUCER=$!
 
 PIDS="${PIDCLIENT} ${PIDSERVER} ${PIDCONSUMER} ${PIDPRODUCER}"
@@ -119,7 +119,8 @@ ps -f ${PIDS}
 
 echo "${PROGRAM}: EXECUTE" 1>&2
 
-trap "ps -f ${PIDS}; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES}; rm -f ${FILES} 2> /dev/null" HUP INT TERM
+#trap "ps -f ${PIDS}; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null; rm -f ${FILES} 2> /dev/null" HUP INT TERM
+trap "ps -f ${PIDS}; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null" HUP INT TERM
 
 wait ${PIDPRODUCER}
 
@@ -139,7 +140,7 @@ ls -l ${FILES}
 
 diff ${FILESOURCE} ${FILESINK} || XC=$((${XC} + 1))
 
-rm -f ${FILESOURCE} ${FILESINK}
+#rm -f ${FILESOURCE} ${FILESINK}
 
 ################################################################################
 # END
