@@ -19,9 +19,6 @@ Licensed under the terms in LICENSE.txt (FSF LGPL 2.1).
 
 # Abstract
 
-**Even though the included unit and functional test suites may all
-pass, this repository is still largely a work in progress.**
-
 Codex provides a slightly simpler higher-level C-based application
 programming interface to the Open Secure Socket Layer (OpenSSL)
 API. Mostly it's my excuse to learn how to use the OpenSSL C API for
@@ -177,14 +174,13 @@ the SSL byte stream to be used in a datagram-like fashion.
 
 # Applications
 
-I have written two applications included in this repo that are named for
-the sub-projects that they support in other repositories. Both of these
-applications are works in progress. These applications are in the ```app```
-directory.
+I have written two applications included in this repo that are
+named for the sub-projects that they support in other repositories.
+These applications are in the ```app``` directory.
 
 * Wheatstone supports experiments with LTE-M modems used with remote sensors.
 
-* Stagecoach supports remote GNSS rovers communicating with a GNSS base station.
+* Stagecoach supports GNSS rovers and a GNSS base station communicating with an RTK router.
 
 # Targets
 
