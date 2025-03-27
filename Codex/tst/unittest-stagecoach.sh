@@ -23,17 +23,7 @@
 #
 # A stagecoach process in server mode acts as a proxy on the nearend for the
 # farend server for the producer, and another as the proxy on the farend for
-# the nearend client for the consumer. Confusingly, the proxy server stagecoach
-# runs in client (-c) mode, while the proxy client stagecoach runs in server
-# (-s) mode.
-#
-# Nearend                              Farend
-# __________________________          __________________________
-#                     proxy            proxy
-# PRODUCER <---UDP--> SERVER <==SSL==> CLIENT <---UDP--> CONSUMER
-#  |                   |                |                 |
-# gpstool             stagecoach       stagecoach        rtktool
-# rover               -c               -s                router
+# the nearend client for the consumer.
 #
 # NOTES
 #
@@ -45,22 +35,35 @@
 # <https://coverclock.blogspot.com/2017/02/better-never-than-late.html>
 
 ################################################################################
+# PARAMETERS
+################################################################################
 
 ROOT=$(readlink -e $(dirname ${0}))
 
 PROGRAM=$(basename ${0})
-BLOCKSIZE=${1:-"4096"}
-BLOCKS=${2:-"4096"}
-TUNNEL=${3:-"49123"}
-NEAREND=${4:-"49124"}
-FAREND=${5:-"49125"}
-CERT=${6:-${ROOT}/../crt}
+
+BLOCKSIZE=4096
+BLOCKS=4096
+
+TUNNEL=49123
+NEAREND=49124
+FAREND=49125
+
+CERT="${ROOT}/../crt"
+
+PEAKBYTERATE=256
+SUSTAINEDBYTERATE=256
+MAXIMUMBURSTSIZE=256
 
 XC=0
 
 # This password is only used for testing.
 export COM_DIAG_CODEX_SERVER_PASSWORD=st8g3c08ch
 
+echo "${PROGRAM}: BEGIN" 1>&2
+
+################################################################################
+# FILES
 ################################################################################
 
 FILEPRODUCERSOURCE=$(mktemp ${TMPDIR:-"/tmp"}/$(basename ${0} .sh)-FILEPRODUCERSOURCE-XXXXXXXXXX.dat)
@@ -77,19 +80,30 @@ FILES="${FILEPRODUCERSOURCE} ${FILEPRODUCERSINK} ${FILECONSUMERSOURCE} ${FILECON
 ls -l ${FILES}
 
 ################################################################################
+# PROCESSES
+################################################################################
 
-stagecoach -C ${CERT}/stagecoach-servercert.pem -K ${CERT}/stagecoach-serverkey.pem -P ${CERT} -f 0.0.0.0:${TUNNEL} -n ${FAREND} -s &
+# Near End                             Far End
+# __________________________           __________________________
+#                     proxy            proxy
+#                     consumer         producer
+# PRODUCER <---UDP--> CLIENT <==SSL==> SERVER <---UDP--> CONSUMER
+#  |                   |                |                 |
+# gpstool             stagecoach       stagecoach        rtktool
+# rover               -c               -s                router
+
+stagecoach -C ${CERT}/stagecoach-servercert.pem -K ${CERT}/stagecoach-serverkey.pem -P ${CERT} -f localhost:${FAREND} -n 0.0.0.0:${TUNNEL} -s &
 PIDSERVER=$!
 sleep 5
 
-stagecoach -C ${CERT}/stagecoach-clientcert.pem -K ${CERT}/stagecoach-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} -n ${NEAREND} -c &
+stagecoach -C ${CERT}/stagecoach-clientcert.pem -K ${CERT}/stagecoach-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} -n 0.0.0.0:${NEAREND} -c &
 PIDCLIENT=$!
 sleep 5
 
-cat ${FILEPRODUCERSOURCE} | shaperbuffered -p 256 -s 256 -m 256 | internettool -4 -u -E ${SERVERFAREND} > ${FILEPRODUCERSINK} &
+cat ${FILEPRODUCERSOURCE} | shaperbuffered -p ${PEAKBYTERATE} -s ${SUSTAINEDBYTERATE} -m ${MAXIMUMBURSTSIZE} | internettool -4 -u -E localhost:${NEAREND} > ${FILEPRODUCERSINK} &
 PIDPRODUCER=$!
 
-cat ${FILECONSUMERSOURCE} | shaperbuffered -p 256 -s 256 -m 256 | internettool -4 -u -E ${SERVERFAREND} > ${FILECONSUMERSINK} &
+cat ${FILECONSUMERSOURCE} | shaperbuffered -p ${PEAKBYTERATE} -s ${SUSTAINEDBYTERATE} -m ${MAXIMUMBURSTSIZE} | internettool -4 -u -E ${FAREND} > ${FILECONSUMERSINK} &
 PIDCONSUMER=$!
 
 PIDS="${PIDCLIENT} ${PIDSERVER} ${PIDCONSUMER} ${PIDPRODUCER}"
@@ -97,17 +111,19 @@ PIDS="${PIDCLIENT} ${PIDSERVER} ${PIDCONSUMER} ${PIDPRODUCER}"
 ps -ef ${PIDS}
 
 ################################################################################
+# EXECUTE
+################################################################################
 
 trap "kill -9 ${PIDS} 2> /dev/null; rm -f ${FILES}" HUP INT TERM
 
-################################################################################
-
-wait ${PIDPRODUCERSORUCE}
+wait ${PIDPRODUCER}
 
 sleep 5
 
 kill ${PIDS} 2> /dev/null
 
+################################################################################
+# RESULTS
 ################################################################################
 
 diff ${FILEPRODUCERSOURCE} ${FILEPRODUCERSINK} || XC=$((${XC} + 1))
@@ -117,5 +133,9 @@ diff ${FILECONSUMERSOURCE} ${FILECONSUMERSINK} || XC=$((${XC} + 1))
 rm ${FILEPRODUCERSOURCE} ${FILECONSUMERSOURCE} ${FILEPRODUCERSINK} ${FILECONSUMERSINK}
 
 ################################################################################
+# DONE
+################################################################################
+
+echo "${PROGRAM}: END ${XC}" 1>&2
 
 exit ${XC}
