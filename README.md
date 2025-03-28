@@ -22,7 +22,7 @@ Licensed under the terms in LICENSE.txt (FSF LGPL 2.1).
 **Even though the extensive unit and functional test suites may all
 pass, this repository is still largely a WORK IN PROGRESS. In
 particularly, the WANT READ and WANT WRITE error returns from
-OpenSSL have not be adequately tested (or indeed, at all).**
+OpenSSL have not been adequately tested (or indeed, at all).**
 
 Codex provides a slightly simpler higher-level C-based application
 programming interface to the Open Secure Socket Layer (OpenSSL)
