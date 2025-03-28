@@ -21,8 +21,9 @@ Licensed under the terms in LICENSE.txt (FSF LGPL 2.1).
 
 **N.B.** Even though the extensive unit and functional test suites may
 all pass, this repository is still largely a WORK IN PROGRESS. In
-particularly, the WANT READ and WANT WRITE error returns from
-OpenSSL have not been adequately tested (or indeed, at all).
+particular, any handling of the ''' SSL_ERROR_WANT_READ''' and
+'''SSL_ERROR_WANT_WRITE''' error returns from OpenSSL have not been
+adequately tested (or, indeed, at all).
 
 Codex provides a slightly simpler higher-level C-based application
 programming interface to the Open Secure Socket Layer (OpenSSL)
@@ -32,17 +33,17 @@ C or C++, code that I typically am asked to develop. Codex is built on
 top of Diminuto, my C-based systems programming library I've been using
 for years in both personal and commercial development projects.
 
-(If you got here via "prairiethorn.org", that
-is a test domain I use for this project and others. It is sometimes
-dynamically forwarded to the GitHub page for this repository.)
+(If you got here via "prairiethorn.org", that is a test domain I use
+for this project and others. It is sometimes dynamically forwarded to
+the GitHub page for this repository.)
 
-**Important safety tip**: Version 11.0.0 of this repository contains
-significate changes from prior versions, although the only API change
-was the elimination of the handshake renegotiation function call (which
-was a really bad idea anyway, and only briefly supported by OpenSSL).
-If you want the prior version before I started committing violence to it,
-check out tag 10.1.1.  Version 11.0.0 has passed the Sanity, Functional,
-Failures, and Extra test suites.
+**Important safety tip**: Version 11.0.0 and beyond of this repository
+contains significate changes from prior versions, although the only
+API change was the elimination of the handshake renegotiation function
+call (which was a really bad idea anyway, and only briefly supported
+by OpenSSL).  If you want the prior version before I started committing
+violence to it, check out tag 10.1.1.  Version 11.0.0 has passed the
+Sanity, Functional, Failures, and Extra test suites.
 
 # Disclaimer
 
