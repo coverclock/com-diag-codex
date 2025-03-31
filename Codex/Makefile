@@ -1139,3 +1139,41 @@ $(SSL_CRT)/stagecoach-client.pem:	$(SSL_CRT)/stagecoach-clientcert.pem $(SSL_CRT
 	$(C_REHASH) $(SSL_CRT)
 	$(OPENSSL) x509 -subject -issuer -noout -in $@
 	chmod 600 $@
+
+##### Build certificates etc. for codextool.
+
+$(SSL_CRT)/codextool-serverreq.pem:	$(SSL_ETC)/codextool-server.cnf
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) req -config $(SSL_ETC)/codextool-server.cnf -newkey $(SSL_KEY) -$(SSL_ALG) -keyout $(SSL_CRT)/codextool-serverkey.pem -out $@
+	chmod 600 $@
+	chmod 600 $(SSL_CRT)/codextool-serverkey.pem
+
+$(SSL_CRT)/codextool-serverkey.pem:	$(SSL_CRT)/codextool-servercert.pem
+
+$(SSL_CRT)/codextool-servercert.pem:	$(SSL_CRT)/codextool-serverreq.pem $(SSL_ETC)/codextool-server.cnf $(SSL_CRT)/ca.pem $(SSL_PWD)/ca.pwd
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) x509 -req -days $(SSL_EXP) -in $(SSL_CRT)/codextool-serverreq.pem -$(SSL_ALG) -extfile $(SSL_ETC)/codextool-server.cnf -extensions usr_cert -CA $(SSL_CRT)/ca.pem -passin file:$(SSL_PWD)/ca.pwd -CAkey $(SSL_CRT)/ca.pem -CAcreateserial -out $@
+	$(C_REHASH) $(SSL_CRT)
+	chmod 600 $@
+
+$(SSL_CRT)/codextool-server.pem:	$(SSL_CRT)/codextool-servercert.pem $(SSL_CRT)/codextool-serverkey.pem $(SSL_CRT)/cacert.pem $(SSL_CRT)/rootcert.pem
+	D=`dirname $@`; mkdir -p $$D
+	cat $^ > $@
+	$(C_REHASH) $(SSL_CRT)
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
+
+$(SSL_CRT)/codextool-clientcert.pem:	$(SSL_ETC)/codextool-client.cnf
+	D=`dirname $@`; mkdir -p $$D
+	$(OPENSSL) req -new -x509 -config $(SSL_ETC)/codextool-client.cnf -extensions usr_cert -newkey $(SSL_KEY) -nodes -$(SSL_ALG) -keyout $(SSL_CRT)/codextool-clientkey.pem -out $@
+	chmod 600 $@
+	chmod 600 $(SSL_CRT)/codextool-clientkey.pem
+
+$(SSL_CRT)/codextool-clientkey.pem:	$(SSL_CRT)/codextool-clientcert.pem
+
+$(SSL_CRT)/codextool-client.pem:	$(SSL_CRT)/codextool-clientcert.pem $(SSL_CRT)/codextool-clientkey.pem
+	D=`dirname $@`; mkdir -p $$D
+	cat $^ > $@
+	$(C_REHASH) $(SSL_CRT)
+	$(OPENSSL) x509 -subject -issuer -noout -in $@
+	chmod 600 $@
