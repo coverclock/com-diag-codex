@@ -237,7 +237,7 @@ int main(int argc, char * argv[])
             fprintf(stderr, "       -d MILLISECONDS      is the connection retry delay in milliseconds.\n");
             fprintf(stderr, "       -f FARENDPOINT       is the HOST:PORT far end point.\n");
             fprintf(stderr, "       -k MILLISECONDS      is the keepalive interval in milliseconds.\n");
-            fprintf(stderr, "       -n NEARENDPOINT      is the :PORT near end point.\n");
+            fprintf(stderr, "       -n NEARENDPOINT      is the :PORT or 0.0.0.0:PORT or [::]:PORT near end point.\n");
             fprintf(stderr, "       -r                   requires certificates signed by a CA.\n");
             fprintf(stderr, "       -s                   sets the mode to server.\n");
             fprintf(stderr, "       -t MILLISECONDS      sets the multiplexor timeout in milliseconds.\n");
@@ -354,9 +354,9 @@ int main(int argc, char * argv[])
      * rather than the default. Note, however, that choosing hostname of
      * "localhost" or "localhost4", while forcing IPv4 as the protocol, also
      * binds the socket to the local host address and prevents remote clients
-     * from connecting to it, while using the unspecified ("0.0.0.0") address
-     * serves as a wildcard. An IPv6 address of "0:0:0:0:0:0:0:0" (or
-     * equivalently "::") similarly forces IPv6 to be selected while not
+     * from connecting to it, while using the "0.0.0.0" (unspecified) address
+     * serves as a wildcard. An IPv6 address of "[0:0:0:0:0:0:0:0]" (or
+     * equivalently "[::]") similarly forces IPv6 to be selected while not
      * binding the socket to a specific address. Since the implementation
      * doesn't use the address except to choose IPv4 or IPv6, we require that
      * it be the "unspecified" address for that protocol. Leaving the address
