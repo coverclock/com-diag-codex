@@ -180,9 +180,11 @@ the SSL byte stream to be used in a datagram-like fashion.
 
 # Applications
 
-I have written two applications included in this repo that are
+I have written applications included in this repo, two of which are
 named for the sub-projects that they support in other repositories.
 These applications are in the ```app``` directory.
+
+* Codextool reads from an SSL connection and writes to stdout, and reads from stdin and writes to an SSL connection.
 
 * Stagecoach supports GNSS rovers and a GNSS base station communicating with an RTK router (all of these are part of the Hazer project).
 
