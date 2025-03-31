@@ -222,7 +222,7 @@ int main(int argc, char * argv[])
             fprintf(stderr, "       -d MILLISECONDS      is the connection retry delay in milliseconds.\n");
             fprintf(stderr, "       -f FARENDPOINT       is the HOST:PORT far end point for client.\n");
             fprintf(stderr, "       -k MILLISECONDS      is the keepalive interval in milliseconds.\n");
-            fprintf(stderr, "       -n NEARENDPOINT      is the PORT or 0.0.0.0:PORT or [::]:PORT near end point for server.\n");
+            fprintf(stderr, "       -n NEARENDPOINT      is the :PORT or 0.0.0.0:PORT or [::]:PORT near end point for server.\n");
             fprintf(stderr, "       -r                   requires certificates signed by a CA.\n");
             fprintf(stderr, "       -t MILLISECONDS      sets the multiplexor timeout in milliseconds.\n");
             fprintf(stderr, "       -x                   daemonizes the process.\n");
