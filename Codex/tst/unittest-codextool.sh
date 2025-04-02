@@ -23,6 +23,8 @@ TUNNEL=49126
 ROOT=$(readlink -e $(dirname ${0}))
 CERT="${ROOT}/../crt"
 
+BUFFERSIZE=256
+
 # This password is only used for testing.
 export COM_DIAG_CODEX_SERVER_PASSWORD=c0d3xt001
 
@@ -56,7 +58,7 @@ codextool -b ${BUFFERSIZE} -C ${CERT}/codextool-servercert.pem -K ${CERT}/codext
 PIDSERVER=$!
 sleep 5
 
-codextool -b ${BUFFERSIZE} -C ${CERT}/codextool-clientcert.pem -K ${CERT}/codextool-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} < ${FILECLIENTSORUCE} > ${FILECLIENTSINK} &
+codextool -b ${BUFFERSIZE} -C ${CERT}/codextool-clientcert.pem -K ${CERT}/codextool-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} < ${FILECLIENTSOURCE} > ${FILECLIENTSINK} &
 PIDCLIENT=$!
 sleep 5
 
@@ -70,7 +72,8 @@ ps -f ${PIDS}
 
 echo "${PROGRAM}: EXECUTE" 1>&2
 
-trap "ps -f ${PIDS} 2> /dev/null; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null; rm -f ${FILES} 2> /dev/null" HUP INT TERM
+#trap "ps -f ${PIDS} 2> /dev/null; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null; rm -f ${FILES} 2> /dev/null" HUP INT TERM
+trap "ps -f ${PIDS} 2> /dev/null; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null" HUP INT TERM
 
 wait ${PIDCLIENT}
 
@@ -106,7 +109,7 @@ dump ${FILECLIENTSINK} | head
 
 diff ${FILESERVERSOURCE} ${FILECLIENTSINK} || XC=$((${XC} + 1))
 
-rm -f ${FILES}
+#rm -f ${FILES}
 
 ################################################################################
 # END

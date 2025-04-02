@@ -126,7 +126,16 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
         case CODEX_STATE_HEADER:
     
             bytes = codex_connection_read_extended(ssl, *here, *length, &error, true);
-            if (bytes <= 0) {
+            if (bytes == 0) {
+
+                /*
+                 * Farend closed.
+                 */
+
+                state = CODEX_STATE_FINAL;
+                error = CODEX_SERROR_NONE;
+
+            } else if (bytes < 0) {
     
                 /*
                  * The SSL stack piggybacks all its own read and write needs
@@ -224,7 +233,16 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
         case CODEX_STATE_PAYLOAD:
    
             bytes = codex_connection_read_extended(ssl, *here, *length, &error, true);
-            if (bytes <= 0) {
+            if (bytes == 0) {
+
+                /*
+                 * Farend closed.
+                 */
+
+                state = CODEX_STATE_FINAL;
+                error = CODEX_SERROR_NONE;
+
+            } else if (bytes < 0) {
     
                 /*
                  * (Same comments as above regarding SSL needing to write in
@@ -346,7 +364,16 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
         case CODEX_STATE_HEADER:
     
             bytes = codex_connection_write_generic(ssl, *here, *length, &error);
-            if (bytes <= 0) {
+            if (bytes == 0) {
+
+                /*
+                 * Farend closed.
+                 */
+
+                state = CODEX_STATE_FINAL;
+                error = CODEX_SERROR_NONE;
+
+            } else if (bytes <= 0) {
 
                 /*
                  * The SSL stack piggybacks all its own read and write needs
@@ -402,7 +429,16 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
         case CODEX_STATE_PAYLOAD:
     
             bytes = codex_connection_write_generic(ssl, *here, *length, &error);
-            if (bytes <= 0) {
+            if (bytes == 0) {
+
+                /*
+                 * Farend closed.
+                 */
+
+                state = CODEX_STATE_FINAL;
+                error = CODEX_SERROR_NONE;
+
+             } else if (bytes < 0) {
     
                 /*
                  * (Same comments as above regarding SSL needing to write in

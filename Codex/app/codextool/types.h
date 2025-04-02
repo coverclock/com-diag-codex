@@ -36,7 +36,7 @@ typedef enum Protocol { OTHER = '?', IPV4 = '4', IPV6 = '6', } protocol_t;
  * indicating whether the process should continue, shutdown and restart the
  * SSL tunnel, or close and exit.
  */
-typedef enum Status { UNKNOWN = '?', SSLDONE = 'S', STDDONE = 's', CONTINUE = '-', } status_t;
+typedef enum Status { UNKNOWN = '?', SSLDONE = 'S', STDDONE = 'W', ALLDONE = 'R', CONTINUE = '-', } status_t;
 
 /**
  * Enumerate the direction of the state machine: reading or writing.

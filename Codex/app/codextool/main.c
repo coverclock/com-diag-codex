@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Copyright 2022-2025 Digital Aggregates Corporation, Colorado, USA<BR>
+ * Copyright 2023-2025 Digital Aggregates Corporation, Colorado, USA<BR>
  * Licensed under the terms in LICENSE.txt<BR>
  * Chip Overclock (mailto:coverclock@diag.com)<BR>
  * https://github.com/coverclock/com-diag-codex<BR>
@@ -11,7 +11,8 @@
  * and standard input and standard output. It can be run in either server
  * or client mode; in server mode it services only a single client at a
  * time. It was directly derived from the source code for the Codex
- * stagecoach application.
+ * stagecoach application; the code would have probably been a lot cleaner
+ * if I'd started from scratch.
  *
  * NOTES
  *
@@ -38,14 +39,6 @@
  * indefinitely. Sometimes the answer to that is to keep a flow of "bit
  * bucket" writes going; I got that solution working, but it's not
  * practical for applications using limited or expensive bandwidth WANs.
- *
- * I really really wanted NOT to have to write this program. I felt
- * that I should be able to script it using some combination of maybe
- * socat and ssh. But I didn't see a way to preserve the record boundaries
- * of datagrams as the data propagates across the SSL tunnel. Some web
- * searching didn't change my mind, despite the claims of many commenters;
- * the solutions I saw worked most of the time by coincidence, in my
- * opinion.
  */
 
 #include "com/diag/codex/codex.h"
@@ -281,7 +274,6 @@ int main(int argc, char * argv[])
     if (bytes != (const char *)0) {
         bufsize = strtoul(bytes, &endptr, 0);
         diminuto_assert((endptr != (const char *)0) && (*endptr == '\0') && (0 < bufsize) && (bufsize < diminuto_maximumof(codex_header_t)));
-        if (bufsize > MAXDATAGRAM) { bufsize = MAXDATAGRAM; }
     }
     DIMINUTO_LOG_INFORMATION("%s: %s bufsize=%zubytes\n", program, name, bufsize);
 
@@ -312,63 +304,46 @@ int main(int argc, char * argv[])
      * CHECKING
      */
 
-    diminuto_assert(farend != (const char *)0);
-    rc = diminuto_ipc_endpoint(farend, &farendpoint);
-    diminuto_assert(rc == 0);
-    switch (farendpoint.type) {
+    if (farend != (const char *)0) {
+        rc = diminuto_ipc_endpoint(farend, &farendpoint);
+        diminuto_assert(rc == 0);
+        switch (farendpoint.type) {
 
-    case DIMINUTO_IPC_TYPE_IPV4:
-        diminuto_assert(!diminuto_ipc4_is_unspecified(&farendpoint.ipv4));
-        farendtype = IPV4;
-        break;
+        case DIMINUTO_IPC_TYPE_IPV4:
+            diminuto_assert(!diminuto_ipc4_is_unspecified(&farendpoint.ipv4));
+            farendtype = IPV4;
+            break;
 
-    case DIMINUTO_IPC_TYPE_IPV6:
-        diminuto_assert(!diminuto_ipc6_is_unspecified(&farendpoint.ipv6));
-        farendtype = IPV6;
-        break;
+        case DIMINUTO_IPC_TYPE_IPV6:
+            diminuto_assert(!diminuto_ipc6_is_unspecified(&farendpoint.ipv6));
+            farendtype = IPV6;
+            break;
 
-    default:
-        diminuto_assert(false);
-        break;
+        default:
+            diminuto_assert(false);
+            break;
+        }
     }
 
-    /*
-     * If no host is specified for the endpoint, Diminuto assumes IPv6 by
-     * default. Using a host name like "0.0.0.0" causes Diminuto to pick IPv4
-     * rather than the default. Note, however, that choosing hostname of
-     * "localhost" or "localhost4", while forcing IPv4 as the protocol, also
-     * binds the socket to the local host address and prevents remote clients
-     * from connecting to it, while using the unspecified ("0.0.0.0") address
-     * serves as a wildcard. An IPv6 address of "[0:0:0:0:0:0:0:0]" (or
-     * equivalently "[::]") similarly forces IPv6 to be selected while not
-     * binding the socket to a specific address. Since the implementation
-     * doesn't use the address except to choose IPv4 or IPv6, we require that
-     * it be the "unspecified" address for that protocol. Leaving the address
-     * off will result in it being unspecified, but as said above, results in
-     * the selection of IPv6 by default. I recommend specifying the appropriate
-     * unspecified address specifically (so to speak). And why IPv6 by default?
-     *  Because IPv6 sockets can accept either IPv6 or IPv4 connections, but
-     * the opposite is not true.
-     */
+    if (nearend != (const char *)0) {
+        rc = diminuto_ipc_endpoint(nearend, &nearendpoint);
+        diminuto_assert(rc == 0);
+        switch (nearendpoint.type) {
 
-    diminuto_assert(nearend != (const char *)0);
-    rc = diminuto_ipc_endpoint(nearend, &nearendpoint);
-    diminuto_assert(rc == 0);
-    switch (nearendpoint.type) {
+        case DIMINUTO_IPC_TYPE_IPV4:
+            diminuto_assert(diminuto_ipc4_is_unspecified(&nearendpoint.ipv4));
+            nearendtype = IPV4;
+            break;
 
-    case DIMINUTO_IPC_TYPE_IPV4:
-        diminuto_assert(diminuto_ipc4_is_unspecified(&nearendpoint.ipv4));
-        nearendtype = IPV4;
-        break;
+        case DIMINUTO_IPC_TYPE_IPV6:
+            diminuto_assert(diminuto_ipc6_is_unspecified(&nearendpoint.ipv6));
+            nearendtype = IPV6;
+            break;
 
-    case DIMINUTO_IPC_TYPE_IPV6:
-        diminuto_assert(diminuto_ipc6_is_unspecified(&nearendpoint.ipv6));
-        nearendtype = IPV6;
-        break;
-
-    default:
-        diminuto_assert(false);
-        break;
+        default:
+            diminuto_assert(false);
+            break;
+        }
     }
 
     switch (role) {
@@ -418,6 +393,9 @@ int main(int argc, char * argv[])
 
     inpfd = fileno(stdin);
     diminuto_assert(inpfd >= 0);
+    rc = diminuto_mux_register_read(&mux, inpfd);
+    diminuto_assert(rc >= 0);
+
     outfd = fileno(stdout);
     diminuto_assert(outfd >= 0);
 
@@ -600,6 +578,16 @@ int main(int argc, char * argv[])
 
             status = readerwriter(role, fds, &mux, inpfd, ssl, outfd, bufsize, expected, keepaliveticks);
 
+            switch (status) {
+            case STDDONE:
+            case ALLDONE:
+                done = true;
+                break;
+            default:
+                /* Do nothing. */
+                break;
+            }
+
         }
 
         /*
@@ -607,25 +595,8 @@ int main(int argc, char * argv[])
          */
 
         if (done) {
-            status = STDDONE;
-        }
-
-        if (status != STDDONE) {
             /* Do nothing. */
-        } else {
-            (void)diminuto_ipc_close(inpfd);
-            (void)diminuto_mux_unregister_read(&mux, inpfd);
-            inpfd = -1;
-            (void)diminuto_ipc_close(outfd);
-            (void)diminuto_mux_unregister_write(&mux, outfd);
-            outfd = -1;
-        }
-
-        if (done) {
-            status = SSLDONE;
-        }
-
-        if (status != SSLDONE) {
+        } else if (status != SSLDONE) {
             /* Do nothing. */
         } else if (ssl == (codex_connection_t *)0) {
             /* Do nothing. */
@@ -637,12 +608,11 @@ int main(int argc, char * argv[])
             (void)codex_connection_close(ssl);
             ssl = codex_connection_free(ssl);
             diminuto_assert(ssl == (codex_connection_t *)0);
-            ssl = (codex_connection_t *)0;
             if (sslfd >= 0) {
                 (void)diminuto_mux_unregister_read(&mux, sslfd);
                 (void)diminuto_mux_unregister_write(&mux, sslfd);
+                sslfd = -1;
             }
-            sslfd = -1;
             if (role == SERVER) {
                 rc = diminuto_mux_register_accept(&mux, biofd);
                 diminuto_assert(rc >= 0);

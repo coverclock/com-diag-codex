@@ -26,17 +26,22 @@
 #include <stdio.h>
 #include <unistd.h>
 
+static bool checked = false;
+static bool fareof = false;
+static bool indicateeof = true;
 static bool initialized = false;
+static bool neareof = false;
+static bool needread = false;
+static bool needwrite = false;
 static codex_state_t state[DIRECTIONS] = { CODEX_STATE_START, CODEX_STATE_IDLE, };
 static codex_state_t restate = CODEX_STATE_START; /* Only for WRITER. */
 static codex_header_t header[DIRECTIONS] = { 0, 0, };
 static void * buffer[DIRECTIONS] = { (void *)0, (void *)0, };
 static uint8_t * here[DIRECTIONS] = { (uint8_t *)0, (uint8_t *)0, };
 static size_t length[DIRECTIONS] = { 0, 0, };
-static bool checked = false;
 static ticks_t then = 0;
 
-status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, codex_connection_t * ssl, int outfd, size_t bufsize, const char * expected, sticks_t keepalive)
+status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, codex_connection_t * ssl, int outfd, size_t bufsize, const char * expected, sticks_t keepalive)
 {
     status_t status = CONTINUE;
     int readfd = -1;
@@ -48,8 +53,6 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
     const char * name = (const char *)0;
     ticks_t now = 0;
     bool pendingssl = false;
-    bool needread = false;
-    bool needwrite = false;
     int rc = -1;
 
     if (!initialized) {
@@ -91,7 +94,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
         writefd = diminuto_mux_ready_write(muxp);
         pendingssl = codex_connection_is_ready(ssl);
 
-        DIMINUTO_LOG_DEBUG("%s: %s readfd=(%d) readstdin=%d readssl=%d writefd=(%d) writestdout=%d writessl=%d pendingssl=%d needread=%d needwrite=%d\n", program, name, readfd, (readfd == infd), (readfd == sslfd), writefd, (writefd == outfd), (writefd == sslfd), pendingssl, needread, needwrite);
+        DIMINUTO_LOG_DEBUG("%s: %s inpfd=%d outfd=%d sslfd=%d readfd=%d writefd=%d pendingssl=%d needread=%d needwrite=%d neareof=%d farend=%d indicateof=%d\n", program, name, inpfd, outfd, sslfd, readfd, writefd, pendingssl, needread, needwrite, neareof, fareof, indicateeof);
 
         /*
          * If we don't seem to have anything to do, return to the caller and
@@ -116,10 +119,11 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
          * Do stdin reads.
          */
 
-        if (readfd == infd) {
+        if (readfd == inpfd) {
+
             switch (state[WRITER]) {
             case CODEX_STATE_IDLE:
-                bytes = read(infd, buffer[WRITER], bufsize);
+                bytes = read(inpfd, buffer[WRITER], bufsize);
                 if ((0 < bytes) && (bytes <= bufsize)) {
                     header[WRITER] = bytes;
                     state[WRITER] = restate;
@@ -127,8 +131,11 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
                     rc = diminuto_mux_register_write(muxp, sslfd);
                     diminuto_assert(rc >= 0);
                 } else if (bytes == 0) {
-                    errno = 0;
-                    status = STDDONE;
+                    rc = diminuto_mux_unregister_read(muxp, inpfd);
+                    diminuto_assert(rc >= 0);
+                    neareof = true;
+                    indicateeof = true;
+                    DIMINUTO_LOG_DEBUG("%s: %s nearend (%d) eof\n", program, name, inpfd);
                 } else if (bytes > bufsize) {
                     errno = EINVAL;
                     diminuto_perror("read");
@@ -142,10 +149,11 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
                 /* Do nothing. */
                 break;
             }
-        }
 
-        if (status != CONTINUE) {
-            break;
+            if (status != CONTINUE) {
+                break;
+            }
+
         }
 
         /*
@@ -153,6 +161,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
          */
 
         if (((writefd == sslfd) && !needread) || ((readfd == sslfd) && needwrite)) {
+
             switch (state[WRITER]) {
             case CODEX_STATE_INIT:
                 /* Fall through. */
@@ -196,7 +205,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
                 }
                 break;
             case CODEX_STATE_IDLE:
-                if (needwrite || ((keepalive >= 0) && ((now = diminuto_time_elapsed()) - then) < keepalive)) {
+                if (needwrite || indicateeof || ((keepalive >= 0) && ((now = diminuto_time_elapsed()) - then) < keepalive)) {
                     then = now;
                     /*
                      * If the WRITER is IDLE, and the keepalive
@@ -204,9 +213,16 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
                      * empty segment (a header containing zero)
                      * to the far end. (This can firehose the log
                      * if DEBUG is enabled and the keepalive is too
-                     * small.)
+                     * small.) If we need to signal the other end
+                     * that we've reached end-of-file, send a DONE.
                      */
-                    header[WRITER] = 0;
+                    if (indicateeof) {
+                        header[WRITER] = CODEX_INDICATION_DONE;
+                        indicateeof = false;
+                        DIMINUTO_LOG_DEBUG("%s: %s nearend (%d) indicate\n", program, name, sslfd);
+                    } else {
+                        header[WRITER] = CODEX_INDICATION_NONE;
+                    }
                     state[WRITER] = restate;
                     restate = CODEX_STATE_RESTART;
                     rc = diminuto_mux_register_write(muxp, sslfd);
@@ -217,18 +233,21 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
                 status = SSLDONE;
                 break;
             }
-        }
 
-        if (status != CONTINUE) {
-            break;
+            if (status != CONTINUE) {
+                break;
+            }
+
         }
 
         /*
-         * Do SSL reads and UDP writes.
+         * Do SSL reads and stdout writes.
          */
 
         if (((readfd == sslfd) && !needwrite) || ((writefd == sslfd) && needread) || pendingssl) {
+
             do {
+
                 switch (state[READER]) {
                 case CODEX_STATE_INIT:
                     /* Fall through. */
@@ -258,6 +277,10 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
                                     diminuto_perror("write");
                                     status = STDDONE;
                                 }
+                            } else if (header[READER] < 0) {
+                                state[READER] = CODEX_STATE_IDLE;
+                                fareof = true;
+                                DIMINUTO_LOG_DEBUG("%s: %s farend (%d) eof\n", program, name, sslfd);
                             } else {
                                 /*
                                  * This should never happen because the lower
@@ -295,12 +318,26 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, cod
                     status = SSLDONE;
                     break;
                 }
+
                 if (status != CONTINUE) {
                     break;
                 }
+
+                if (!neareof) {
+                    /* Do nothing. */
+                } else if (!fareof) {
+                    /* Do nothing. */
+                } else if (state[WRITER] != CODEX_STATE_IDLE) {
+                    /* Do nothing. */
+                } else {
+                    status = ALLDONE;
+                    break;
+                }
+
                 /*
                  * Consume all the data in the SSL pipeline.
                  */
+
             } while ((pendingssl = codex_connection_is_ready(ssl)) && !needwrite);
         }
 
