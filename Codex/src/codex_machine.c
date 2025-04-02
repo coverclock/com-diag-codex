@@ -129,11 +129,11 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
             if (bytes == 0) {
 
                 /*
-                 * Farend closed.
+                 * Farend closed (not an error).
                  */
 
                 state = CODEX_STATE_FINAL;
-                error = CODEX_SERROR_NONE;
+                error = CODEX_SERROR_SUCCESS;
 
             } else if (bytes < 0) {
     
@@ -236,11 +236,11 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
             if (bytes == 0) {
 
                 /*
-                 * Farend closed.
+                 * Farend closed (not an error).
                  */
 
                 state = CODEX_STATE_FINAL;
-                error = CODEX_SERROR_NONE;
+                error = CODEX_SERROR_SUCCESS;
 
             } else if (bytes < 0) {
     
@@ -367,11 +367,11 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
             if (bytes == 0) {
 
                 /*
-                 * Farend closed.
+                 * Farend closed (not an error).
                  */
 
                 state = CODEX_STATE_FINAL;
-                error = CODEX_SERROR_NONE;
+                error = CODEX_SERROR_SUCCESS;
 
             } else if (bytes <= 0) {
 
@@ -432,11 +432,11 @@ codex_state_t codex_machine_writer_generic(codex_state_t state, const char * exp
             if (bytes == 0) {
 
                 /*
-                 * Farend closed.
+                 * Farend closed (not an error).
                  */
 
                 state = CODEX_STATE_FINAL;
-                error = CODEX_SERROR_NONE;
+                error = CODEX_SERROR_SUCCESS;
 
              } else if (bytes < 0) {
     
