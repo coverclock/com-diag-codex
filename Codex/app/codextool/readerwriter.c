@@ -19,6 +19,7 @@
 #include "com/diag/diminuto/diminuto_assert.h"
 #include "com/diag/diminuto/diminuto_core.h"
 #include "com/diag/diminuto/diminuto_log.h"
+#include "com/diag/diminuto/diminuto_minmaxof.h"
 #include "com/diag/diminuto/diminuto_mux.h"
 #include "com/diag/diminuto/diminuto_time.h"
 #include "globals.h"
@@ -39,6 +40,7 @@ static codex_header_t header[DIRECTIONS] = { 0, 0, };
 static void * buffer[DIRECTIONS] = { (void *)0, (void *)0, };
 static uint8_t * here[DIRECTIONS] = { (uint8_t *)0, (uint8_t *)0, };
 static size_t length[DIRECTIONS] = { 0, 0, };
+static ssize_t size[DIRECTIONS] = { 0, 0, };
 static ticks_t then = 0;
 
 status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, codex_connection_t * ssl, int outfd, size_t bufsize, const char * expected, sticks_t keepalive)
@@ -57,7 +59,9 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
 
     if (!initialized) {
         diminuto_assert(bufsize > 0);
+        diminuto_assert(bufsize <= maximumof(codex_header_t));
         buffer[READER] = malloc(bufsize);
+        size[READER] = bufsize;
         diminuto_assert(buffer[READER] != (void *)0);
         buffer[WRITER] = malloc(bufsize);
         diminuto_assert(buffer[WRITER] != (void *)0);
@@ -125,7 +129,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
             case CODEX_STATE_IDLE:
                 bytes = read(inpfd, buffer[WRITER], bufsize);
                 if ((0 < bytes) && (bytes <= bufsize)) {
-                    header[WRITER] = bytes;
+                    size[WRITER] = bytes;
                     state[WRITER] = restate;
                     restate = CODEX_STATE_RESTART;
                     rc = diminuto_mux_register_write(muxp, sslfd);
@@ -170,7 +174,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
                 /* Fall through. */
             case CODEX_STATE_HEADER:
             case CODEX_STATE_PAYLOAD:
-                state[WRITER] = codex_machine_writer_generic(state[WRITER], expected, ssl,  &(header[WRITER]), buffer[WRITER], header[WRITER], &(here[WRITER]), &(length[WRITER]), &checked, &serror, &mask);
+                state[WRITER] = codex_machine_writer_generic(state[WRITER], expected, ssl,  &(header[WRITER]), buffer[WRITER], size[WRITER], &(here[WRITER]), &(length[WRITER]), &checked, &serror, &mask);
                 needwrite = false;
                 switch (serror) {
                 case CODEX_SERROR_SUCCESS:
@@ -217,11 +221,11 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
                      * that we've reached end-of-file, send a DONE.
                      */
                     if (indicateeof) {
-                        header[WRITER] = CODEX_INDICATION_DONE;
+                        size[WRITER] = CODEX_INDICATION_DONE;
                         indicateeof = false;
                         DIMINUTO_LOG_DEBUG("%s: %s nearend (%d) indicate\n", program, name, sslfd);
                     } else {
-                        header[WRITER] = CODEX_INDICATION_NONE;
+                        size[WRITER] = CODEX_INDICATION_NONE;
                     }
                     state[WRITER] = restate;
                     restate = CODEX_STATE_RESTART;
@@ -256,7 +260,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
                     /* Fall through. */
                 case CODEX_STATE_HEADER:
                 case CODEX_STATE_PAYLOAD:
-                    state[READER] = codex_machine_reader_generic(state[READER], expected, ssl, &(header[READER]), buffer[READER], bufsize, &(here[READER]), &(length[READER]), &checked, &serror, &mask);
+                    state[READER] = codex_machine_reader_generic(state[READER], expected, ssl, &(header[READER]), buffer[READER], size[READER], &(here[READER]), &(length[READER]), &checked, &serror, &mask);
                     needread = false;
                     switch (serror) {
                     case CODEX_SERROR_SUCCESS:
