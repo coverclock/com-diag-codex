@@ -149,9 +149,7 @@ ls -l ${FILESOURCE}
 
 dump ${FILESINK} | head
 
-diff ${FILESOURCE} ${FILESINK} || XC=$((${XC} + 1))
-
-rm -f ${FILES}
+diff ${FILESOURCE} ${FILESINK} || XC=$((${XC} + 1)) && rm -f ${FILESOURCE} ${FILESINK}
 
 ################################################################################
 # END

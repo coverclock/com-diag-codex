@@ -72,8 +72,7 @@ ps -f ${PIDS}
 
 echo "${PROGRAM}: EXECUTE" 1>&2
 
-#trap "ps -f ${PIDS} 2> /dev/null; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null; rm -f ${FILES} 2> /dev/null" HUP INT TERM
-trap "ps -f ${PIDS} 2> /dev/null; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null" HUP INT TERM
+trap "ps -f ${PIDS} 2> /dev/null; kill -9 ${PIDS} 2> /dev/null; ls -l ${FILES} 2> /dev/null; rm -f ${FILES} 2> /dev/null" HUP INT TERM
 
 wait ${PIDCLIENT}
 
@@ -97,7 +96,7 @@ ls -l ${FILESERVERSINK}
 
 dump ${FILESERVERSINK} | head
 
-diff ${FILECLIENTSOURCE} ${FILESERVERSINK} || XC=$((${XC} + 1))
+diff ${FILECLIENTSOURCE} ${FILESERVERSINK} || XC=$((${XC} + 1)) && rm -f ${FILECLIENTSOURCE} ${FILESERVERSINK}
 
 ls -l ${FILESERVERSOURCE}
 
@@ -107,9 +106,7 @@ ls -l ${FILECLIENTSINK}
 
 dump ${FILECLIENTSINK} | head
 
-diff ${FILESERVERSOURCE} ${FILECLIENTSINK} || XC=$((${XC} + 1))
-
-#rm -f ${FILES}
+diff ${FILESERVERSOURCE} ${FILECLIENTSINK} || XC=$((${XC} + 1)) && rm -f ${FILESERVERSOURCE} ${FILECLIENTSINK}
 
 ################################################################################
 # END
