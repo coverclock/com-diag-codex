@@ -1051,6 +1051,7 @@ functional-test:
 	unittest-core
 	unittest-machine
 	unittest-stagecoach
+	unittest-codextool
 
 # The control feature runs a unit test with the same
 # programming model as the SSL unit tests but without

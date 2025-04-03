@@ -96,7 +96,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
         writefd = diminuto_mux_ready_write(muxp);
         pendingssl = codex_connection_is_ready(ssl);
 
-        DIMINUTO_LOG_DEBUG("%s: %s readfd=(%d) readudp=%d readssl=%d writefd=(%d) writessl=%d pendingssl=%d needread=%d needwrite=%d\n", program, name, readfd, (readfd == udpfd), (readfd == sslfd), writefd, (writefd == sslfd), pendingssl, needread, needwrite);
+        DIMINUTO_LOG_DEBUG("%s: %s readfd=(%d) readudp=%d readssl=%d writefd=(%d) writessl=%d pendingssl=%d needread=%d needwrite=%d reader=%c[%ld] writer=%c[%ld]\n", program, name, readfd, (readfd == udpfd), (readfd == sslfd), writefd, (writefd == sslfd), pendingssl, needread, needwrite, state[READER], size[READER], state[WRITER], size[WRITER]);
 
         /*
          * If we don't seem to have anything to do, return to the caller and
@@ -153,6 +153,28 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
 
         if (((writefd == sslfd) && !needread) || ((readfd == sslfd) && needwrite)) {
             switch (state[WRITER]) {
+            case CODEX_STATE_IDLE:
+                if (needwrite || ((keepalive >= 0) && ((now = diminuto_time_elapsed()) - then) < keepalive)) {
+                    then = now;
+                    /*
+                     * If the WRITER is IDLE, and the keepalive
+                     * has elapsed or we need a write, send an
+                     * empty segment (a header containing zero)
+                     * to the far end. (This can firehose the log
+                     * if DEBUG is enabled and the keepalive is too
+                     * small.)
+                     */
+                    bytes = 0;
+                    DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%zd] keepalive\n", program, name, sslfd, bytes);
+                    size[WRITER] = bytes;
+                    state[WRITER] = restate;
+                    restate = CODEX_STATE_RESTART;
+                    rc = diminuto_mux_register_write(muxp, sslfd);
+                    diminuto_assert(rc >= 0);
+                    /* Fall through. */
+                } else {
+                    break;
+                }
             case CODEX_STATE_INIT:
                 DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%zd] init\n", program, name, sslfd, size[WRITER]);
                 /* Fall through. */
@@ -198,26 +220,6 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                     DIMINUTO_LOG_ERROR("%s: %s writer ssl (%d) [%zd] error %c %c\n", program, name, sslfd, size[WRITER], (char)state[WRITER], (char)serror);
                     status = SSLDONE;
                     break;
-                }
-                break;
-            case CODEX_STATE_IDLE:
-                if (needwrite || ((keepalive >= 0) && ((now = diminuto_time_elapsed()) - then) < keepalive)) {
-                    then = now;
-                    /*
-                     * If the WRITER is IDLE, and the keepalive
-                     * has elapsed or we need a write, send an
-                     * empty segment (a header containing zero)
-                     * to the far end. (This can firehose the log
-                     * if DEBUG is enabled and the keepalive is too
-                     * small.)
-                     */
-                    bytes = 0;
-                    DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%zd] keepalive\n", program, name, sslfd, bytes);
-                    size[WRITER] = bytes;
-                    state[WRITER] = restate;
-                    restate = CODEX_STATE_RESTART;
-                    rc = diminuto_mux_register_write(muxp, sslfd);
-                    diminuto_assert(rc >= 0);
                 }
                 break;
             default:

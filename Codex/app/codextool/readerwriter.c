@@ -28,10 +28,9 @@
 #include <unistd.h>
 
 static bool checked = false;
-static bool fareof = false;
-static bool indicateeof = true;
 static bool initialized = false;
 static bool neareof = false;
+static bool fareof = false;
 static bool needread = false;
 static bool needwrite = false;
 static codex_state_t state[DIRECTIONS] = { CODEX_STATE_START, CODEX_STATE_IDLE, };
@@ -66,8 +65,8 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
         buffer[WRITER] = malloc(bufsize);
         diminuto_assert(buffer[WRITER] != (void *)0);
         checked = false;
-        initialized = true;
         then = diminuto_time_elapsed();
+        initialized = true;
     }
 
     switch (role) {
@@ -98,7 +97,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
         writefd = diminuto_mux_ready_write(muxp);
         pendingssl = codex_connection_is_ready(ssl);
 
-        DIMINUTO_LOG_DEBUG("%s: %s inpfd=%d outfd=%d sslfd=%d readfd=%d writefd=%d pendingssl=%d needread=%d needwrite=%d neareof=%d farend=%d indicateof=%d\n", program, name, inpfd, outfd, sslfd, readfd, writefd, pendingssl, needread, needwrite, neareof, fareof, indicateeof);
+        DIMINUTO_LOG_DEBUG("%s: %s inpfd=%d outfd=%d sslfd=%d readfd=%d writefd=%d pendingssl=%d needread=%d needwrite=%d neareof=%d fareof=%d reader=%c[%ld] writer=%c[%ld]\n", program, name, inpfd, outfd, sslfd, readfd, writefd, pendingssl, needread, needwrite, neareof, fareof, state[READER], size[READER], state[WRITER], size[WRITER]);
 
         /*
          * If we don't seem to have anything to do, return to the caller and
@@ -138,7 +137,11 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
                     rc = diminuto_mux_unregister_read(muxp, inpfd);
                     diminuto_assert(rc >= 0);
                     neareof = true;
-                    indicateeof = true;
+                    size[WRITER] = CODEX_INDICATION_DONE;
+                    state[WRITER] = restate;
+                    restate = CODEX_STATE_RESTART;
+                    rc = diminuto_mux_register_write(muxp, sslfd);
+                    diminuto_assert(rc >= 0);
                     DIMINUTO_LOG_DEBUG("%s: %s nearend (%d) eof\n", program, name, inpfd);
                 } else if (bytes > bufsize) {
                     errno = EINVAL;
@@ -167,6 +170,27 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
         if (((writefd == sslfd) && !needread) || ((readfd == sslfd) && needwrite)) {
 
             switch (state[WRITER]) {
+            case CODEX_STATE_IDLE:
+                if (needwrite || ((keepalive >= 0) && ((now = diminuto_time_elapsed()) - then) < keepalive)) {
+                    then = now;
+                    /*
+                     * If the WRITER is IDLE, and the keepalive
+                     * has elapsed or we need a write, send an
+                     * empty segment (a header containing zero)
+                     * to the far end. (This can firehose the log
+                     * if DEBUG is enabled and the keepalive is too
+                     * small.) If we need to signal the other end
+                     * that we've reached end-of-file, send a DONE.
+                     */
+                    size[WRITER] = CODEX_INDICATION_NONE;
+                    state[WRITER] = restate;
+                    restate = CODEX_STATE_RESTART;
+                    rc = diminuto_mux_register_write(muxp, sslfd);
+                    diminuto_assert(rc >= 0);
+                    /* Fall through. */
+                } else {
+                    break;
+                }
             case CODEX_STATE_INIT:
                 /* Fall through. */
             case CODEX_STATE_START:
@@ -206,31 +230,6 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
                 default:
                     status = SSLDONE;
                     break;
-                }
-                break;
-            case CODEX_STATE_IDLE:
-                if (needwrite || indicateeof || ((keepalive >= 0) && ((now = diminuto_time_elapsed()) - then) < keepalive)) {
-                    then = now;
-                    /*
-                     * If the WRITER is IDLE, and the keepalive
-                     * has elapsed or we need a write, send an
-                     * empty segment (a header containing zero)
-                     * to the far end. (This can firehose the log
-                     * if DEBUG is enabled and the keepalive is too
-                     * small.) If we need to signal the other end
-                     * that we've reached end-of-file, send a DONE.
-                     */
-                    if (indicateeof) {
-                        size[WRITER] = CODEX_INDICATION_DONE;
-                        indicateeof = false;
-                        DIMINUTO_LOG_DEBUG("%s: %s nearend (%d) indicate\n", program, name, sslfd);
-                    } else {
-                        size[WRITER] = CODEX_INDICATION_NONE;
-                    }
-                    state[WRITER] = restate;
-                    restate = CODEX_STATE_RESTART;
-                    rc = diminuto_mux_register_write(muxp, sslfd);
-                    diminuto_assert(rc >= 0);
                 }
                 break;
             default:
