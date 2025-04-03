@@ -164,7 +164,7 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
                      * if DEBUG is enabled and the keepalive is too
                      * small.)
                      */
-                    bytes = 0;
+                    bytes = CODEX_INDICATION_NONE;
                     DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%zd] keepalive\n", program, name, sslfd, bytes);
                     size[WRITER] = bytes;
                     state[WRITER] = restate;
