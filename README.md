@@ -419,7 +419,7 @@ install packages for OpenSSL.
 
 ## Versions
 
-Diminuto 105.2.5 (may work with other versions but I may not have tested it).
+Diminuto 105.2.8 (or probably latest; may work with other versions but I may not have tested it).
 
 OpenSSL 3.0.15 (may work with other versions but I may not have tested it).
 
