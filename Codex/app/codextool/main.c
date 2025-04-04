@@ -12,7 +12,9 @@
  * or client mode; in server mode it services only a single client at a
  * time. It was directly derived from the source code for the Codex
  * stagecoach application; the code would have probably been a lot cleaner
- * if I'd started from scratch.
+ * if I'd started from scratch. Remarkably, the most difficult part of
+ * getting this to work was establishing the conditions under which each
+ * end can exit.
  *
  * NOTES
  *
@@ -228,10 +230,10 @@ int main(int argc, char * argv[])
 
     switch (role) {
     case CLIENT:
-        name = "codextool-client";
+        name = "codextoolclient";
         break;
     case SERVER:
-        name = "codextool-server";
+        name = "codextoolserver";
         break;
     default:
         diminuto_assert(false);
@@ -582,6 +584,7 @@ int main(int argc, char * argv[])
             case STDDONE:
             case ALLDONE:
                 done = true;
+                DIMINUTO_LOG_DEBUG("%s: %s done\n", program, name);
                 break;
             default:
                 /* Do nothing. */
@@ -627,14 +630,27 @@ int main(int argc, char * argv[])
 
     DIMINUTO_LOG_INFORMATION("%s: end\n", program);
 
+    if (sslfd >= 0) {
+        (void)diminuto_mux_unregister_read(&mux, sslfd);
+        (void)diminuto_mux_unregister_write(&mux, sslfd);
+    }
+    sslfd = -1;
+
+    if (ssl != (codex_connection_t *)0) {
+        (void)codex_connection_close(ssl);
+        ssl = codex_connection_free(ssl);
+        diminuto_assert(ssl == (codex_connection_t *)0);
+    }
+
+    if (biofd >= 0) {
+        (void)diminuto_mux_unregister_accept(&mux, biofd);
+    }
+    biofd = -1;
+
     if (bio != (codex_rendezvous_t *)0) {
         bio = codex_server_rendezvous_free(bio);
         diminuto_assert(bio == (codex_rendezvous_t *)0);
         bio = (codex_rendezvous_t *)0;
-        if (biofd >= 0) {
-            (void)diminuto_mux_unregister_accept(&mux, biofd);
-        }
-        biofd = -1;
     }
 
     if (ctx != (codex_context_t *)0) {

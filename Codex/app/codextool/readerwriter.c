@@ -322,10 +322,6 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
                     break;
                 }
 
-                if (status != CONTINUE) {
-                    break;
-                }
-
                 if (!neareof) {
                     /* Do nothing. */
                 } else if (!fareof) {
@@ -334,6 +330,10 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
                     /* Do nothing. */
                 } else {
                     status = ALLDONE;
+                    DIMINUTO_LOG_DEBUG("%s: %s quiescent\n", program, name);
+                }
+
+                if (status != CONTINUE) {
                     break;
                 }
 
