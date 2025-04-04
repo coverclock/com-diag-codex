@@ -19,12 +19,6 @@ Licensed under the terms in LICENSE.txt (FSF LGPL 2.1).
 
 # Abstract
 
-**N.B.** Even though the extensive unit and functional test suites may
-all pass, this repository is still largely a WORK IN PROGRESS. In
-particular, any handling of the ''' SSL_ERROR_WANT_READ''' and
-'''SSL_ERROR_WANT_WRITE''' error returns from OpenSSL have not been
-adequately tested (or, indeed, at all).
-
 Codex provides a slightly simpler higher-level C-based application
 programming interface to the Open Secure Socket Layer (OpenSSL)
 API. Mostly it's my excuse to learn how to use the OpenSSL C API for
@@ -37,13 +31,22 @@ for years in both personal and commercial development projects.
 for this project and others. It is sometimes dynamically forwarded to
 the GitHub page for this repository.)
 
-**Important safety tip**: Version 11.0.0 and beyond of this repository
+**Note**: Version 11.0.0 and beyond of this repository
 contains significate changes from prior versions, although the only
 API change was the elimination of the handshake renegotiation function
 call (which was a really bad idea anyway, and only briefly supported
 by OpenSSL).  If you want the prior version before I started committing
 violence to it, check out tag 10.1.1.  Version 11.0.0 has passed the
 Sanity, Functional, Failures, and Extra test suites.
+
+**Note**: I have yet to cause the OpenSSL library to return the errors
+''' SSL_ERROR_WANT_READ''' or '''SSL_ERROR_WANT_WRITE'''.  Hence the
+code to handle those conditions in the applications '''stagecoach''' or
+'''codextool'''  has not been tested. (It's not for lack of trying on my
+part.) If you are using the '''codex_machine''' API, you can respond to
+an '''SSL_ERROR_WANT_WRITE''' return by writing a header with a length
+field (a.k.a. "indication") of zero. Such a header will automatically be
+tossed away by the far end, but will satisfy OpenSSL's need for a write.
 
 # Disclaimer
 
@@ -184,11 +187,11 @@ I have written applications included in this repo, two of which are
 named for the sub-projects that they support in other repositories.
 These applications are in the ```app``` directory.
 
-* Codextool reads from an SSL connection and writes to stdout, and reads from stdin and writes to an SSL connection.
+* App codextool reads from an SSL connection and writes to stdout, and reads from stdin and writes to an SSL connection.
 
-* Stagecoach supports GNSS rovers and a GNSS base station communicating with an RTK router (all of these are part of the Hazer project).
+* App stagecoach supports GNSS rovers and a GNSS base station communicating with an RTK router (all of these are part of the Hazer project) by forwarding datagrams in either direction over an SSL connection (in return for some violence done to the real-time nature of those datagrams).
 
-* Wheatstone supports experiments with LTE-M modems used with remote sensors (mostly DEPRECATED since AT&T dropped their inexpensive LTE-M service).
+* App wheatstone supports experiments with LTE-M modems used with remote sensors (mostly DEPRECATED since AT&T dropped their inexpensive LTE-M service).
 
 # Targets
 
