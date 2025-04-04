@@ -633,8 +633,10 @@ int main(int argc, char * argv[])
     if (sslfd >= 0) {
         (void)diminuto_mux_unregister_read(&mux, sslfd);
         (void)diminuto_mux_unregister_write(&mux, sslfd);
+        sslfd = -1;
     }
-    sslfd = -1;
+
+    diminuto_mux_fini(&mux);
 
     if (ssl != (codex_connection_t *)0) {
         (void)codex_connection_close(ssl);
@@ -644,22 +646,18 @@ int main(int argc, char * argv[])
 
     if (biofd >= 0) {
         (void)diminuto_mux_unregister_accept(&mux, biofd);
+        biofd = -1;
     }
-    biofd = -1;
 
     if (bio != (codex_rendezvous_t *)0) {
         bio = codex_server_rendezvous_free(bio);
         diminuto_assert(bio == (codex_rendezvous_t *)0);
-        bio = (codex_rendezvous_t *)0;
     }
 
     if (ctx != (codex_context_t *)0) {
         ctx = codex_context_free(ctx);
         diminuto_assert(ctx == (codex_context_t *)0);
-        ctx = (codex_context_t *)0;
     }
-
-    diminuto_mux_fini(&mux);
 
     exit(0);
 }
