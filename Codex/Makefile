@@ -23,7 +23,7 @@ PROJECT				:=	$(shell echo $(TITLE) | tr '[A-Z]' '[a-z]')
 SYMBOL				:=	$(shell echo $(TITLE) | tr '[a-z]' '[A-Z]')
 
 MAJOR				:=	12# API changes that may require that applications be modified.
-MINOR				:=	0# Only functionality or features added with no legacy API changes.
+MINOR				:=	1# Only functionality or features added with no legacy API changes.
 BUILD				:=	0# Only bugs fixed with no API changes or new functionality.
 
 # Disclaimer: the only target that I routinely build and test for is "host".
@@ -1050,6 +1050,11 @@ functional-test:
 	echo "TEST FUNCTIONAL" 1>&2
 	unittest-core
 	unittest-machine
+
+# These won't actually take that long.
+
+applications-test:
+	echo "TEST APPLICATIONS" 1>&2
 	unittest-stagecoach
 	unittest-codextool
 	unittest-codextool-client
@@ -1064,7 +1069,7 @@ extra-test:
 	echo "TEST EXTRA" 1>&2
 	unittest-control
 
-tests:	sanity-test failures-test functional-test extra-test
+tests:	sanity-test failures-test functional-test applications-test extra-test
 	echo "COMPLETE" 1>&2
 
 ##### Build certificates etc. for Wheatstone.

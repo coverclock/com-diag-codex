@@ -54,11 +54,11 @@ ls -l ${FILES}
 
 echo "${PROGRAM}: PROCESSES" 1>&2
 
-codextool -b ${BUFFERSIZE} -C ${CERT}/codextool-servercert.pem -K ${CERT}/codextool-serverkey.pem -P ${CERT} -n 0.0.0.0:${TUNNEL} < ${FILESERVERSOURCE} > ${FILESERVERSINK} &
+codextool -i -b ${BUFFERSIZE} -C ${CERT}/codextool-servercert.pem -K ${CERT}/codextool-serverkey.pem -P ${CERT} -n 0.0.0.0:${TUNNEL} < ${FILESERVERSOURCE} > ${FILESERVERSINK} &
 PIDSERVER=$!
 sleep 5
 
-codextool -b ${BUFFERSIZE} -C ${CERT}/codextool-clientcert.pem -K ${CERT}/codextool-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} < ${FILECLIENTSOURCE} > ${FILECLIENTSINK} &
+codextool -i -b ${BUFFERSIZE} -C ${CERT}/codextool-clientcert.pem -K ${CERT}/codextool-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} < ${FILECLIENTSOURCE} > ${FILECLIENTSINK} &
 PIDCLIENT=$!
 sleep 5
 

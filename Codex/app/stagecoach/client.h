@@ -23,6 +23,7 @@
 
 /**
  * Implement the client-side server proxy for Stagecoach.
+ * @param introduce indicates send an initial keepalive.
  * @param fds is the number of ready fds from the multiplexer.
  * @param muxp points to the multiplexer object.
  * @param udptype is the type of the UDP socket, IPV4 or IPV6.
@@ -33,6 +34,6 @@
  * @param keepalive is the duration of the keepalive in ticks, -1 for none.
  * @return the status.
  */
-extern status_t client(int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, codex_connection_t * ssl, size_t bufsize, const char * expected, sticks_t keepalive);
+extern status_t client(bool introduce, int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, codex_connection_t * ssl, size_t bufsize, const char * expected, sticks_t keepalive);
 
 #endif

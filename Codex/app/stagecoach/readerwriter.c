@@ -39,7 +39,7 @@ static ssize_t size[DIRECTIONS] = { 0, 0, };
 static bool checked = false;
 static ticks_t then = 0;
 
-status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, address_t * receivedaddressp, port_t * receivedportp, const address_t * sendingaddressp, const port_t sendingport, codex_connection_t * ssl, size_t bufsize, const char * expected, sticks_t keepalive)
+status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, address_t * receivedaddressp, port_t * receivedportp, const address_t * sendingaddressp, const port_t sendingport, codex_connection_t * ssl, size_t bufsize, const char * expected, sticks_t keepalive)
 {
     status_t status = CONTINUE;
     int readfd = -1;
@@ -55,17 +55,30 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
     bool needwrite = false;
     int rc = -1;
 
+    diminuto_assert(ssl != (codex_connection_t *)0);
+    sslfd = codex_connection_descriptor(ssl);
+    diminuto_assert(sslfd >= 0);
+
     if (!initialized) {
         diminuto_assert(bufsize > 0);
         diminuto_assert(bufsize <= maximumof(codex_header_t));
-        buffer[READER] = malloc(bufsize);
+        buffer[READER] = malloc(bufsize); /* For the SSL stream. */
         diminuto_assert(buffer[READER] != (void *)0);
         size[READER] = bufsize;
-        buffer[WRITER] = malloc(bufsize);
+        buffer[WRITER] = malloc(bufsize); /* For the datagram stream. */
         diminuto_assert(buffer[WRITER] != (void *)0);
         checked = false;
         initialized = true;
         then = diminuto_time_elapsed();
+        if (introduce) {
+            bytes = CODEX_INDICATION_NONE;
+            size[WRITER] = bytes;
+            state[WRITER] = restate;
+            restate = CODEX_STATE_RESTART;
+            rc = diminuto_mux_register_write(muxp, sslfd);
+            diminuto_assert(rc >= 0);
+            DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%zd] introduce\n", program, name, sslfd, bytes);
+        }
     }
 
     switch (role) {
@@ -79,10 +92,6 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t ud
         diminuto_assert(false);
         break;
     }
-
-    diminuto_assert(ssl != (codex_connection_t *)0);
-    sslfd = codex_connection_descriptor(ssl);
-    diminuto_assert(sslfd >= 0);
 
     do {
 

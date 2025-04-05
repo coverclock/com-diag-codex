@@ -22,6 +22,7 @@
  * This implements the reader and writer state machines that are called after
  * every new call to the multiplexor, which uses the select(2) system call.
  * @param role is the role of the calling function, CLIENT or SERVER.
+ * @param introduce indicates send an initial keepalive.
  * @param fds is the number of file descriptors that are ready, or <0 for error.
  * @param muxp is the multiplexor object.
  * @param udptype is the protocol type of the UDP socket, IPv4 or IPv6.
@@ -35,6 +36,6 @@
  * @param keepalive is the keepalive duration in ticks.
  * @return the status.
  */
-extern status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, address_t * receivedaddressp, port_t * receivedportp, const address_t * sendingaddressp, port_t sendingport, codex_connection_t * ssl, size_t bufsize, const char * expected, sticks_t keepalive);
+extern status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, address_t * receivedaddressp, port_t * receivedportp, const address_t * sendingaddressp, port_t sendingport, codex_connection_t * ssl, size_t bufsize, const char * expected, sticks_t keepalive);
 
 #endif

@@ -42,7 +42,7 @@ static size_t length[DIRECTIONS] = { 0, 0, };
 static ssize_t size[DIRECTIONS] = { 0, 0, };
 static ticks_t then = 0;
 
-status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, codex_connection_t * ssl, int outfd, size_t bufsize, const char * expected, sticks_t keepalive)
+status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * muxp, int inpfd, codex_connection_t * ssl, int outfd, size_t bufsize, const char * expected, sticks_t keepalive)
 {
     status_t status = CONTINUE;
     int readfd = -1;
@@ -56,17 +56,28 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
     bool pendingssl = false;
     int rc = -1;
 
+    diminuto_assert(ssl != (codex_connection_t *)0);
+    sslfd = codex_connection_descriptor(ssl);
+    diminuto_assert(sslfd >= 0);
+
     if (!initialized) {
         diminuto_assert(bufsize > 0);
         diminuto_assert(bufsize <= maximumof(codex_header_t));
-        buffer[READER] = malloc(bufsize);
+        buffer[READER] = malloc(bufsize); /* For the SSL stream. */
         size[READER] = bufsize;
         diminuto_assert(buffer[READER] != (void *)0);
-        buffer[WRITER] = malloc(bufsize);
+        buffer[WRITER] = malloc(bufsize); /* For the stdin stream. */
         diminuto_assert(buffer[WRITER] != (void *)0);
         checked = false;
         then = diminuto_time_elapsed();
         initialized = true;
+        if (introduce) {
+            size[WRITER] = CODEX_INDICATION_NONE;
+            state[WRITER] = restate;
+            restate = CODEX_STATE_RESTART;
+            rc = diminuto_mux_register_write(muxp, sslfd);
+            diminuto_assert(rc >= 0);
+        }
     }
 
     switch (role) {
@@ -80,10 +91,6 @@ status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int inpfd, co
         diminuto_assert(false);
         break;
     }
-
-    diminuto_assert(ssl != (codex_connection_t *)0);
-    sslfd = codex_connection_descriptor(ssl);
-    diminuto_assert(sslfd >= 0);
 
     do {
 

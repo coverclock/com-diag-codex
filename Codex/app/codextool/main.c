@@ -93,6 +93,7 @@ int main(int argc, char * argv[])
     const char * timeout = (const char *)0;
     const char * keepalive = (const char *)0;
     role_t role = INVALID;
+    bool introduce = false;
     bool selfsigned = true; /* Allow self-signed certificates by default. */
     bool daemonize = false;
     size_t bufsize = MAXDATAGRAM;
@@ -137,7 +138,7 @@ int main(int argc, char * argv[])
 
     program = ((program = strrchr(argv[0], '/')) == (char *)0) ? argv[0] : program + 1;
 
-    while ((opt = getopt(argc, argv, "C:D:E:K:L:P:R:b:d:f:k:n:rt:x?")) >= 0) {
+    while ((opt = getopt(argc, argv, "C:D:E:K:L:P:R:b:d:f:ik:n:rt:x?")) >= 0) {
 
         switch (opt) {
 
@@ -182,6 +183,10 @@ int main(int argc, char * argv[])
             role = CLIENT;
             break;
 
+        case 'i':
+            introduce = true;
+            break;
+
         case 'k':
             keepalive = optarg;
             break;
@@ -204,7 +209,7 @@ int main(int argc, char * argv[])
             break;
 
         case '?':
-            fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -k MILLISECONDS ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -x ]\n", program);
+            fprintf(stderr, "usage: %s [ -C CERTIFICATEFILE ] [ -D DHPARMSFILE ] [ -E EXPECTEDDOMAIN ] [ -K PRIVATEKEYFILE ] [ -L REVOCATIONFILE ] [ -P CERTIFICATESPATH ] [ -R ROOTFILE ] [ -b BYTES ] [ -d MILLISECONDS ] [ -f FARENDPOINT ] [ -i ] [ -k MILLISECONDS ] [ -n NEARENDPOINT ] [ -r ] [ -t MILLISECONDS ] [ -x ]\n", program);
             fprintf(stderr, "       -?                   prints this help menu and exits.\n");
             fprintf(stderr, "       -C CERTIFICATEFILE   is the .pem certificate.\n");
             fprintf(stderr, "       -D DHPARMSFILE       is the .pem Diffie-Hellman parameters file.\n");
@@ -216,6 +221,7 @@ int main(int argc, char * argv[])
             fprintf(stderr, "       -b BYTES             is the allocated buffer size in bytes.\n");
             fprintf(stderr, "       -d MILLISECONDS      is the connection retry delay in milliseconds.\n");
             fprintf(stderr, "       -f FARENDPOINT       is the HOST:PORT far end point for client.\n");
+            fprintf(stderr, "       -i                   introduce with an initial keepalive.\n");
             fprintf(stderr, "       -k MILLISECONDS      is the keepalive interval in milliseconds.\n");
             fprintf(stderr, "       -n NEARENDPOINT      is the :PORT or 0.0.0.0:PORT or [::]:PORT near end point for server.\n");
             fprintf(stderr, "       -r                   requires certificates signed by a CA.\n");
@@ -253,7 +259,7 @@ int main(int argc, char * argv[])
     (void)diminuto_log_setmask();
     DIMINUTO_LOG_NOTICE("%s: %s file=\"%s\" type=%c mask=0x%x\n", program, name, maskfile, filetype, diminuto_log_mask);
 
-    DIMINUTO_LOG_INFORMATION("%s: %s begin C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" b=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" k=\"%s\" n=\"%s\" r=%d t=\"%s\" x=%d %c=%d\n",
+    DIMINUTO_LOG_INFORMATION("%s: %s begin C=\"%s\" D=\"%s\" K=\"%s\" L=\"%s\" P=\"%s\" R=\"%s\" b=\"%s\" d=\"%s\" e=\"%s\" f=\"%s\" i=%d k=\"%s\" n=\"%s\" r=%d t=\"%s\" x=%d %c=%d\n",
         program,
         name,
         (pathcrt == (const char *)0) ? "" : pathcrt,
@@ -266,6 +272,7 @@ int main(int argc, char * argv[])
         (delay == (const char *)0) ? "" : delay,
         (expected == (const char *)0) ? "" : expected,
         (farend == (const char *)0) ? "" : farend,
+        introduce,
         (keepalive == (const char *)0) ? "" : keepalive,
         (nearend == (const char *)0) ? "" : nearend,
         !selfsigned,
@@ -578,7 +585,7 @@ int main(int argc, char * argv[])
 
             diminuto_assert(sslfd >= 0);
 
-            status = readerwriter(role, fds, &mux, inpfd, ssl, outfd, bufsize, expected, keepaliveticks);
+            status = readerwriter(role, introduce, fds, &mux, inpfd, ssl, outfd, bufsize, expected, keepaliveticks);
 
             switch (status) {
             case STDDONE:

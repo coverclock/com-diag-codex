@@ -22,6 +22,7 @@
  * This implements the reader and writer state machines that are called after
  * every new call to the multiplexor, which uses the select(2) system call.
  * @param role is the role of the calling function, CLIENT or SERVER.
+ * @param introduce indicates send an initial keepalive.
  * @param fds is the number of file descriptors that are ready, or <0 for error.
  * @param muxp is the multiplexor object.
  * @param infd is the input file descriptor (nominally STDIN_FILENO).
@@ -32,6 +33,6 @@
  * @param keepalive is the keepalive duration in ticks.
  * @return the status.
  */
-extern status_t readerwriter(role_t role, int fds, diminuto_mux_t * muxp, int infd, codex_connection_t * ssl, int outfd, size_t bufsize, const char * expected, sticks_t keepalive);
+extern status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * muxp, int infd, codex_connection_t * ssl, int outfd, size_t bufsize, const char * expected, sticks_t keepalive);
 
 #endif
