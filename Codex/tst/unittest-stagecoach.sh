@@ -99,11 +99,11 @@ echo "${PROGRAM}: PROCESSES" 1>&2
 # gpstool             stagecoach       stagecoach        rtktool
 # rover               -c               -s                router
 
-stagecoach -b ${BUFFERSIZE} -C ${CERT}/stagecoach-servercert.pem -K ${CERT}/stagecoach-serverkey.pem -P ${CERT} -f localhost:${FAREND} -n 0.0.0.0:${TUNNEL} -s &
+stagecoach -i -b ${BUFFERSIZE} -C ${CERT}/stagecoach-servercert.pem -K ${CERT}/stagecoach-serverkey.pem -P ${CERT} -f localhost:${FAREND} -n 0.0.0.0:${TUNNEL} -s &
 PIDSERVER=$!
 sleep 5
 
-stagecoach -b ${BUFFERSIZE} -C ${CERT}/stagecoach-clientcert.pem -K ${CERT}/stagecoach-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} -n 0.0.0.0:${NEAREND} -c &
+stagecoach -i -b ${BUFFERSIZE} -C ${CERT}/stagecoach-clientcert.pem -K ${CERT}/stagecoach-clientkey.pem -P ${CERT} -f localhost:${TUNNEL} -n 0.0.0.0:${NEAREND} -c &
 PIDCLIENT=$!
 sleep 5
 
