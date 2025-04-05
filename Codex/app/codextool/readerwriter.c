@@ -214,6 +214,7 @@ status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * mux
                         state[WRITER] = CODEX_STATE_IDLE;
                         rc = diminuto_mux_unregister_write(muxp, sslfd);
                         diminuto_assert(rc >= 0);
+                        DIMINUTO_LOG_DEBUG("%s: %s sent (%d) [%ld]\n", program, name, sslfd, size[WRITER]);
                         break;
                     case CODEX_STATE_FINAL:
                     case CODEX_STATE_IDLE:
@@ -272,6 +273,7 @@ status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * mux
                     case CODEX_SERROR_SUCCESS:
                         switch (state[READER]) {
                         case CODEX_STATE_COMPLETE:
+                            DIMINUTO_LOG_DEBUG("%s: %s received (%d) [%d]\n", program, name, sslfd, header[READER]);
                             if (header[READER] > 0) {
                                 bytes = write(outfd, buffer[READER], header[READER]);
                                 if (bytes == header[READER]) {
