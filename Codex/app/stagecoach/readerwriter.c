@@ -29,6 +29,7 @@
 #include "helpers.h"
 
 static bool initialized = false;
+static bool reintroduce = false;
 static codex_state_t state[DIRECTIONS] = { CODEX_STATE_START, CODEX_STATE_IDLE, };
 static codex_state_t restate = CODEX_STATE_START; /* Only for WRITER. */
 static codex_header_t header[DIRECTIONS] = { 0, 0, };
@@ -70,15 +71,18 @@ status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * mux
         checked = false;
         initialized = true;
         then = diminuto_time_elapsed();
-        if (introduce) {
-            bytes = CODEX_INDICATION_NONE;
-            size[WRITER] = bytes;
-            state[WRITER] = restate;
-            restate = CODEX_STATE_RESTART;
-            rc = diminuto_mux_register_write(muxp, sslfd);
-            diminuto_assert(rc >= 0);
-            DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%zd] introduce\n", program, name, sslfd, bytes);
-        }
+        reintroduce = introduce;
+    }
+
+    if (reintroduce) {
+        bytes = CODEX_INDICATION_NONE;
+        size[WRITER] = bytes;
+        state[WRITER] = restate;
+        restate = CODEX_STATE_RESTART;
+        rc = diminuto_mux_register_write(muxp, sslfd);
+        diminuto_assert(rc >= 0);
+        DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%zd] introduce\n", program, name, sslfd, bytes);
+        reintroduce = false;
     }
 
     switch (role) {
@@ -331,6 +335,7 @@ status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * mux
         state[WRITER] = CODEX_STATE_IDLE;
         restate = CODEX_STATE_START;
         checked = false;
+        reintroduce = introduce;
     }
 
     return status;
