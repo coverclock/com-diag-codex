@@ -29,6 +29,7 @@
 
 static bool checked = false;
 static bool initialized = false;
+static bool reintroduce = false;
 static bool neareof = false;
 static bool fareof = false;
 static bool needread = false;
@@ -71,13 +72,16 @@ status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * mux
         checked = false;
         then = diminuto_time_elapsed();
         initialized = true;
-        if (introduce) {
-            size[WRITER] = CODEX_INDICATION_NONE;
-            state[WRITER] = restate;
-            restate = CODEX_STATE_RESTART;
-            rc = diminuto_mux_register_write(muxp, sslfd);
-            diminuto_assert(rc >= 0);
-        }
+        reintroduce = introduce;
+    }
+
+    if (reintroduce) {
+        size[WRITER] = CODEX_INDICATION_NONE;
+        state[WRITER] = restate;
+        restate = CODEX_STATE_RESTART;
+        rc = diminuto_mux_register_write(muxp, sslfd);
+        diminuto_assert(rc >= 0);
+        reintroduce = false;
     }
 
     switch (role) {
@@ -360,6 +364,7 @@ status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * mux
         state[WRITER] = CODEX_STATE_IDLE;
         restate = CODEX_STATE_START;
         checked = false;
+        reintroduce = introduce;
     }
 
     return status;
