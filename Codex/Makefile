@@ -1056,6 +1056,7 @@ functional-test:
 applications-test:
 	echo "TEST APPLICATIONS" 1>&2
 	unittest-stagecoach
+	unittest-stagecoach-recovery
 	unittest-codextool
 	unittest-codextool-client
 	unittest-codextool-server

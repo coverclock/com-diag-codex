@@ -56,6 +56,18 @@ status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * mux
     bool needwrite = false;
     int rc = -1;
 
+    switch (role) {
+    case CLIENT:
+        name = "stagecoachclient";
+        break;
+    case SERVER:
+        name = "stagecoachserver";
+        break;
+    default:
+        diminuto_assert(false);
+        break;
+    }
+
     diminuto_assert(ssl != (codex_connection_t *)0);
     sslfd = codex_connection_descriptor(ssl);
     diminuto_assert(sslfd >= 0);
@@ -83,18 +95,6 @@ status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * mux
         diminuto_assert(rc >= 0);
         DIMINUTO_LOG_DEBUG("%s: %s writer ssl (%d) [%zd] introduce\n", program, name, sslfd, bytes);
         reintroduce = false;
-    }
-
-    switch (role) {
-    case CLIENT:
-        name = "stagecoachclient";
-        break;
-    case SERVER:
-        name = "stagecoachserver";
-        break;
-    default:
-        diminuto_assert(false);
-        break;
     }
 
     do {
