@@ -214,6 +214,7 @@ codex_state_t codex_machine_reader_generic(codex_state_t state, const char * exp
                              * sometimes necessary to accomodate the SSL stack.
                              * We ignore it.
                              */
+                            DIMINUTO_LOG_DEBUG("codex_machine_reader_generic: keepalive received\n");
                             state = CODEX_STATE_RESTART;
                             repeat = codex_connection_is_ready(ssl);
                         } else if (*header > size) {
