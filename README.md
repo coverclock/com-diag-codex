@@ -40,11 +40,11 @@ violence to it, check out tag 10.1.1.  Version 11.0.0 has passed the
 Sanity, Functional, Failures, and Extra test suites.
 
 **Note**: I have yet to cause the OpenSSL library to return the errors
-''' SSL_ERROR_WANT_READ''' or '''SSL_ERROR_WANT_WRITE'''.  Hence the
-code to handle those conditions in the applications '''stagecoach''' or
-'''codextool'''  has not been tested. (It's not for lack of trying on my
-part.) If you are using the '''codex_machine''' API, you can respond to
-an '''SSL_ERROR_WANT_WRITE''' return by writing a header with a length
+` SSL_ERROR_WANT_READ` or `SSL_ERROR_WANT_WRITE`.  Hence the
+code to handle those conditions in the applications `stagecoach` or
+`codextool`  has not been tested. (It's not for lack of trying on my
+part.) If you are using the `codex_machine` API, you can respond to
+an `SSL_ERROR_WANT_WRITE` return by writing a header with a length
 field (a.k.a. "indication") of zero. Such a header will automatically be
 tossed away by the far end, but will satisfy OpenSSL's need for a write.
 
