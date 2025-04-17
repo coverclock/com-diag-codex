@@ -40,6 +40,12 @@ static ssize_t size[DIRECTIONS] = { 0, 0, };
 static bool checked = false;
 static ticks_t then = 0;
 
+void readerwriterfini(void)
+{
+    free(buffer[READER]);
+    free(buffer[WRITER]);
+}
+
 status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * muxp, protocol_t udptype, int udpfd, address_t * receivedaddressp, port_t * receivedportp, const address_t * sendingaddressp, const port_t sendingport, codex_connection_t * ssl, size_t bufsize, const char * expected, sticks_t keepalive)
 {
     status_t status = CONTINUE;

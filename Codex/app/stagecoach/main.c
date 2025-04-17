@@ -728,6 +728,8 @@ int main(int argc, char * argv[])
 
     DIMINUTO_LOG_INFORMATION("%s: end\n", program);
 
+    readerwriterfini();
+
     if (sslfd >= 0) {
         (void)diminuto_mux_unregister_read(&mux, sslfd);
         (void)diminuto_mux_unregister_write(&mux, sslfd);

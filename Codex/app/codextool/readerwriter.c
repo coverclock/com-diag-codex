@@ -43,6 +43,12 @@ static size_t length[DIRECTIONS] = { 0, 0, };
 static ssize_t size[DIRECTIONS] = { 0, 0, };
 static ticks_t then = 0;
 
+void readerwriterfini(void)
+{
+    free(buffer[READER]);
+    free(buffer[WRITER]);
+}
+
 status_t readerwriter(role_t role, bool introduce, int fds, diminuto_mux_t * muxp, int inpfd, codex_connection_t * ssl, int outfd, size_t bufsize, const char * expected, sticks_t keepalive)
 {
     status_t status = CONTINUE;

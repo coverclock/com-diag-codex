@@ -19,6 +19,12 @@
 #include "types.h"
 
 /**
+ * Release any dynamically acquired resources in the reader and writer
+ * state machines.
+ */
+extern void readerwriterfini(void);
+
+/**
  * This implements the reader and writer state machines that are called after
  * every new call to the multiplexor, which uses the select(2) system call.
  * @param role is the role of the calling function, CLIENT or SERVER.

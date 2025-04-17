@@ -19,6 +19,7 @@
 
 #include "com/diag/codex/codex.h"
 #include "com/diag/diminuto/diminuto_mux.h"
+#include "readerwriter.h"
 #include "types.h"
 
 /**
