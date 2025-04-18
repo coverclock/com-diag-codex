@@ -177,9 +177,12 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
     ASN1_OBJECT * obj = (ASN1_OBJECT *)0;
     int nid = -1;
     const char * str = (char *)0;
-    const X509V3_EXT_METHOD * meth = (X509V3_EXT_METHOD *)0;
-    void * vv = (void *)0;
-    STACK_OF(CONF_VALUE) * vals = (STACK_OF(CONF_VALUE) *)0;
+    const X509V3_EXT_METHOD * method = (X509V3_EXT_METHOD *)0;
+    void * item = (void *)0;
+    void * freeasn1 = (void *)0;
+    void * freed2i = (void *)0;
+    STACK_OF(CONF_VALUE) * values = (STACK_OF(CONF_VALUE) *)0;
+    STACK_OF(CONF_VALUE) * freei2v = (STACK_OF(CONF_VALUE) *)0;
     int jj = 0;
     CONF_VALUE * val = (CONF_VALUE *)0;
     int lim = 0;
@@ -379,26 +382,34 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
                 continue;
             }
 
-            meth = X509V3_EXT_get(ext);
-            if (meth == (X509V3_EXT_METHOD *)0) {
+            method = X509V3_EXT_get(ext);
+            if (method == (X509V3_EXT_METHOD *)0) {
                 DIMINUTO_LOG_DEBUG("codex_verification_callback:  X509V3_EXT_get [%d] missing\n", ii);
                 continue;
             }
 
-            it = ASN1_ITEM_ptr(meth->it);
+            it = ASN1_ITEM_ptr(method->it);
 
             if (it != (const ASN1_ITEM *)0) {
 
-                vv = ASN1_item_d2i((ASN1_VALUE **)0, &pp, extlen, it);
-                if (vv == (void *)0) {
+                if (freeasn1 != (void *)0) {
+                    ASN1_item_free(freeasn1, ASN1_ITEM_ptr(method->it));
+                }
+
+                item = freeasn1 = ASN1_item_d2i((ASN1_VALUE **)0, &pp, extlen, it); /* MALLOC! */
+                if (item == (void *)0) {
                     DIMINUTO_LOG_DEBUG("codex_verification_callback: ANS1_item_d2i [%d] missing\n", ii);
                     continue;
                 }
 
-            } else if (meth->d2i != (X509V3_EXT_D2I)0) {
+            } else if (method->d2i != (X509V3_EXT_D2I)0) {
 
-                vv = meth->d2i((void *)0, &pp, extlen);
-                if (vv == (void *)0) {
+                if (freed2i != (void *)0) {
+                    method->ext_free(freed2i);
+                }
+
+                item = freed2i = method->d2i((void *)0, &pp, extlen); /* MALLOC? */
+                if (item == (void *)0) {
                     DIMINUTO_LOG_DEBUG("codex_verification_callback: d2i [%d] missing\n", ii);
                     continue;
                 }
@@ -409,22 +420,26 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
             }
 
-            if (meth->i2v == (X509V3_EXT_I2V)0) {
+            if (method->i2v == (X509V3_EXT_I2V)0) {
                 DIMINUTO_LOG_DEBUG("codex_verification_callback: i2v [%d] missing\n", ii);
                 continue;
             }
 
-            vals = meth->i2v(meth, vv, (STACK_OF(CONF_VALUE) *)0);
-            if (vals == (STACK_OF(CONF_VALUE) *)0) {
+            if (freei2v != (STACK_OF(CONF_VALUE) *)0) {
+                sk_CONF_VALUE_pop_free(freei2v, X509V3_conf_free);
+            }
+
+            values = freei2v = method->i2v(method, item, (STACK_OF(CONF_VALUE) *)0); /* MALLOC! */
+            if (values == (STACK_OF(CONF_VALUE) *)0) {
                 DIMINUTO_LOG_DEBUG("codex_verification_callback: STACK_OF(CONF_VALUE) [%d] missing\n", ii);
                 continue;
             }
 
-            lim = sk_CONF_VALUE_num(vals);
+            lim = sk_CONF_VALUE_num(values);
             DIMINUTO_LOG_DEBUG("codex_connection_verify: num ssl=%p crt=%p stack=%d\n", ssl, crt, lim);
             for (jj = 0; jj < lim; ++jj) {
 
-                val = sk_CONF_VALUE_value(vals, jj);
+                val = sk_CONF_VALUE_value(values, jj);
                 if (val == (CONF_VALUE *)0) {
                     DIMINUTO_LOG_DEBUG("codex_connection_verify: sk_CONF_VAUE [%d][%d] missing\n", ii, jj);
                     continue;
@@ -588,6 +603,18 @@ int codex_connection_verify(codex_connection_t * ssl, const char * expected)
 
     if (crt != (X509 *)0) {
         X509_free(crt);
+    }
+
+    if (freeasn1 != (void *)0) {
+        ASN1_item_free(freeasn1, ASN1_ITEM_ptr(method->it));
+    }
+
+    if (freed2i != (void *)0) {
+        method->ext_free(freed2i);
+    }
+
+    if (freei2v != (STACK_OF(CONF_VALUE) *)0) {
+        sk_CONF_VALUE_pop_free(freei2v, X509V3_conf_free);
     }
 
     return result;
