@@ -4,6 +4,8 @@
 # Chip Overclock (mailto:coverclock@diag.com)
 # https://github.com/coverclock/com-diag-codex
 #
+# This unit test is not run by default because I find that valgrind doesn't
+# work on some flavors of Linux on some SBCs, even though it installs okay.
 
 ################################################################################
 # BEGIN

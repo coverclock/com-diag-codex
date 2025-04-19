@@ -1000,7 +1000,7 @@ install-include:
 
 ########## Sanity Tests
 
-.PHONY: pretest sanity-test failures-test functional-test extra-test tests
+.PHONY: pretest sanity-test failures-test functional-test extra-test valgrind-test tests
 
 # Occasionally I'll control-C out of a "make tests" and it will leave some
 # functional test processes stuck. If I don't notice this, it causes
@@ -1072,6 +1072,14 @@ extra-test:
 
 tests:	sanity-test failures-test functional-test applications-test extra-test
 	echo "COMPLETE" 1>&2
+
+# The valgrind tests are not included by default because my experience has
+# been that valgrind doesn't work on all Linux distros for all SBCs even
+# though it may pretend to install successfully.
+
+valgrind-test:
+	unittest-stagecoach-valgrind
+	unittest-codextool-valgrind
 
 ##### Build certificates etc. for Wheatstone.
 
